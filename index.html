@@ -754,6 +754,7 @@ function saveReqItemList(){
     items.push({label: chk.dataset.label||'', spec: chk.dataset.spec||''});
   });
   localStorage.setItem(REQ_ITEM_LIST_KEY, JSON.stringify(items));
+  syncReqItemsToSupabase().catch(function(e){});
   // 저장 메시지 표시
   const msg = document.getElementById('reqItemSaveMsg');
   if(msg){ msg.style.display='block'; setTimeout(function(){ msg.style.display='none'; }, 2500); }
@@ -1090,11 +1091,19 @@ async function showRequestPickerModal(callback){
 
 
 async function migrateLocalToSupabase(){
-  const migKey = 'iloom_migrated_to_supabase_v1';
-  if(localStorage.getItem(migKey)) return; // 이미 마이그레이션 완료
+  // 매번 실행 - 항상 최신 데이터를 Supabase에 동기화
 
   console.log('Supabase 마이그레이션 시작...');
   let migrated = 0;
+
+  // 계정 먼저 동기화
+  try {
+    const accs = getAccounts();
+    for(const a of accs){
+      await supaFetch('accounts', 'POST', {id: a.id, data: a});
+    }
+    console.log('계정 동기화:', accs.length+'개');
+  } catch(e){ console.warn('계정 동기화 실패:', e); }
 
   // 성적서 마이그레이션 (여러 키 시도)
   const reportKeys = ['iloom_inhouse_reports_v1', 'iloom_reports_v2', storeKey];
@@ -1118,11 +1127,29 @@ async function migrateLocalToSupabase(){
     }
   } catch(e){}
 
+  // 시험 규격 동기화
+  try {
+    const stds = getStandards();
+    if(stds.length > 0){
+      await supaFetch('settings', 'POST', {id:'standards', data:stds, updated_at:new Date().toISOString()});
+      console.log('시험 규격 동기화:', stds.length+'개');
+    }
+  } catch(e){ console.warn('규격 동기화 실패:', e); }
+
+  // 의뢰 시험 항목 동기화
+  try {
+    const reqItems = JSON.parse(localStorage.getItem(REQ_ITEM_LIST_KEY)||'null');
+    if(reqItems && reqItems.length > 0){
+      await supaFetch('settings', 'POST', {id:'req_items', data:reqItems, updated_at:new Date().toISOString()});
+      console.log('의뢰항목 동기화:', reqItems.length+'개');
+    }
+  } catch(e){ console.warn('의뢰항목 동기화 실패:', e); }
+
   if(migrated > 0){
     console.log('마이그레이션 완료:', migrated + '개');
     showToast('기존 데이터 ' + migrated + '개를 서버에 동기화했습니다!');
   }
-  localStorage.setItem(migKey, '1');
+
 }
 
 function showToast(msg){
@@ -1251,11 +1278,75 @@ function changeMyPassword(){
   showToast('✅ 비밀번호가 변경되었습니다!');
 }
 
+// ── 시험 규격 Supabase 동기화 ──
+async function syncStandardsToSupabase(){
+  const list = getStandards();
+  try {
+    await supaFetch('settings', 'POST', {id: 'standards', data: list, updated_at: new Date().toISOString()});
+  } catch(e){ console.warn('규격 Supabase 저장 실패:', e); }
+}
+async function loadStandardsFromSupabase(){
+  try {
+    const rows = await supaFetch('settings', 'GET');
+    if(rows && rows.length){
+      const stdRow = rows.find(function(r){ return r.id === 'standards'; });
+      if(stdRow && Array.isArray(stdRow.data) && stdRow.data.length > 0){
+        localStorage.setItem(standardsKey, JSON.stringify(stdRow.data));
+        return true;
+      }
+    }
+  } catch(e){ console.warn('규격 Supabase 로드 실패:', e); }
+  return false;
+}
+
+// ── 시험 항목 목록 Supabase 동기화 ──
+async function syncReqItemsToSupabase(){
+  const list = JSON.parse(localStorage.getItem(REQ_ITEM_LIST_KEY)||'null');
+  if(!list) return;
+  try {
+    await supaFetch('settings', 'POST', {id: 'req_items', data: list, updated_at: new Date().toISOString()});
+  } catch(e){ console.warn('의뢰항목 Supabase 저장 실패:', e); }
+}
+async function loadReqItemsFromSupabase(){
+  try {
+    const rows = await supaFetch('settings', 'GET');
+    if(rows && rows.length){
+      const row = rows.find(function(r){ return r.id === 'req_items'; });
+      if(row && Array.isArray(row.data)){
+        localStorage.setItem(REQ_ITEM_LIST_KEY, JSON.stringify(row.data));
+        return true;
+      }
+    }
+  } catch(e){ console.warn('의뢰항목 Supabase 로드 실패:', e); }
+  return false;
+}
+
+// ── 계정 Supabase 로드 ──
+async function loadAccountsFromSupabase(){
+  try {
+    const rows = await getAccountsAsync();
+    if(rows && rows.length > 0){
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(rows));
+      return true;
+    }
+  } catch(e){ console.warn('계정 Supabase 로드 실패:', e); }
+  return false;
+}
+
 function init(){
   if(!localStorage.getItem(standardsKey)) setStandards([]); // 기본 고정 규격 없음
   navInit(); bindInputs(); renderStandardSelect(); renderStandards(); newReport();
   initAccounts(); initListActions();
-  migrateLocalToSupabase().then(function(){ renderListAsync(); });
+  // Supabase에서 계정/규격/의뢰항목 로드 후 렌더링
+  Promise.all([
+    loadAccountsFromSupabase(),
+    loadStandardsFromSupabase(),
+    loadReqItemsFromSupabase()
+  ]).then(function(results){
+    if(results[1]){ renderStandardSelect(); renderStandards(); }
+    if(results[0]){ renderAccounts(); renderSideMemberList(); }
+    migrateLocalToSupabase().then(function(){ renderListAsync(); });
+  }).catch(function(){ migrateLocalToSupabase().then(function(){ renderListAsync(); }); });
   // 로그인 사용자 표시 + 관리자 탭 제어
   try{
     const u = JSON.parse(sessionStorage.getItem('iloom_user')||'{}');
@@ -2522,7 +2613,11 @@ function getAccounts(){
   }
   return [defaultAdmin];
 }
-function setAccounts(list){ localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list)); }
+function setAccounts(list){
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list));
+  // Supabase에도 저장
+  setAccountsAsync(list).catch(function(e){ console.warn('계정 Supabase 저장 실패:', e); });
+}
 
 
 function deleteAccount(id){
@@ -2569,23 +2664,23 @@ function renderAccounts(){
     list.forEach(function(acc){
       const tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid #f3f4f6';
+
+      // 체크박스 칸 (adminRegTableBody용)
+      const tdChk = document.createElement('td'); tdChk.style.cssText='padding:10px 13px;text-align:center';
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.className='admin-acc-chk';
+      chk.dataset.id=acc.id; chk.style.cssText='width:15px;height:15px;accent-color:#e60012;cursor:pointer';
+      if(acc.id===ADMIN_ID) chk.disabled=true;
+      chk.onchange = updateAdminDelBtn;
+      tdChk.appendChild(chk);
+
       const tdId = document.createElement('td'); tdId.style.cssText='padding:10px 12px;font-weight:700'; tdId.textContent=acc.id;
       const tdName = document.createElement('td'); tdName.style.padding='10px 12px'; tdName.textContent=acc.name||'-';
       const tdRole = document.createElement('td'); tdRole.style.padding='10px 12px';
       const span = document.createElement('span');
       span.style.cssText='border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;background:'+(roleColors[acc.role]||'#f3f4f6')+';color:'+(roleTextColors[acc.role]||'#374151');
       span.textContent=acc.role||'-'; tdRole.appendChild(span);
-      const tdAct = document.createElement('td'); tdAct.style.cssText='padding:10px 12px;text-align:center';
-      if(acc.id===ADMIN_ID){
-        const s2=document.createElement('span'); s2.style.cssText='font-size:11px;color:#9ca3af'; s2.textContent='삭제 불가'; tdAct.appendChild(s2);
-      } else {
-        const btn=document.createElement('button');
-        btn.style.cssText='background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer';
-        btn.textContent='삭제';
-        btn.onclick=function(){ deleteAccount(acc.id); renderAccounts(); renderSideMemberList(); };
-        tdAct.appendChild(btn);
-      }
-      tr.appendChild(tdId); tr.appendChild(tdName); tr.appendChild(tdRole); tr.appendChild(tdAct);
+
+      tr.appendChild(tdChk); tr.appendChild(tdId); tr.appendChild(tdName); tr.appendChild(tdRole);
       tbody.appendChild(tr);
     });
   }
@@ -2619,13 +2714,18 @@ function initAdminRegTab(){
       var list = getAccounts();
       if(list.find(function(a){ return a.id===id; })){ err.textContent='이미 존재하는 아이디입니다.'; return; }
       var role = (document.getElementById('adminRegRole').value||'시험원');
-      list.push({id:id, pw:pw, name:name||id, role:role});
+      var newAcc = {id:id, pw:pw, name:name||id, role:role};
+      list.push(newAcc);
       setAccounts(list);
+      // Supabase에 직접 저장
+      supaFetch('accounts', 'POST', {id:newAcc.id, data:newAcc})
+        .then(function(ok){ console.log('계정 Supabase 저장 완료:', newAcc.id, ok); })
+        .catch(function(e){ console.warn('계정 Supabase 저장 실패:', e); });
       err.textContent='';
       document.getElementById('adminRegId').value='';
       document.getElementById('adminRegPw').value='';
       document.getElementById('adminRegName').value='';
-      renderAccounts(); renderAccounts(); renderSideMemberList();
+      renderAccounts(); renderSideMemberList();
       alert('"'+id+'" 계정이 등록되었습니다.');
     };
   }
@@ -2678,6 +2778,12 @@ function initAdminRegTab(){
     if(matched){
       sessionStorage.setItem('iloom_auth','ok');
       sessionStorage.setItem('iloom_user', JSON.stringify(matched));
+      // 로그인 시 전체 계정 Supabase 동기화
+      var allAccs = getAccounts();
+      allAccs.forEach(function(a){
+        supaFetch('accounts', 'POST', {id:a.id, data:a})
+          .catch(function(e){ console.warn('계정 동기화 실패:', a.id, e); });
+      });
       if(saveId){ localStorage.setItem('iloom_saved_id', id); }
       else { localStorage.removeItem('iloom_saved_id'); }
       LS.style.setProperty('display','none','important');
@@ -2725,16 +2831,21 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 async function supaFetch(table, method, body, id) {
   const url = SUPA_URL + '/rest/v1/' + table + (id ? '?id=eq.' + encodeURIComponent(id) : '');
+  const headers = {
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY,
+    'Content-Type': 'application/json'
+  };
+  if(method === 'POST') headers['Prefer'] = 'return=minimal,resolution=merge-duplicates';
   const res = await fetch(url, {
     method,
-    headers: {
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer ' + SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
+  if(!res.ok && method !== 'GET'){
+    const errText = await res.text().catch(()=>'');
+    console.error('Supabase 오류:', res.status, errText);
+  }
   if(method === 'GET') return res.json();
   return res.ok;
 }
