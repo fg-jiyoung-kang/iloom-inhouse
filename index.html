@@ -389,7 +389,7 @@ button,input,select{font:inherit}
         </div>
 
         <!-- 의뢰서 목록 -->
-        <div class="card no-print" style="max-width:860px;margin-bottom:16px">
+        <div class="card no-print" id="reqListSection" style="max-width:860px;margin-bottom:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
             <h2 style="margin:0">저장된 의뢰서</h2>
             <button id="reqDelSelectedBtn" style="display:none;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer">🗑 선택 삭제</button>
@@ -2221,8 +2221,25 @@ function renderStandards(){
 }
 
 function previewRequestOnly(){
-  // saveAndPreviewRequest 호출 (저장도 하지만 불러온 데이터 미리보기 갱신)
-  saveAndPreviewRequest();
+  // 저장 없이 미리보기만 갱신
+  var v = function(id){ return (document.getElementById(id)||{}).value||''; };
+  var data = {
+    no:v('req_no'), date:v('req_date'), company:v('req_company'),
+    materials: ['fabric','sponge','antibac','padding'].filter(function(m){ return document.getElementById('req_mat_'+m)?.checked; }),
+    person:v('req_person'), dept:v('req_dept'), hp:v('req_hp'), email:v('req_email'),
+    product:v('req_product'), brand:v('req_brand'), color:v('req_color'),
+    style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
+    items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
+    chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
+    chk_internal: document.getElementById('req_chk_internal')?.checked||false
+  };
+  // 의뢰서 미리보기 렌더링 (저장 없음)
+  var iloomEl = document.getElementById('iloom-logo-src');
+  var kolasEl = document.getElementById('kolas-logo-src');
+  var iloomSrc = iloomEl ? iloomEl.src : '';
+  var kolasSrc = kolasEl ? kolasEl.src : '';
+  renderReqPreviewHTML(data, iloomSrc, kolasSrc);
+  showToast('✅ 의뢰서를 불러왔습니다!');
 }
 
 function generateReqNo(){
@@ -2256,9 +2273,23 @@ async function renderReqListAsync(){
 }
 
 function renderReqList(){
-  const list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+  const u = JSON.parse(sessionStorage.getItem('iloom_user')||'{}');
+  const role = u.role||'시험원';
+  const isAdminOrTester = role==='관리자' || u.id===ADMIN_ID || role==='시험원';
+  const allList = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+  // 의뢰자는 본인이 작성한 것만 표시
+  const list = isAdminOrTester ? allList : allList.filter(function(r){
+    return r.person === (u.name||u.id) || r.no && r.no.indexOf(u.id) > -1;
+  });
   const box = document.getElementById('reqList');
   if(!box) return;
+
+  // 저장된 의뢰서 섹션 자체를 역할에 따라 표시/숨김
+  const reqListSection = document.getElementById('reqListSection');
+  if(reqListSection){
+    reqListSection.style.display = (isAdminOrTester || list.length > 0) ? '' : 'none';
+  }
+
   box.innerHTML = list.length ? '' : '<p class="note">저장된 의뢰서가 없습니다.</p>';
   list.forEach(function(r){
     const d = document.createElement('div');
@@ -2366,25 +2397,7 @@ function initRequestTab(){
   }
 }
 
-async function saveAndPreviewRequest(){
-  var v = function(id){ return (document.getElementById(id)||{}).value||''; };
-  var data = {
-    no:v('req_no'), date:v('req_date'), company:v('req_company'),
-    materials: ['fabric','sponge','antibac','padding'].filter(function(m){ return document.getElementById('req_mat_'+m)?.checked; }),
-    person:v('req_person'), dept:v('req_dept'), hp:v('req_hp'), email:v('req_email'),
-    product:v('req_product'), brand:v('req_brand'), color:v('req_color'),
-    style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
-    items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
-    chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
-    chk_internal: document.getElementById('req_chk_internal')?.checked||false
-  };
-  // Supabase에 저장
-  try { await setRequestAsync(data); } catch(e){ console.warn('의뢰서 Supabase 저장 실패:', e); }
-  var list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
-  var fi = list.findIndex(function(r){return r.no===data.no;});
-  if(fi>=0) list[fi]=data; else list.unshift(data);
-  localStorage.setItem('iloom_requests_v1', JSON.stringify(list));
-
+function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
   var preview = document.getElementById('reqPreview');
   if(!preview) return;
 
@@ -2473,6 +2486,32 @@ async function saveAndPreviewRequest(){
     +'</div></div>'
     +'</div>';
 
+}
+
+async function saveAndPreviewRequest(){
+  var v = function(id){ return (document.getElementById(id)||{}).value||''; };
+  var data = {
+    no:v('req_no'), date:v('req_date'), company:v('req_company'),
+    materials: ['fabric','sponge','antibac','padding'].filter(function(m){ return document.getElementById('req_mat_'+m)?.checked; }),
+    person:v('req_person'), dept:v('req_dept'), hp:v('req_hp'), email:v('req_email'),
+    product:v('req_product'), brand:v('req_brand'), color:v('req_color'),
+    style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
+    items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
+    chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
+    chk_internal: document.getElementById('req_chk_internal')?.checked||false
+  };
+  // Supabase에 저장
+  try { await setRequestAsync(data); } catch(e){ console.warn('의뢰서 Supabase 저장 실패:', e); }
+  var list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+  var fi = list.findIndex(function(r){return r.no===data.no;});
+  if(fi>=0) list[fi]=data; else list.unshift(data);
+  localStorage.setItem('iloom_requests_v1', JSON.stringify(list));
+
+  var iloomEl = document.getElementById('iloom-logo-src');
+  var kolasEl = document.getElementById('kolas-logo-src');
+  var iloomSrc2 = iloomEl ? iloomEl.src : '';
+  var kolasSrc2 = kolasEl ? kolasEl.src : '';
+  renderReqPreviewHTML(data, iloomSrc2, kolasSrc2);
   renderReqList();
   alert('저장 완료! 미리보기를 확인하세요.');
 }
