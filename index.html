@@ -549,7 +549,7 @@ button,input,select{font:inherit}
           <div class="form-grid">
             <label>시험 항목<input id="stdName" placeholder="예: 내마모성"></label>
             <label class="wide">시험 규격<input id="stdSpec" placeholder="예: KS K ISO 105-C06"></label>
-            <label class="wide">시험 기준<input id="stdCrit" placeholder="예: 4급 이상"></label>
+            <label class="wide" style="grid-column:1/-1">시험 기준<textarea id="stdCrit" placeholder="예: 4급 이상&#10;조건이 여러 줄이면 Enter로 줄바꿈" rows="3" style="border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;resize:vertical;width:100%;box-sizing:border-box"></textarea></label>
             <label>기본 판정<select id="stdDefault" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer"><option value="PASS">PASS</option><option value="FAIL">FAIL</option></select></label>
             <label>분류<select id="stdCategory" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></label>
           </div>
@@ -787,17 +787,84 @@ function makeReqItemRow(item, isCustom){
   lbl.appendChild(chk);
   lbl.appendChild(txt);
 
-  // 삭제 버튼 - 항상 보임
+  // 수정 버튼
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.textContent = '수정';
+  editBtn.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;color:#2563eb;cursor:pointer;font-size:11px;font-weight:700;padding:3px 10px;flex-shrink:0;white-space:nowrap';
+  editBtn.onmouseover = function(){ this.style.background='#dbeafe'; };
+  editBtn.onmouseout  = function(){ this.style.background='#eff6ff'; };
+  editBtn.onclick = function(e){
+    e.stopPropagation();
+    const curLabel = chk.dataset.label||'';
+    const curSpec  = chk.dataset.spec||'';
+    // 인라인 수정 UI로 전환
+    const wasChecked = chk.checked;
+    row.innerHTML = '';
+    row.style.gridColumn = '1/-1';
+    row.style.background = '#f0f9ff';
+    row.style.border = '1px solid #bae6fd';
+    row.style.padding = '8px 10px';
+    const nameInp = document.createElement('input');
+    nameInp.value = curLabel;
+    nameInp.placeholder = '항목명';
+    nameInp.style.cssText = 'border:1px solid #d1d5db;border-radius:7px;padding:6px 10px;font-size:12px;flex:1;min-width:100px;outline:none';
+    const specInp = document.createElement('input');
+    specInp.value = curSpec;
+    specInp.placeholder = '시험 규격';
+    specInp.style.cssText = 'border:1px solid #d1d5db;border-radius:7px;padding:6px 10px;font-size:12px;flex:1.5;min-width:140px;outline:none';
+    const saveBtn2 = document.createElement('button');
+    saveBtn2.type='button'; saveBtn2.textContent='저장';
+    saveBtn2.style.cssText='background:#2563eb;color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap';
+    const cancelBtn2 = document.createElement('button');
+    cancelBtn2.type='button'; cancelBtn2.textContent='취소';
+    cancelBtn2.style.cssText='background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap';
+    const wrap = document.createElement('div');
+    wrap.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%';
+    wrap.appendChild(nameInp); wrap.appendChild(specInp);
+    wrap.appendChild(saveBtn2); wrap.appendChild(cancelBtn2);
+    row.appendChild(wrap);
+    nameInp.focus();
+    saveBtn2.onclick = function(){
+      const newLabel = nameInp.value.trim();
+      const newSpec  = specInp.value.trim();
+      if(!newLabel){ alert('항목명을 입력해주세요.'); return; }
+      chk.dataset.label = newLabel;
+      chk.dataset.spec  = newSpec;
+      chk.checked = wasChecked;
+      // 행 원래대로 복원
+      row.innerHTML = '';
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;transition:background .15s;font-size:12px;color:#374151;cursor:default'
+        + (isCustom ? ';grid-column:1/-1;background:#fff9f9;border:1px dashed #fca5a5;margin-top:4px' : '');
+      txt.innerHTML = (isCustom ? '<span style="font-weight:700;color:#e60012;font-size:11px">✚</span> ' : '')
+        + '<span style="font-weight:700;color:#1f2937">'+newLabel+'</span>'
+        + (newSpec ? '<span style="color:#9ca3af;font-size:10px;margin-left:2px">'+newSpec+'</span>' : '');
+      lbl.innerHTML=''; lbl.appendChild(chk); lbl.appendChild(txt);
+      row.appendChild(lbl); row.appendChild(editBtn); row.appendChild(delBtn);
+      // 목록 저장 → 성적서 작성 탭 규격 선택 드롭다운도 갱신
+      saveReqItemList();
+      renderStandardSelect();
+    };
+    cancelBtn2.onclick = function(){
+      row.innerHTML = '';
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;transition:background .15s;font-size:12px;color:#374151;cursor:default'
+        + (isCustom ? ';grid-column:1/-1;background:#fff9f9;border:1px dashed #fca5a5;margin-top:4px' : '');
+      row.appendChild(lbl); row.appendChild(editBtn); row.appendChild(delBtn);
+    };
+  };
+
+  // 삭제 버튼
   const delBtn = document.createElement('button');
   delBtn.type = 'button';
   delBtn.textContent = '삭제';
   delBtn.title = '항목 삭제';
-  delBtn.style.cssText = 'margin-left:auto;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;color:#dc2626;cursor:pointer;font-size:11px;font-weight:700;padding:3px 10px;flex-shrink:0;white-space:nowrap';
+  delBtn.style.cssText = 'background:#fee2e2;border:1px solid #fecaca;border-radius:6px;color:#dc2626;cursor:pointer;font-size:11px;font-weight:700;padding:3px 10px;flex-shrink:0;white-space:nowrap';
   delBtn.onmouseover = function(){ this.style.background='#fecaca'; };
   delBtn.onmouseout  = function(){ this.style.background='#fee2e2'; };
   delBtn.onclick = function(e){ e.stopPropagation(); row.remove(); };
 
   row.appendChild(lbl);
+  row.appendChild(editBtn);
   row.appendChild(delBtn);
   return row;
 }
@@ -1059,7 +1126,7 @@ function showToast(msg){
 }
 
 function init(){
-  if(!localStorage.getItem(standardsKey)) setStandards(defaultStandards);
+  if(!localStorage.getItem(standardsKey)) setStandards([]); // 기본 고정 규격 없음
   navInit(); bindInputs(); renderStandardSelect(); renderStandards(); newReport();
   initAccounts(); initListActions();
   migrateLocalToSupabase().then(function(){ renderListAsync(); });
@@ -1186,7 +1253,7 @@ function bindInputs(){
   pm.style.display = 'flex';
   document.getElementById('printCancel').onclick = ()=>{ pm.style.display='none'; };
   document.getElementById('printGo').onclick = ()=>{ pm.style.display='none'; setTimeout(()=>window.print(),200); };
-}; $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{setStandards(defaultStandards);renderStandardSelect();renderStandards();};
+}; $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();}};
   $('searchReport').addEventListener('input',renderList);
   $('exportBtn').onclick=exportData; $('importFile').addEventListener('change',importData); $('clearAllBtn').onclick=clearAll;
 }
@@ -1835,10 +1902,76 @@ function renderStandardSelect(){
 
 function renderStandards(){
   const box=$('standardList'); if(!box) return; box.innerHTML='';
-  getStandards().forEach((s,i)=>{
-    const d=document.createElement('div'); d.className='list-item';
-    d.innerHTML='<div><b>'+esc(s.name)+'</b><span>'+esc(s.spec)+(s.crit?'<span style="color:#6b7280;font-size:11px;margin-left:6px">('+esc(s.crit)+')</span>':'')+'</span></div><div class="actions"><button class="btn ghost">삭제</button></div>';
-    d.querySelector('button').onclick=()=>{const list=getStandards();list.splice(i,1);setStandards(list);renderStandards();renderStandardSelect();};
+  const list = getStandards();
+  if(!list.length){
+    box.innerHTML='<p class="note" style="color:#9ca3af;padding:16px 0">저장된 규격이 없습니다. 위에서 추가해주세요.</p>';
+    return;
+  }
+  list.forEach(function(s, i){
+    const d = document.createElement('div'); d.className='list-item';
+    d.style.cssText='padding:10px 14px;border-bottom:1px solid #f3f4f6';
+
+    // 표시 모드
+    const viewDiv = document.createElement('div');
+    viewDiv.style.cssText='display:flex;align-items:flex-start;gap:10px';
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText='flex:1;min-width:0';
+    infoDiv.innerHTML='<div style="font-weight:800;font-size:13px;color:#1f2937">'+esc(s.name)+'</div>'
+      +'<div style="font-size:11px;color:#6b7280;margin-top:2px">'+esc(s.spec)+'</div>'
+      +(s.crit?'<div style="font-size:11px;color:#374151;margin-top:3px;white-space:pre-wrap;background:#f9fafb;border-radius:6px;padding:4px 8px">'+esc(s.crit)+'</div>':'')
+      +'<div style="margin-top:4px"><span style="font-size:10px;font-weight:700;background:#fef2f2;color:#e60012;padding:2px 8px;border-radius:20px">'+esc(s.category||'')+'</span></div>';
+    const actDiv = document.createElement('div');
+    actDiv.style.cssText='display:flex;gap:6px;flex-shrink:0';
+
+    const editBtn = document.createElement('button');
+    editBtn.className='btn ghost'; editBtn.textContent='수정';
+    editBtn.style.cssText='font-size:11px;padding:5px 12px;background:#eff6ff;border-color:#bfdbfe;color:#2563eb';
+
+    const delBtn = document.createElement('button');
+    delBtn.className='btn ghost'; delBtn.textContent='삭제';
+    delBtn.style.cssText='font-size:11px;padding:5px 12px;background:#fee2e2;border-color:#fecaca;color:#dc2626';
+    delBtn.onclick=function(){
+      if(!confirm('"'+s.name+'" 규격을 삭제할까요?')) return;
+      const l=getStandards(); l.splice(i,1); setStandards(l); renderStandards(); renderStandardSelect();
+    };
+
+    actDiv.appendChild(editBtn); actDiv.appendChild(delBtn);
+    viewDiv.appendChild(infoDiv); viewDiv.appendChild(actDiv);
+    d.appendChild(viewDiv);
+
+    // 수정 모드
+    editBtn.onclick=function(){
+      viewDiv.style.display='none';
+      const editDiv = document.createElement('div');
+      editDiv.style.cssText='display:flex;flex-direction:column;gap:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px';
+      editDiv.innerHTML=''
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        +'<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700">시험 항목<input id="edit_name_'+i+'" value="'+esc(s.name)+'" style="border:1px solid #d1d5db;border-radius:8px;padding:8px;font:inherit"></label>'
+        +'<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700">시험 규격<input id="edit_spec_'+i+'" value="'+esc(s.spec||'')+'" style="border:1px solid #d1d5db;border-radius:8px;padding:8px;font:inherit"></label>'
+        +'</div>'
+        +'<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700">시험 기준<textarea id="edit_crit_'+i+'" rows="3" style="border:1px solid #d1d5db;border-radius:8px;padding:8px;font:inherit;resize:vertical">'+esc(s.crit||'')+'</textarea></label>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        +'<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700">기본 판정<select id="edit_judge_'+i+'" style="border:1px solid #d1d5db;border-radius:8px;padding:8px;font:inherit"><option'+(s.defaultJudge==='PASS'?' selected':'')+'>PASS</option><option'+(s.defaultJudge==='FAIL'?' selected':'')+'>FAIL</option></select></label>'
+        +'<label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700">분류<select id="edit_cat_'+i+'" style="border:1px solid #d1d5db;border-radius:8px;padding:8px;font:inherit"><option'+(s.category==='내구성시험'?' selected':'')+'>내구성시험</option><option'+(s.category==='치수/외관'?' selected':'')+'>치수/외관</option><option'+(s.category==='성능시험'?' selected':'')+'>성능시험</option><option'+(s.category==='물성시험'?' selected':'')+'>물성시험</option><option'+(s.category==='견뢰도'?' selected':'')+'>견뢰도</option><option'+(s.category==='유해물질'?' selected':'')+'>유해물질</option></select></label>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px">'
+        +'<button class="btn primary" id="edit_save_'+i+'" style="font-size:12px;padding:7px 18px">저장</button>'
+        +'<button class="btn ghost" id="edit_cancel_'+i+'" style="font-size:12px;padding:7px 14px">취소</button>'
+        +'</div>';
+      d.appendChild(editDiv);
+
+      document.getElementById('edit_cancel_'+i).onclick=function(){ editDiv.remove(); viewDiv.style.display=''; };
+      document.getElementById('edit_save_'+i).onclick=function(){
+        const l=getStandards();
+        l[i].name = document.getElementById('edit_name_'+i).value.trim();
+        l[i].spec = document.getElementById('edit_spec_'+i).value.trim();
+        l[i].crit = document.getElementById('edit_crit_'+i).value.trim();
+        l[i].defaultJudge = document.getElementById('edit_judge_'+i).value;
+        l[i].category = document.getElementById('edit_cat_'+i).value;
+        setStandards(l); renderStandards(); renderStandardSelect();
+      };
+    };
+
     box.appendChild(d);
   });
 }
