@@ -1398,7 +1398,7 @@ function navInit(){
     updateTopbar(btn.dataset.tab);
     if(btn.dataset.tab === 'accounts') renderAccounts();
     if(btn.dataset.tab === 'admin'){ renderAccounts(); initAdminRegTab(); }
-    if(btn.dataset.tab === 'request') initRequestTab();
+    if(btn.dataset.tab === 'request'){ initRequestTab(); renderReqListAsync(); }
     if(btn.dataset.tab === 'list') renderListAsync();
     if(btn.dataset.tab === 'write') renderStandardSelect();
   }));
@@ -1837,7 +1837,7 @@ function renderPreview(){
       <table class="meta-table"><tr><th>접수번호</th><td>${esc(r.receiptNo)}</td><th>용도</th><td>${esc(r.purpose)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr></table>
       <div class="red-title">■ 의뢰 시험 항목</div>
       <table class="report-table"><thead><tr><th style="width:8%">No.</th><th>시험 항목 (Test Item)</th><th style="width:25%">시험 규격</th><th style="width:22%">시험 기준</th></tr></thead>
-        <tbody>${tests.length ? tests.map((t,i)=>'<tr style="height:28px"><td>'+(i+1)+'</td><td class="left bold">'+esc(t.name||'')+'</td><td class="left">'+esc(t.spec||'')+'</td><td class="left">'+esc(t.crit||'')+'</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
+        <tbody>${tests.length ? tests.map((t,i)=>'<tr><td>'+(i+1)+'</td><td class="left bold">'+esc(t.name||'')+'</td><td class="left">'+esc(t.spec||'')+'</td><td class="left" style="white-space:pre-wrap">'+esc(t.crit||'')+'</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
       </table>
       <table class="report-table" style="margin-top:0;border-top:none"><tbody><tr>
         <td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border-top:1px solid #ddd;white-space:nowrap">비고</td>
@@ -2218,6 +2218,27 @@ function renderStandards(){
   });
 }
 
+function previewRequestOnly(){
+  // 저장 없이 미리보기만 갱신
+  var v = function(id){ return (document.getElementById(id)||{}).value||''; };
+  var data = {
+    no:v('req_no'), date:v('req_date'), company:v('req_company'),
+    person:v('req_person'), dept:v('req_dept'), hp:v('req_hp'), email:v('req_email'),
+    product:v('req_product'), brand:v('req_brand'), color:v('req_color'),
+    style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
+    items:getCheckedReqItems(), note:v('req_note'),
+    chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
+    chk_internal: document.getElementById('req_chk_internal')?.checked||false,
+    materials: ['fabric','sponge','antibac','padding'].filter(function(m){ return document.getElementById('req_mat_'+m)?.checked; })
+  };
+  // 미리보기 렌더링만
+  var previewFn = document.getElementById('reqPreview');
+  if(previewFn) renderReqPreview(data);
+  // 의뢰서 작성 탭으로 이동
+  var reqTab = document.querySelector('.nav-btn[data-tab="request"]');
+  if(reqTab) reqTab.click();
+}
+
 function generateReqNo(){
   const list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
   const year = new Date().getFullYear();
@@ -2228,6 +2249,24 @@ function generateReqNo(){
     if(m) max=Math.max(max,parseInt(m[1]));
   });
   return prefix + String(max + 1).padStart(3, '0');
+}
+
+async function renderReqListAsync(){
+  // Supabase에서 의뢰서 불러와 로컬에 병합
+  try {
+    const supaReqs = await getRequestsAsync();
+    if(supaReqs && supaReqs.length > 0){
+      const localList = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+      const merged = [...localList];
+      supaReqs.forEach(function(sr){
+        if(!merged.find(function(lr){ return lr.no===sr.no; })) merged.push(sr);
+      });
+      if(merged.length !== localList.length){
+        localStorage.setItem('iloom_requests_v1', JSON.stringify(merged));
+      }
+    }
+  } catch(e){}
+  renderReqListAsync();
 }
 
 function renderReqList(){
@@ -2281,8 +2320,8 @@ function renderReqList(){
           });
         });
       }
-      // 미리보기 갱신
-      saveAndPreviewRequest();
+      // 미리보기만 갱신 (저장 없이)
+      previewRequestOnly();
     };
     d.appendChild(chk); d.appendChild(info); d.appendChild(loadBtn);
     box.appendChild(d);
