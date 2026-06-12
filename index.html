@@ -1289,7 +1289,7 @@ function navInit(){
     renderList(); renderStandards();
     updateTopbar(btn.dataset.tab);
     if(btn.dataset.tab === 'accounts') renderAccounts();
-    if(btn.dataset.tab === 'admin'){ renderAdminRegTable && renderAdminRegTable(); initAdminRegTab(); }
+    if(btn.dataset.tab === 'admin'){ renderAccounts(); initAdminRegTab(); }
     if(btn.dataset.tab === 'request') initRequestTab();
     if(btn.dataset.tab === 'list') renderListAsync();
     if(btn.dataset.tab === 'write') renderStandardSelect();
@@ -2597,7 +2597,7 @@ function initAccounts(){
 
 
 function initAdminRegTab(){
-  renderAdminRegTable();
+  renderAccounts();
 
   // 등록 버튼 - onclick으로 단순하게
   var btn = document.getElementById('adminRegBtn');
@@ -2619,7 +2619,7 @@ function initAdminRegTab(){
       document.getElementById('adminRegId').value='';
       document.getElementById('adminRegPw').value='';
       document.getElementById('adminRegName').value='';
-      renderAdminRegTable(); renderAccounts(); renderSideMemberList();
+      renderAccounts(); renderAccounts(); renderSideMemberList();
       alert('"'+id+'" 계정이 등록되었습니다.');
     };
   }
@@ -2641,7 +2641,7 @@ function initAdminRegTab(){
       if(!ids.length) return;
       if(!confirm(ids.length+'개 계정을 삭제할까요?')) return;
       setAccounts(getAccounts().filter(function(a){ return !ids.includes(a.id) || a.id===ADMIN_ID; }));
-      renderAdminRegTable(); renderAccounts(); renderSideMemberList();
+      renderAccounts(); renderAccounts(); renderSideMemberList();
     };
   }
 }
