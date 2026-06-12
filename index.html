@@ -2291,6 +2291,9 @@ function renderReqList(){
     loadBtn.style.cssText = 'font-size:12px;padding:6px 14px;flex-shrink:0';
     loadBtn.onclick = function(e){
       e.stopPropagation();
+      // 먼저 의뢰서 작성 탭으로 이동
+      var reqNavBtn = document.querySelector('.nav-btn[data-tab="request"]');
+      if(reqNavBtn) reqNavBtn.click();
       // 기본 텍스트 필드 복원
       ['no','date','company','person','dept','hp','email','product','brand','color','style','fiber','buyer','note'].forEach(function(k){
         var el = document.getElementById('req_'+k); if(el) el.value = r[k]||'';
