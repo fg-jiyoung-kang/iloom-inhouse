@@ -2284,10 +2284,10 @@ function renderReqList(){
   const box = document.getElementById('reqList');
   if(!box) return;
 
-  // 저장된 의뢰서 섹션 자체를 역할에 따라 표시/숨김
+  // 의뢰자는 저장된 의뢰서 섹션 완전히 숨김
   const reqListSection = document.getElementById('reqListSection');
   if(reqListSection){
-    reqListSection.style.display = (isAdminOrTester || list.length > 0) ? '' : 'none';
+    reqListSection.style.display = isAdminOrTester ? '' : 'none';
   }
 
   box.innerHTML = list.length ? '' : '<p class="note">저장된 의뢰서가 없습니다.</p>';
