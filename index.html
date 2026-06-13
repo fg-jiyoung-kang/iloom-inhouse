@@ -168,18 +168,22 @@ button,input,select{font:inherit}
   .page:last-child{page-break-after:auto!important;break-after:auto!important}
   /* 1페이지: 고정 높이 */
   .page-1{height:297mm!important;padding:16mm 10mm 52mm!important;overflow:hidden!important}
-  /* 2페이지: 내용 따라 늘어남, 패딩 최소화 */
+  /* 2페이지: 내용 따라 늘어남, 폰트 작게 */
   .page-2{
     min-height:0!important;
     height:auto!important;
     padding:0!important;
     page-break-after:auto!important;
     break-after:auto!important;
+    font-size:9px!important;
   }
-  /* 2페이지 table thead가 각 페이지마다 자동 반복됨 */
-  .page-2 table{width:100%!important}
-  .page-2 thead{display:table-header-group!important}
-  .page-2 tbody{display:table-row-group!important}
+  .page-2 .result-block{margin-bottom:6px!important}
+  .page-2 .result-table td,.page-2 .result-table th{padding:4px 6px!important;font-size:9px!important}
+  .page-2 .result-block-title{font-size:10px!important;margin-bottom:2px!important}
+  .page-2 .sub-head{font-size:8px!important;padding-bottom:4px!important}
+  .page-2 h3{font-size:10px!important;margin:4px 0!important}
+  .page-2 .photo-card{max-height:80mm!important}
+  .page-2 .photo-card img{max-height:80mm!important;object-fit:contain!important}
   /* 결과 블록은 중간에서 잘리지 않도록 */
   .result-block{break-inside:avoid!important;page-break-inside:avoid!important}
   .photo-box{break-inside:avoid!important;page-break-inside:avoid!important}
@@ -1491,6 +1495,7 @@ function bindInputs(){
         <b>• 배율:</b> 100% (맞춤 해제)<br>
         <b>• 배경 그래픽:</b> 체크 ✓
       </div>
+      <div id="scaleInfo" style="font-size:12px;font-weight:700;margin-bottom:12px;padding:8px 12px;background:#f9fafb;border-radius:8px;text-align:left">계산 중...</div>
       <div style="display:flex;gap:10px;justify-content:center">
         <button id="printCancel" style="background:#f3f4f6;color:#374151;border:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer">취소</button>
         <button id="printGo" style="background:#e60012;color:#fff;border:none;border-radius:10px;padding:10px 24px;font-size:14px;font-weight:800;cursor:pointer">인쇄 시작</button>
@@ -1502,10 +1507,31 @@ function bindInputs(){
   document.getElementById('printCancel').onclick = ()=>{ pm.style.display='none'; };
   document.getElementById('printGo').onclick = ()=>{
     pm.style.display='none';
-    // 인쇄 전 page-2를 분할해서 각 페이지마다 헤더 추가
     splitPage2ForPrint();
     setTimeout(()=>{ window.print(); restorePage2AfterPrint(); }, 300);
   };
+
+  // 자동 배율 계산
+  const page2El = document.querySelector('.page-2');
+  if(page2El){
+    const A4_HEIGHT_PX = 1122; // 297mm at 96dpi
+    const contentHeight = page2El.scrollHeight;
+    const page1Height = A4_HEIGHT_PX;
+    const totalHeight = page1Height + contentHeight;
+    const totalPages = Math.ceil(totalHeight / A4_HEIGHT_PX);
+    const scaleNeeded = Math.floor((totalPages * A4_HEIGHT_PX / totalHeight) * 100);
+
+    const scaleInfo = document.getElementById('scaleInfo');
+    if(scaleInfo){
+      if(totalPages <= 2){
+        scaleInfo.textContent = '✅ 2페이지로 출력됩니다. 배율 100%로 설정하세요.';
+        scaleInfo.style.color = '#16a34a';
+      } else {
+        scaleInfo.textContent = '⚠️ 내용이 많아 '+totalPages+'페이지가 됩니다. 배율을 '+scaleNeeded+'%로 줄이면 2페이지로 줄일 수 있어요.';
+        scaleInfo.style.color = '#e60012';
+      }
+    }
+  }
 }; $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();}};
   $('searchReport').addEventListener('input',renderList);
   $('exportBtn').onclick=exportData; $('importFile').addEventListener('change',importData); $('clearAllBtn').onclick=clearAll;
