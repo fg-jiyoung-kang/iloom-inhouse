@@ -160,6 +160,7 @@ button,input,select{font:inherit}
     padding:16mm 10mm 20mm!important;
     page-break-after:always!important;
     break-after:page!important;
+    overflow:visible!important;
     position:relative!important;
     overflow:visible!important;
     font-size:11px!important;
@@ -170,6 +171,12 @@ button,input,select{font:inherit}
   .page-1{min-height:297mm!important;height:297mm!important;padding:16mm 10mm 52mm!important}
   /* 2페이지 이후: 내용 따라 늘어남 */
   .page-2{min-height:297mm!important;height:auto!important;padding:5mm 10mm 20mm!important}
+  /* 2페이지 헤더를 인쇄 시 각 페이지 상단에 반복 */
+  .sub-head{
+    position:sticky;
+    top:0;
+    background:white;
+  }
   .sub-head{display:flex!important;position:running(subhead)!important}
   .print-sub-header{display:block!important;width:100%;border-bottom:1px solid #ddd;padding-bottom:5px;margin-bottom:8px;font-size:9px;font-weight:700;color:#333}
   /* 결과 블록은 중간에서 잘리지 않도록 */
@@ -1323,67 +1330,8 @@ async function loadSharedFromSupabase(){
   } catch(e){ console.warn('Supabase 로드 실패:', e); }
 }
 
-function splitPage2ForPrint(){
-  const page2 = document.querySelector('.page-2');
-  if(!page2) return;
-  const subHead = page2.querySelector('.sub-head');
-  if(!subHead) return;
-  const receiptNo = subHead.querySelector('span:first-child')?.textContent || '';
-  const sampleName = subHead.querySelector('span:nth-child(2)')?.textContent || '';
-  const blocks = Array.from(page2.querySelectorAll('.result-block'));
-  if(!blocks.length) return;
-
-  // 페이지당 최대 높이 (px 기준, A4=297mm, 1mm≈3.78px, 여백 제외 약 750px)
-  const MAX_HEIGHT = 700;
-  let pageHeight = 60; // 헤더 높이
-  let pageNum = 2;
-  let totalPages = 2; // 나중에 업데이트
-
-  // 먼저 총 페이지 수 계산
-  let tmpHeight = 60;
-  blocks.forEach(function(block){
-    const bh = block.offsetHeight + 16;
-    if(tmpHeight + bh > MAX_HEIGHT){ totalPages++; tmpHeight = 60; }
-    tmpHeight += bh;
-  });
-
-  // 실제 분할
-  pageHeight = 60;
-  blocks.forEach(function(block, idx){
-    const bh = block.offsetHeight + 16;
-    if(pageHeight + bh > MAX_HEIGHT && idx > 0){
-      pageNum++;
-      // 페이지 브레이크 + 새 헤더 삽입
-      const newHeader = document.createElement('div');
-      newHeader.className = 'auto-page-header';
-      newHeader.style.cssText = 'break-before:page;page-break-before:always;display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:6px;margin-bottom:10px;font-weight:700;font-size:9px;color:#333';
-      newHeader.innerHTML = '<span>'+receiptNo+'</span><span>'+sampleName+'</span><span>PAGE(S) : '+pageNum+' / '+totalPages+'</span>';
-      block.parentNode.insertBefore(newHeader, block);
-      pageHeight = 60;
-    }
-    pageHeight += bh;
-  });
-
-  // 첫 번째 sub-head 페이지 수 업데이트
-  const lastSpan = subHead.querySelector('span:last-child');
-  if(lastSpan) lastSpan.textContent = 'PAGE(S) : 2 / ' + totalPages;
-
-  // 마지막 페이지 번호도 업데이트
-  const lastPageNo = document.getElementById('lastPageNo');
-  if(lastPageNo) lastPageNo.textContent = 'PAGE(S) : ' + totalPages + ' / ' + totalPages;
-}
-
-function restorePage2AfterPrint(){
-  document.querySelectorAll('.auto-page-header').forEach(function(el){ el.remove(); });
-  // sub-head 원복
-  const subHead = document.querySelector('.page-2 .sub-head');
-  if(subHead){
-    const lastSpan = subHead.querySelector('span:last-child');
-    if(lastSpan) lastSpan.textContent = 'PAGE(S) : 2 / 2';
-  }
-  const lastPageNo = document.getElementById('lastPageNo');
-  if(lastPageNo) lastPageNo.textContent = 'PAGE(S) : 2 / 2';
-}
+function splitPage2ForPrint(){ /* 사용 안 함 */ }
+function restorePage2AfterPrint(){ /* 사용 안 함 */ }
 
 function init(){
   if(!localStorage.getItem(standardsKey)) setStandards([]); // 기본 고정 규격 없음
@@ -1937,9 +1885,15 @@ function renderPreview(){
         <div style="text-align:right;font-size:7px;color:#999;margin-top:2px">PAGE(S) : 1 / 2</div>
       </div>
     </section>
-    <section class="page page-2">
-      <div class="sub-head"><span>접수번호 : ${esc(r.receiptNo)}</span><span>시료명 : ${esc(r.sampleName||"")}</span><span>PAGE(S) : 2 / 2</span></div>
-      <h3 class="section-line-title">세부 시험 결과 데이터</h3>
+    <section class="page page-2" style="padding:0!important">
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+        <thead>
+          <tr><th style="padding:8mm 10mm 4mm;font-weight:normal;text-align:left">
+            <div class="sub-head" style="margin-bottom:6px"><span>접수번호 : ${esc(r.receiptNo)}</span><span>시료명 : ${esc(r.sampleName||"")}</span><span>PAGE(S) : 2+</span></div>
+            <h3 class="section-line-title" style="margin:0 0 6px">세부 시험 결과 데이터</h3>
+          </th></tr>
+        </thead>
+        <tbody><tr><td style="padding:0 10mm 10mm">
       ${(function(){
         const detail = r.detailData || {};
         const testItems = r.tests || [];
@@ -2044,7 +1998,9 @@ function renderPreview(){
         return blocks;
       })()}
       <div class="result-end">- 시험결과 기록 완료 -</div>
-      <div class="page-no" id="lastPageNo">PAGE(S) : 2 / 2</div>
+      <div class="page-no" id="lastPageNo">PAGE(S) : last</div>
+        </td></tr></tbody>
+      </table>
     </section>`;
   // 페이지 수 업데이트 (미리보기 렌더 후)
   setTimeout(function(){
