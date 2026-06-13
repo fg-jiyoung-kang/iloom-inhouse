@@ -162,32 +162,31 @@ button,input,select{font:inherit}
     break-after:page!important;
     overflow:visible!important;
     position:relative!important;
-    overflow:visible!important;
     font-size:11px!important;
     transform:none!important;
   }
   .page:last-child{page-break-after:auto!important;break-after:auto!important}
-  /* 1페이지: 고정 높이 유지해서 footer absolute 정상 작동 */
-  .page-1{min-height:297mm!important;height:297mm!important;padding:16mm 10mm 52mm!important}
-  /* 2페이지 이후: 내용 따라 늘어남 */
-  .page-2{min-height:297mm!important;height:auto!important;padding:5mm 10mm 20mm!important}
-  /* 2페이지 헤더를 인쇄 시 각 페이지 상단에 반복 */
-  .sub-head{
-    position:sticky;
-    top:0;
-    background:white;
+  /* 1페이지: 고정 높이 */
+  .page-1{height:297mm!important;padding:16mm 10mm 52mm!important;overflow:hidden!important}
+  /* 2페이지: 내용 따라 늘어남, 패딩 최소화 */
+  .page-2{
+    min-height:0!important;
+    height:auto!important;
+    padding:0!important;
+    page-break-after:auto!important;
+    break-after:auto!important;
   }
-  .sub-head{display:flex!important;position:running(subhead)!important}
-  .print-sub-header{display:block!important;width:100%;border-bottom:1px solid #ddd;padding-bottom:5px;margin-bottom:8px;font-size:9px;font-weight:700;color:#333}
+  /* 2페이지 table thead가 각 페이지마다 자동 반복됨 */
+  .page-2 table{width:100%!important}
+  .page-2 thead{display:table-header-group!important}
+  .page-2 tbody{display:table-row-group!important}
   /* 결과 블록은 중간에서 잘리지 않도록 */
-  .result-block{break-inside:avoid!important;page-break-inside:avoid!important;orphans:3;widows:3}
-  .page-break-header{display:none}
-  .page-break-header-content{font-size:9px;font-weight:700;color:#333;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:8px;display:flex;justify-content:space-between}
+  .result-block{break-inside:avoid!important;page-break-inside:avoid!important}
   .photo-box{break-inside:avoid!important;page-break-inside:avoid!important}
   .result-end{break-inside:avoid!important;page-break-inside:avoid!important}
-  /* page-no는 마지막 페이지 하단에 */
-  .page-no{position:static!important;text-align:right;margin-top:10mm}
-  /* 1페이지 footer는 그대로 absolute */
+  /* page-no */
+  .page-no{position:static!important;text-align:right;margin-top:6mm}
+  /* 1페이지 footer */
   .page1-footer{position:absolute!important;left:10mm!important;right:10mm!important;bottom:4mm!important}
 }
   /* ── 로그인 화면 ── */
