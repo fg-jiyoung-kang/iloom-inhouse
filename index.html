@@ -174,24 +174,6 @@ button,input,select{font:inherit}
   .result-block{break-inside:avoid!important;page-break-inside:avoid!important}
   .photo-box{break-inside:avoid!important;page-break-inside:avoid!important}
   .result-end{break-inside:avoid!important;page-break-inside:avoid!important}
-  /* 2페이지 sub-head를 각 인쇄 페이지 상단에 반복 */
-  .page-2 .sub-head{
-    position:running(subhead)!important;
-  }
-  @page {
-    margin: 15mm 10mm;
-    @top-left { content: element(subhead); }
-  }
-  /* sub-head 항상 표시 */
-  .sub-head{
-    display:flex!important;
-    justify-content:space-between!important;
-    font-size:9px!important;
-    color:#555!important;
-    border-bottom:1px solid #ccc!important;
-    padding-bottom:3px!important;
-    margin-bottom:8px!important;
-  }
   /* page-no는 마지막 페이지 하단에 */
   .page-no{position:static!important;text-align:right;margin-top:10mm}
   /* 1페이지 footer는 그대로 absolute */
