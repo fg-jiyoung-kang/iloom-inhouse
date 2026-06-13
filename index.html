@@ -1093,26 +1093,9 @@ async function showRequestPickerModal(callback){
 
 
 async function migrateLocalToSupabase(){
-  // 매번 실행 - 항상 최신 데이터를 Supabase에 동기화
-
+  // 성적서/의뢰서만 마이그레이션 (계정/규격/의뢰항목은 Supabase가 정답)
   console.log('Supabase 마이그레이션 시작...');
   let migrated = 0;
-
-  // 계정 Supabase 저장
-  try {
-    const accs = getAccounts();
-    for(const a of accs){ await supaFetch('accounts','POST',{id:a.id,data:a}); }
-  } catch(e){}
-  // 시험 규격 저장
-  try {
-    const stds = getStandards();
-    if(stds.length) await supaFetch('settings','POST',{id:'standards',data:stds,updated_at:new Date().toISOString()});
-  } catch(e){}
-  // 의뢰항목 저장
-  try {
-    const ri = JSON.parse(localStorage.getItem(REQ_ITEM_LIST_KEY)||'null');
-    if(ri) await supaFetch('settings','POST',{id:'req_items',data:ri,updated_at:new Date().toISOString()});
-  } catch(e){}
   // 성적서 마이그레이션 (여러 키 시도)
   const reportKeys = ['iloom_inhouse_reports_v1', 'iloom_reports_v2', storeKey];
   const allReports = {};
@@ -1335,29 +1318,18 @@ async function loadSharedFromSupabase(){
     const settingRows = await supaFetch('settings', 'GET');
     if(settingRows && settingRows.length){
       const stdRow = settingRows.find(function(r){ return r.id==='standards'; });
-      if(stdRow && Array.isArray(stdRow.data) && stdRow.data.length > 0){
-        const localStds = getStandards();
-        // 원격 규격을 로컬에 병합
-        const mergedStds = [...localStds];
-        stdRow.data.forEach(function(rs){
-          if(!mergedStds.find(function(ls){ return ls.name===rs.name; })){
-            mergedStds.push(rs);
-          }
-        });
-        if(mergedStds.length !== localStds.length){
-          localStorage.setItem(standardsKey, JSON.stringify(mergedStds));
-          renderStandardSelect(); renderStandards();
-          console.log('✅ 규격 동기화:', mergedStds.length+'개');
-        }
+      if(stdRow && Array.isArray(stdRow.data)){
+        // Supabase가 정답 - 완전 덮어쓰기
+        localStorage.setItem(standardsKey, JSON.stringify(stdRow.data));
+        renderStandardSelect(); renderStandards();
+        console.log('✅ 규격 동기화 (덮어쓰기):', stdRow.data.length+'개');
       }
       // 의뢰항목 불러오기
       const reqRow = settingRows.find(function(r){ return r.id==='req_items'; });
       if(reqRow && Array.isArray(reqRow.data) && reqRow.data.length > 0){
-        const localReq = JSON.parse(localStorage.getItem(REQ_ITEM_LIST_KEY)||'null');
-        if(!localReq){
-          localStorage.setItem(REQ_ITEM_LIST_KEY, JSON.stringify(reqRow.data));
-          console.log('✅ 의뢰항목 동기화:', reqRow.data.length+'개');
-        }
+        // Supabase가 정답 - 완전 덮어쓰기
+        localStorage.setItem(REQ_ITEM_LIST_KEY, JSON.stringify(reqRow.data));
+        console.log('✅ 의뢰항목 동기화 (덮어쓰기):', reqRow.data.length+'개');
       }
     }
   } catch(e){ console.warn('Supabase 로드 실패:', e); }
