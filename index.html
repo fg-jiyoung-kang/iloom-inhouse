@@ -149,7 +149,7 @@ button,input,select{font:inherit}
   .page{transform:none;transform-origin:top center}
   .report-preview{overflow-x:auto}
 }
-@page{size:A4}
+@page{size:A4;margin:0}
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   html,body{margin:0!important;padding:0!important;background:#fff!important}
@@ -158,12 +158,11 @@ button,input,select{font:inherit}
   .workspace{padding:0!important;margin:0!important;max-width:none!important}
   .report-preview{display:block!important;padding:0!important;margin:0!important}
   .preview-wrap,.preview-scale-outer,.preview-scale-inner{padding:0!important;margin:0!important;transform:none!important;min-height:0!important}
-  /* 출력 시 report-preview gap 제거 */
   #reportPreview.report-preview{display:block!important;gap:0!important;padding:0!important;margin:0!important;}
-  /* 공통 page 스타일 */
+  /* 공통 page */
   .page{
     box-shadow:none!important;
-    width:100%!important;
+    width:210mm!important;
     margin:0!important;
     padding:0!important;
     overflow:visible!important;
@@ -173,17 +172,17 @@ button,input,select{font:inherit}
     display:block!important;
     box-sizing:border-box!important;
   }
-  /* 1페이지: A4 고정 높이(브라우저 기본 여백 포함 시 약 247mm 사용 가능), 강제 페이지 나누기 */
+  /* 1페이지: A4 고정, footer 공간 확보 */
   .page-1{
-    height:247mm!important;
-    min-height:247mm!important;
-    padding:4mm 0 40mm!important;
+    height:297mm!important;
+    min-height:297mm!important;
+    padding:16mm 10mm 52mm!important;
     box-sizing:border-box!important;
     overflow:hidden!important;
     page-break-after:always!important;
     break-after:page!important;
   }
-  /* 2페이지: 자연스럽게 페이지 넘김 허용 */
+  /* 2페이지: 내용 따라 자연스럽게 */
   .page-2{
     height:auto!important;
     min-height:0!important;
@@ -193,14 +192,11 @@ button,input,select{font:inherit}
     page-break-inside:auto!important;
     break-inside:auto!important;
   }
-  /* result-block은 가능하면 안 잘리게 */
   .result-block{break-inside:avoid!important;page-break-inside:avoid!important}
   .photo-box{break-inside:avoid!important;page-break-inside:avoid!important}
   .result-end{break-inside:avoid!important;page-break-inside:avoid!important}
-  /* page-no */
   .page-no{position:static!important;text-align:right;margin-top:6mm}
-  /* 1페이지 footer — 기본 여백 내부에서 위치 */
-  .page1-footer{position:absolute!important;left:0!important;right:0!important;bottom:0!important}
+  .page1-footer{position:absolute!important;left:10mm!important;right:10mm!important;bottom:4mm!important}
 }
   /* ── 로그인 화면 ── */
 #loginScreen{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0305 0%,#3a0008 40%,#1f2937 100%)}
