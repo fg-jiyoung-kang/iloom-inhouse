@@ -169,9 +169,13 @@ button,input,select{font:inherit}
   /* 1페이지: 고정 높이 유지해서 footer absolute 정상 작동 */
   .page-1{min-height:297mm!important;height:297mm!important;padding:16mm 10mm 52mm!important}
   /* 2페이지 이후: 내용 따라 늘어남 */
-  .page-2{min-height:297mm!important;height:auto!important;padding:16mm 10mm 20mm!important}
+  .page-2{min-height:297mm!important;height:auto!important;padding:5mm 10mm 20mm!important}
+  .sub-head{display:flex!important;position:running(subhead)!important}
+  .print-sub-header{display:block!important;width:100%;border-bottom:1px solid #ddd;padding-bottom:5px;margin-bottom:8px;font-size:9px;font-weight:700;color:#333}
   /* 결과 블록은 중간에서 잘리지 않도록 */
-  .result-block{break-inside:avoid!important;page-break-inside:avoid!important}
+  .result-block{break-inside:avoid!important;page-break-inside:avoid!important;orphans:3;widows:3}
+  .page-break-header{display:none}
+  .page-break-header-content{font-size:9px;font-weight:700;color:#333;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:8px;display:flex;justify-content:space-between}
   .photo-box{break-inside:avoid!important;page-break-inside:avoid!important}
   .result-end{break-inside:avoid!important;page-break-inside:avoid!important}
   /* page-no는 마지막 페이지 하단에 */
@@ -1962,6 +1966,7 @@ function renderPreview(){
           }
         });
 
+        // 결과 블록들을 적절히 그룹화 (4개마다 페이지 브레이크 힌트)
         // 사진 블록
         blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>첨부 이미지 (Test Sample Photo)</span></div></div>'
           +'<div class="photo-box" style="margin-top:6px"><div>'
@@ -2625,7 +2630,7 @@ function clearAll(){
 }
 
 function loadReport(r){currentId=r.id; fields.forEach(id=>setVal(id,r[id]||'')); sampleImageData=r.image||'';
-  const matEl3=document.getElementById('sampleMaterials'); if(matEl3){ const matMap={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'}; matEl3.textContent=Array.isArray(r.materials)&&r.materials.length?'['+r.materials.map(function(m){return matMap[m]||m;}).join(', ')+']':''; matEl3.dataset.materials=JSON.stringify(r.materials||[]); } $('testTable').querySelector('tbody').innerHTML=''; (r.tests||[]).forEach(addTest); renderImage(); renderPreview(); renderDetailSection(); restoreDetailData(r.detailData); document.querySelector('[data-tab="write"]').click();}
+  const matEl3=document.getElementById('sampleMaterials'); if(matEl3){ const matMap={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'}; matEl3.textContent=Array.isArray(r.materials)&&r.materials.length?'['+r.materials.map(function(m){return matMap[m]||m;}).join(', ')+']':''; matEl3.dataset.materials=JSON.stringify(r.materials||[]); } $('testTable').querySelector('tbody').innerHTML=''; (r.tests||[]).forEach(addTest); renderImage(); renderDetailSection(); setTimeout(function(){ restoreDetailData(r.detailData); renderPreview(); }, 100); document.querySelector('[data-tab="write"]').click();}
 async function saveReport(silent=false){
   if(!isAdmin()){
     // 비관리자는 본인이 작성한 성적서만 저장 가능 (새 성적서는 허용)
