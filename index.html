@@ -1482,7 +1482,7 @@ function bindInputs(){
       .p1f-addr-row{display:flex;justify-content:space-between;font-size:9.5px;color:#333;margin-bottom:3px}
       .p1f-notes{font-size:8.5px;color:#444;line-height:1.7;border-top:1px solid #ddd;padding-top:4px;margin-top:2px}
       .p1f-notes li{list-style:none;padding-left:12px;text-indent:-12px}
-      .p2-top{padding:10mm 10mm 4mm;border-bottom:1px solid #ddd}
+      .p2-top{padding:16mm 10mm 4mm;border-bottom:1px solid #ddd}
       .p2-title-bar{padding:4mm 10mm 6mm}
       .p2-body{padding:0 10mm 10mm}
       .sub-head{display:flex;justify-content:space-between;font-weight:700;font-size:11px}
@@ -1539,7 +1539,7 @@ function bindInputs(){
     });
 
     // 사진 블록
-    blocks+=`<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="photo-box"><div><div class="photo-card">${sampleImageData?`<img src="${sampleImageData}">`:`[ ${esc2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="caption">${esc2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${esc2(r.sampleName)}</div></div></div></div>`;
+    blocks+=`<div class="result-block" style="break-before:auto;page-break-before:auto"><div class="result-block-title"><div class="result-block-title-text"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="photo-box"><div><div class="photo-card">${sampleImageData?`<img src="${sampleImageData}">`:`[ ${esc2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="caption">${esc2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${esc2(r.sampleName)}</div></div></div></div>`;
 
     const totalPagesEst = 2; // 기본 2페이지, 내용 많으면 자동으로 3페이지
 
@@ -1560,9 +1560,9 @@ function bindInputs(){
         <thead><tr><th style="width:8%">No.</th><th>시험 항목 (Test Item)</th><th style="width:35%">시험 규격</th></tr></thead>
         <tbody>${tests.length?tests.map((t,i)=>`<tr><td>${i+1}</td><td class="left bold">${esc2(t.name||'')}</td><td class="left">${esc2(t.spec||'')}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
       </table>
-      <table class="report-table" style="margin-top:0;border-top:none">
-        <tr><td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border-top:1px solid #ddd">비고</td>
-        <td class="left" colspan="2" style="height:34px;border:1px solid #e5e7eb;vertical-align:top;padding:6px 10px">${esc2(r.remarkNote||'')}</td></tr>
+      <table class="report-table" style="margin-top:6mm;border-top:none">
+        <tr><td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd">비고</td>
+        <td class="left" colspan="2" style="height:68px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${esc2(r.remarkNote||'')}</td></tr>
       </table>
       <div class="page1-footer">
         <div class="p1f-sign-row">
