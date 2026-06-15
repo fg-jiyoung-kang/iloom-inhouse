@@ -1482,6 +1482,9 @@ function bindInputs(){
       .p1f-addr-row{display:flex;justify-content:space-between;font-size:9.5px;color:#333;margin-bottom:3px}
       .p1f-notes{font-size:8.5px;color:#444;line-height:1.7;border-top:1px solid #ddd;padding-top:4px;margin-top:2px}
       .p1f-notes li{list-style:none;padding-left:12px;text-indent:-12px}
+      .page-2-wrap{width:210mm;border-collapse:collapse;display:table}
+      .p2-thead-td{padding:0;border:none}
+      .p2-body-td{padding:0 10mm 10mm;border:none;vertical-align:top}
       .p2-top{padding:16mm 10mm 4mm;border-bottom:1px solid #ddd}
       .p2-title-bar{padding:4mm 10mm 6mm}
       .p2-body{padding:0 10mm 10mm}
@@ -1557,12 +1560,13 @@ function bindInputs(){
       </table>
       <div class="red-title">■ 의뢰 시험 항목</div>
       <table class="report-table">
-        <thead><tr><th style="width:8%">No.</th><th>시험 항목 (Test Item)</th><th style="width:35%">시험 규격</th></tr></thead>
+        <colgroup><col style="width:8%"><col style="width:55%"><col style="width:37%"></colgroup>
+        <thead><tr><th>No.</th><th>시험 항목 (Test Item)</th><th>시험 규격</th></tr></thead>
         <tbody>${tests.length?tests.map((t,i)=>`<tr><td>${i+1}</td><td class="left bold">${esc2(t.name||'')}</td><td class="left">${esc2(t.spec||'')}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
       </table>
       <table class="report-table" style="margin-top:6mm;border-top:none">
         <tr><td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd">비고</td>
-        <td class="left" colspan="2" style="height:68px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${esc2(r.remarkNote||'')}</td></tr>
+        <td class="left" colspan="2" style="height:136px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${esc2(r.remarkNote||'')}</td></tr>
       </table>
       <div class="page1-footer">
         <div class="p1f-sign-row">
@@ -1581,21 +1585,27 @@ function bindInputs(){
         <div style="text-align:right;font-size:7px;color:#999;margin-top:2px" class="p1-pageno">PAGE(S) : 1 / ?</div>
       </div>
     </div>
-    <div class="page-2-wrap">
-      <div class="p2-top"><div class="sub-head"><span>접수번호 : ${esc2(r.receiptNo)}</span><span>시료명 : ${esc2(r.sampleName||'')}</span></div></div>
-      <div class="p2-title-bar"><div class="section-line-title">세부 시험 결과 데이터</div></div>
-      <div class="p2-body">
-        ${blocks}
-        <div class="result-end">- 시험결과 기록 완료 -</div>
-        <div class="page-no" id="lastPageNo">PAGE(S) : ? / ?</div>
-      </div>
-    </div>
+    <table class="page-2-wrap">
+      <thead>
+        <tr><td class="p2-thead-td">
+          <div class="p2-top"><div class="sub-head"><span>접수번호 : ${esc2(r.receiptNo)}</span><span>시료명 : ${esc2(r.sampleName||'')}</span></div></div>
+          <div class="p2-title-bar"><div class="section-line-title">세부 시험 결과 데이터</div></div>
+        </td></tr>
+      </thead>
+      <tbody>
+        <tr><td class="p2-body-td">
+          ${blocks}
+          <div class="result-end">- 시험결과 기록 완료 -</div>
+          <div class="page-no" id="lastPageNo">PAGE(S) : ? / ?</div>
+        </td></tr>
+      </tbody>
+    </table>
     <script>
     window.onload = function(){
       // 총 페이지 수 계산 후 표시
       var A4 = 1122; // 297mm @ 96dpi
       var p1h = A4;
-      var p2h = document.querySelector('.page-2-wrap').scrollHeight;
+      var p2h = document.querySelector('.page-2-wrap').offsetHeight;
       var total = 1 + Math.ceil(p2h / A4);
       document.getElementById('lastPageNo').textContent = 'PAGE(S) : ' + total + ' / ' + total;
       document.querySelector('.p1-pageno').textContent = 'PAGE(S) : 1 / ' + total;
