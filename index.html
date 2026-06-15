@@ -1765,7 +1765,7 @@ function collectReport(){const data={id:currentId||crypto.randomUUID(),savedAt:n
 
 function renderImage(){const el=$('imagePreview'); if(!el) return; el.innerHTML=sampleImageData?`<img src="${sampleImageData}" style="max-width:100%;max-height:200px">`:'<span style="color:#aaa">이미지 없음</span>';}
 
-function renderDetailSection(){
+function renderDetailSection(externalData){
   const box = document.getElementById('detailDataSection');
   if(!box) return;
   const tests = collectTests();
@@ -1781,9 +1781,10 @@ function renderDetailSection(){
     return;
   }
 
-  // 기존 입력값 보존
+  // 기존 입력값 보존 (외부 데이터 우선)
   const saved = {};
   box.querySelectorAll('[data-key]').forEach(el=>{ saved[el.dataset.key] = el.value; });
+  if(externalData) Object.assign(saved, externalData);
   box.innerHTML = '';
 
   tests.forEach(function(t, i){
@@ -2194,6 +2195,7 @@ function renderPreview(){
           const crit  = t.crit || '';
           const judge = detail['judge_'+i] || '';
           const judgeCell = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+judge+'</td></tr>' : '';
+          const critBox = crit ? '<div style="font-size:10px;color:#374151;white-space:pre-wrap;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>'+esc(crit)+'</div>' : '';
 
           // 치수의 측정
           if(name.includes('치수의 측정') || name.includes('치수의측정')){
@@ -2206,7 +2208,7 @@ function renderPreview(){
               rows += '<tr><td class="left">L='+esc(lv||'')+' mm / W='+esc(wv||'')+' mm</td><td class="result-val">'+esc(rv||'')+'</td></tr>';
             }
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:55%">측정값</th><th>결과</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:55%">측정값</th><th>결과</th></tr>'
               +rows+'</table></div>';
 
           // 영구압축줄음률
@@ -2224,19 +2226,16 @@ function renderPreview(){
           // 롤링내구성 - 판정만
           } else if(name.includes('롤링')){
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
               +judgeCell.replace('<td></td></tr>','</tr>')+'</table></div>';
 
           // 내구성시험
           } else if(name.includes('내구성')){
             const d1=detail['d1_'+i]||''; const d2=detail['d2_'+i]||'';
             const d3=detail['d3_'+i]||''; const d4=detail['d4_'+i]||'';
-            const detailCrit = detail['detail_crit_'+i]||'';
-            const critRows = detailCrit ? detailCrit.split('\n').map(function(line){
-              return '<tr><td class="left" style="color:#333;font-size:10px" colspan="2">'+esc(line)+'</td><td></td></tr>';
-            }).join('') : '';
+            const critBox1 = crit ? '<div style="font-size:10px;color:#374151;white-space:pre-wrap;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>'+esc(crit)+'</div>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +(detailCrit?'<div style="font-size:10px;color:#333;white-space:pre-wrap;margin-bottom:5px;padding:4px 6px;background:#f9fafb;border-radius:4px">'+esc(detailCrit)+'</div>':'')
+              +critBox1
               +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
               +'<tr><td class="left">d1 (mm)</td><td class="result-val">'+d1+'</td></tr>'
               +'<tr><td class="left">d2 (mm)</td><td class="result-val">'+d2+'</td></tr>'
@@ -2248,10 +2247,7 @@ function renderPreview(){
           // 수직하중시험
           } else if(name.includes('수직하중')||name.includes('하중')){
             const cycles = [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['480000회','480000']];
-            const detailCritLoad = detail['detail_crit_'+i]||'';
-            const critRowsLoad = detailCritLoad ? detailCritLoad.split('\n').map(function(line){
-              return '<tr><td class="left" style="color:#333;font-size:10px" colspan="2">'+esc(line)+'</td><td></td></tr>';
-            }).join('') : '';
+            const critBox2 = crit ? '<div style="font-size:10px;color:#374151;white-space:pre-wrap;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>'+esc(crit)+'</div>' : '';
             let rows = '';
             cycles.forEach(function(c){
               const d1=detail['load_'+c[1]+'_d1_'+i]||'';
@@ -2259,7 +2255,7 @@ function renderPreview(){
               rows += '<tr><td class="left">'+c[0]+'</td><td class="result-val">D1: '+d1+' / D2: '+d2+'</td></tr>';
             });
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +(detailCritLoad?'<div style="font-size:10px;color:#333;white-space:pre-wrap;margin-bottom:5px;padding:4px 6px;background:#f9fafb;border-radius:4px">'+esc(detailCritLoad)+'</div>':'')
+              +critBox2
               +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
               +rows.replace(/<td><\/td><\/tr>/g,'</tr>')+judgeCell.replace('<td></td></tr>','</tr>')+'</table></div>';
 
@@ -2267,7 +2263,7 @@ function renderPreview(){
           } else if(name.includes('염색')||name.includes('견뢰도')){
             const chg=detail['colorChange_'+i]||''; const sta=detail['staining_'+i]||'';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
               +'<tr><td class="left">변퇴색 (급)</td><td class="result-val">'+chg+'</td><td>'+(crit||'')+'</td></tr>'
               +'<tr><td class="left">이염 (급)</td><td class="result-val">'+sta+'</td><td></td></tr>'
               +judgeCell+'</table></div>';
@@ -2279,7 +2275,7 @@ function renderPreview(){
             const wb=detail['widBefore_'+i]||''; const wa=detail['widAfter_'+i]||'';
             const wp=detail['widPct_'+i]||'-';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
               +'<tr><td class="left">길이 세탁 전 (cm)</td><td class="result-val">'+lb+'</td><td></td></tr>'
               +'<tr><td class="left">길이 세탁 후 (cm)</td><td class="result-val">'+la+'</td><td></td></tr>'
               +'<tr><td class="left">길이 치수변화율 (%)</td><td class="result-val" style="color:var(--red)">'+lp+'</td><td>'+(crit||'')+'</td></tr>'
@@ -2292,14 +2288,14 @@ function renderPreview(){
           } else if(name.includes('필링')||name.includes('pilling')){
             const pil=detail['pilling_'+i]||'';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
               +'<tr><td class="left">필링 등급 (급)</td><td class="result-val">'+pil+'</td><td>'+(crit||'')+'</td></tr>'
               +judgeCell+'</table></div>';
 
           // 풀림내구성 - 판정만
           } else if(name.includes('풀림')){
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
               +judgeCell.replace('<td></td></tr>','</tr>')+'</table></div>';
 
           // 기타
@@ -2307,7 +2303,7 @@ function renderPreview(){
             const res=detail['result_'+i]||''; const critVal=detail['crit_val_'+i]||''; const app=detail['appearance_'+i]||'';
             const val = res || app;
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
               +'<tr><td class="left">시험 결과</td><td class="result-val">'+val+'</td><td>'+(crit||critVal||'')+'</td></tr>'
               +judgeCell+'</table></div>';
           }
@@ -2978,7 +2974,7 @@ function clearAll(){
 }
 
 function loadReport(r){currentId=r.id; fields.forEach(id=>setVal(id,r[id]||'')); sampleImageData=r.image||'';
-  const matEl3=document.getElementById('sampleMaterials'); if(matEl3){ const matMap={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'}; matEl3.textContent=Array.isArray(r.materials)&&r.materials.length?'['+r.materials.map(function(m){return matMap[m]||m;}).join(', ')+']':''; matEl3.dataset.materials=JSON.stringify(r.materials||[]); } $('testTable').querySelector('tbody').innerHTML=''; (r.tests||[]).forEach(addTest); renderImage(); renderDetailSection(); setTimeout(function(){ restoreDetailData(r.detailData); renderPreview(); }, 100); document.querySelector('[data-tab="write"]').click();}
+  const matEl3=document.getElementById('sampleMaterials'); if(matEl3){ const matMap={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'}; matEl3.textContent=Array.isArray(r.materials)&&r.materials.length?'['+r.materials.map(function(m){return matMap[m]||m;}).join(', ')+']':''; matEl3.dataset.materials=JSON.stringify(r.materials||[]); } $('testTable').querySelector('tbody').innerHTML=''; (r.tests||[]).forEach(addTest); renderImage(); renderDetailSection(r.detailData); setTimeout(function(){ renderPreview(); }, 100); document.querySelector('[data-tab="write"]').click();}
 async function saveReport(silent=false){
   if(!isAdmin()){
     // 비관리자는 본인이 작성한 성적서만 저장 가능 (새 성적서는 허용)
