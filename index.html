@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="ko">
 <head>
@@ -121,7 +122,7 @@ button,input,select{font:inherit}
 .sign-table th,.sign-table td{border:1px solid #ddd;padding:8px;text-align:center}
 .sign-table th{background:#f7f7f7;color:#666}
 .company-footer{font-size:7.5pt;color:#555;text-align:center;border-top:1px solid #ddd;padding-top:3px;margin-top:4px;margin-bottom:2px;}
-.page-no{position:absolute;right:10mm;bottom:7mm;color:#777}
+.page-no{position:absolute;right:10mm;bottom:4mm;color:#777;font-size:7px;color:#999}
 .sub-head{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:10px;font-weight:700}
 .section-line-title{border-left:3px solid var(--red);padding-left:10px;color:var(--red);font-size:16px;margin:28px 0 24px}
 .note{color:#555;font-size:10px;margin-top:10px}
@@ -172,7 +173,7 @@ button,input,select{font:inherit}
   .page-2{
     min-height:0!important;
     height:auto!important;
-    padding:0!important;
+    padding:0 0 10mm 0!important;
     page-break-after:auto!important;
     break-after:auto!important;
     font-size:9px!important;
@@ -188,8 +189,8 @@ button,input,select{font:inherit}
   .result-block{break-inside:avoid!important;page-break-inside:avoid!important}
   .photo-box{break-inside:avoid!important;page-break-inside:avoid!important}
   .result-end{break-inside:avoid!important;page-break-inside:avoid!important}
-  /* page-no */
-  .page-no{position:static!important;text-align:right;margin-top:6mm}
+  /* page-no: 인쇄 시 각 페이지 하단 고정 */
+  .page-no{position:absolute!important;right:10mm!important;bottom:4mm!important;text-align:right!important;margin-top:0!important;font-size:7px!important;color:#999!important}
   /* 1페이지 footer */
   .page1-footer{position:absolute!important;left:10mm!important;right:10mm!important;bottom:4mm!important}
 }
@@ -1485,158 +1486,167 @@ function bindInputs(){
     tests.forEach(function(t,i){
       const nm=(t.name||'').toLowerCase(),title=t.name||'항목 '+(i+1),spec=t.spec||'',crit=t.crit||'';
       const jg=det['judge_'+i]||'';
-      const jr=jg?'<tr><td class="left" style="font-weight:800">판정</td><td class="rv" colspan="2" style="color:'+(jg==='합격'||jg==='PASS'?'#008a3d':'#e60012')+'">'+jg+'</td></tr>':'';
-      const th='<div class="rbt"><div class="rbtt"><span>'+e2(title)+'</span>'+(spec?'<span style="font-weight:400;font-size:11px">('+e2(spec)+')</span>':'')+'</div></div>';
+      const jr=jg?`<tr><td class="left" style="font-weight:800">판정</td><td class="rv" colspan="2" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${jg}</td></tr>`:'';
+      const th=`<div class="rbt"><div class="rbtt"><span>${e2(title)}</span>${spec?`<span style="font-weight:400;font-size:11px">(${e2(spec)})</span>`:''}</div></div>`;
       if(nm.includes('내구성')){
         const dc=det['detail_crit_'+i]||'';
-        blocks+='<div class="rb">'+th+(dc?'<div class="dc">'+e2(dc)+'</div>':'')+'<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr><tr><td class="left">d1 (mm)</td><td class="rv">'+(det['d1_'+i]||'')+'</td></tr><tr><td class="left">d2 (mm)</td><td class="rv">'+(det['d2_'+i]||'')+'</td></tr><tr><td class="left">d3 (mm)</td><td class="rv">'+(det['d3_'+i]||'')+'</td></tr><tr><td class="left">d4 (mm)</td><td class="rv">'+(det['d4_'+i]||'')+'</td></tr>'+jr+'</table></div>';
+        blocks+=`<div class="rb">${th}${dc?`<div class="dc">${e2(dc)}</div>`:''}<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr><tr><td class="left">d1 (mm)</td><td class="rv">${det['d1_'+i]||''}</td></tr><tr><td class="left">d2 (mm)</td><td class="rv">${det['d2_'+i]||''}</td></tr><tr><td class="left">d3 (mm)</td><td class="rv">${det['d3_'+i]||''}</td></tr><tr><td class="left">d4 (mm)</td><td class="rv">${det['d4_'+i]||''}</td></tr>${jr}</table></div>`;
       } else if(nm.includes('수직하중')||nm.includes('하중')){
         const dc2=det['detail_crit_'+i]||'';
         let rows='';
         [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['480000회','480000']].forEach(function(cv){
-          rows+='<tr><td class="left">'+cv[0]+'</td><td class="rv">D1: '+(det['load_'+cv[1]+'_d1_'+i]||'')+' / D2: '+(det['load_'+cv[1]+'_d2_'+i]||'')+'</td></tr>';
+          rows+=`<tr><td class="left">${cv[0]}</td><td class="rv">D1: ${det['load_'+cv[1]+'_d1_'+i]||''} / D2: ${det['load_'+cv[1]+'_d2_'+i]||''}</td></tr>`;
         });
-        blocks+='<div class="rb">'+th+(dc2?'<div class="dc">'+e2(dc2)+'</div>':'')+'<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'+rows+jr+'</table></div>';
+        blocks+=`<div class="rb">${th}${dc2?`<div class="dc">${e2(dc2)}</div>`:''}<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>${rows}${jr}</table></div>`;
       } else {
-        blocks+='<div class="rb">'+th+'<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr><tr><td class="left">결과</td><td class="rv">'+e2(det['genResult_'+i]||'')+'</td><td>'+e2(crit||t.result||'')+'</td></tr>'+jr+'</table></div>';
+        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr><tr><td class="left">결과</td><td class="rv">${e2(det['genResult_'+i]||'')}</td><td>${e2(crit||t.result||'')}</td></tr>${jr}</table></div>`;
       }
     });
-    blocks+='<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div><div class="pc">'+(sampleImageData?'<img src="'+sampleImageData+'">':'[ '+e2(r.sampleName||'시료')+'<br><br>시험 후 시료 촬영 이미지')+'</div><div class="cap">'+e2(r.receiptNo)+(r.receiptNo&&r.sampleName?'_':'')+e2(r.sampleName)+'</div></div></div></div>';
+    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div><div class="pc">${sampleImageData?`<img src="${sampleImageData}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div></div>`;
 
-    const CSS=''+
-':root{--red:#e60012}'+
-'*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0;padding:0}'+
-'body{font-family:Arial,"Noto Sans KR","Malgun Gothic",sans-serif;background:#fff;color:#111;font-size:11px}'+
-'@page{size:A4;margin:0}'+
-'.p1{width:210mm;height:297mm;padding:16mm 10mm 52mm;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;position:relative;background:#fff}'+
-'.rh{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:8px;border-bottom:2px solid var(--red)}'+
-'.rt-ttl{color:var(--red);font-size:24px;font-weight:900;letter-spacing:1px}'+
-'.mt{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}'+
-'.mt th{background:#f7f8fa;border:1px solid #e5e7eb;padding:6px 11px;font-weight:700;font-size:11px;vertical-align:middle}'+
-'.mt td{border:1px solid #e5e7eb;padding:6px 11px;font-weight:600;font-size:11px;vertical-align:middle;word-break:break-all}'+
-'.red-title{color:var(--red);font-weight:900;font-size:15px;margin:12px 0 6px}'+
-'.it{width:100%;border-collapse:collapse;font-size:11px}'+
-'.it th{background:#f7f8fa;border:1px solid #ddd;padding:8px 10px;font-weight:700;text-align:center}'+
-'.it td{border:1px solid #ddd;padding:7px 10px;text-align:center}'+
-'.it td.left{text-align:left}'+
-'.it .bold{font-weight:900}'+
-'.ft{position:absolute;left:10mm;right:10mm;bottom:4mm;font-size:8.5px;color:#333}'+
-'.sr{display:table;width:100%;border-collapse:collapse;border:1px solid #bbb}'+
-'.sc{display:table-cell;text-align:center;vertical-align:middle;background:#f5f5f5;padding:8px 12px;font-weight:900;font-size:11px;border-right:1px solid #bbb;width:36px;writing-mode:vertical-lr;letter-spacing:2px}'+
-'.ss{display:table-cell;border-right:1px solid #bbb;padding:8px 10px;font-size:10px;vertical-align:top}'+
-'.ss-lbl{color:#555;font-size:9px;margin-bottom:3px}'+
-'.ss-nm{font-weight:700}'+
-'.stamp{display:table-cell;border-left:1px solid #bbb;padding:0 12px;background:#fff5f5;text-align:center;vertical-align:middle;width:80px}'+
-'.cb{background:var(--red);color:#fff;text-align:center;padding:5px 8px;font-size:9.5px;margin:3px 0}'+
-'.ab{display:flex;justify-content:space-between;font-size:9.5px;color:#333;margin-bottom:3px}'+
-'.nb{font-size:8.5px;color:#444;line-height:1.7;border-top:1px solid #ddd;padding-top:4px;margin-top:2px}'+
-'.nb li{list-style:none;padding-left:12px;text-indent:-12px}'+
-'.p1pno{text-align:right;font-size:7px;color:#999;margin-top:2px}'+
-'.p2w{width:210mm;border-collapse:collapse;display:table}'+
-'.p2ht{padding:0;border:none}'+
-'.p2hd{padding:16mm 10mm 4mm;border-bottom:1px solid #ddd}'+
-'.sh{display:flex;justify-content:space-between;font-weight:700;font-size:11px}'+
-'.p2bt{padding:16mm 10mm 10mm;border:none;vertical-align:top}'+
-'.slt{border-left:3px solid var(--red);padding-left:10px;color:var(--red);font-size:20px;font-weight:900;margin-bottom:6mm;margin-top:-6mm}'+
-'.rb{margin-bottom:20px;break-inside:avoid;page-break-inside:avoid}'+
-'.photo-rb{margin-top:0mm}'+
-'.rbt{display:flex;align-items:center;gap:6px;font-weight:900;font-size:13px;margin-bottom:6px}'+
-'.rbt::before{content:"";display:inline-block;width:4px;height:28px;background:var(--red);border-radius:2px;flex-shrink:0}'+
-'.rbtt{display:flex;flex-direction:row;align-items:center;gap:6px}'+
-'.dc{font-size:10px;color:#333;white-space:pre-wrap;margin-bottom:6px;padding:4px 6px;background:#f9fafb;border-radius:4px}'+
-'.rt{width:100%;border-collapse:collapse;font-size:12px}'+
-'.rt th{background:#f4f5f7;border:1px solid #ddd;padding:6px 10px;text-align:center;font-weight:700}'+
-'.rt td{border:1px solid #ddd;padding:6px 10px;text-align:center}'+
-'.rt td.left{text-align:left}'+
-'.rv{font-weight:900}'+
-'.re{text-align:center;font-size:12px;font-weight:700;margin:16px 0 0;padding:6px 0;border-top:2px solid #ddd;border-bottom:2px solid #ddd}'+
-'.pb{border:1px solid #dfe3e8;border-radius:4px;height:65mm;display:grid;place-items:center;margin-top:6mm;background:#fcfcfc}'+
-'.pc{width:70mm;height:58mm;border:1px solid #ccc;display:grid;place-items:center;text-align:center;color:#6b7280;background:#fff;overflow:hidden}'+
-'.pc img{width:100%;height:100%;object-fit:contain}'+
-'.cap{text-align:center;font-weight:800;margin-top:8px;font-size:11px}'+
-'.pn{text-align:right;font-size:7px;color:#999;margin-top:6mm}';
+    const CSS=`
+:root{--red:#e60012}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0;padding:0}
+body{font-family:Arial,'Noto Sans KR','Malgun Gothic',sans-serif;background:#fff;color:#111;font-size:11px}
+@page{size:A4;margin:0}
+.p1{width:210mm;height:297mm;padding:16mm 10mm 52mm;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;position:relative;background:#fff}
+.rh{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:8px;border-bottom:2px solid var(--red)}
+.rt-ttl{color:var(--red);font-size:24px;font-weight:900;letter-spacing:1px}
+.mt{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}
+.mt th{background:#f7f8fa;border:1px solid #e5e7eb;padding:6px 11px;font-weight:700;font-size:11px;vertical-align:middle}
+.mt td{border:1px solid #e5e7eb;padding:6px 11px;font-weight:600;font-size:11px;vertical-align:middle;word-break:break-all}
+.red-title{color:var(--red);font-weight:900;font-size:15px;margin:12px 0 6px}
+.it{width:100%;border-collapse:collapse;font-size:11px}
+.it th{background:#f7f8fa;border:1px solid #ddd;padding:8px 10px;font-weight:700;text-align:center}
+.it td{border:1px solid #ddd;padding:7px 10px;text-align:center}
+.it td.left{text-align:left}
+.it .bold{font-weight:900}
+.ft{position:absolute;left:10mm;right:10mm;bottom:4mm;font-size:8.5px;color:#333}
+.sr{display:table;width:100%;border-collapse:collapse;border:1px solid #bbb}
+.sc{display:table-cell;text-align:center;vertical-align:middle;background:#f5f5f5;padding:8px 12px;font-weight:900;font-size:11px;border-right:1px solid #bbb;width:36px;writing-mode:vertical-lr;letter-spacing:2px}
+.ss{display:table-cell;border-right:1px solid #bbb;padding:8px 10px;font-size:10px;vertical-align:top}
+.ss-lbl{color:#555;font-size:9px;margin-bottom:3px}
+.ss-nm{font-weight:700}
+.stamp{display:table-cell;border-left:1px solid #bbb;padding:0 12px;background:#fff5f5;text-align:center;vertical-align:middle;width:80px}
+.cb{background:var(--red);color:#fff;text-align:center;padding:5px 8px;font-size:9.5px;margin:3px 0}
+.ab{display:flex;justify-content:space-between;font-size:9.5px;color:#333;margin-bottom:3px}
+.nb{font-size:8.5px;color:#444;line-height:1.7;border-top:1px solid #ddd;padding-top:4px;margin-top:2px}
+.nb li{list-style:none;padding-left:12px;text-indent:-12px}
+.p2w{width:210mm;border-collapse:collapse;display:table}
+.p2ht{padding:0;border:none}
+.p2hd{padding:16mm 10mm 4mm;border-bottom:1px solid #ddd}
+.sh{display:flex;justify-content:space-between;font-weight:700;font-size:11px}
+.p2bt{padding:16mm 10mm 18mm;border:none;vertical-align:top;position:relative;min-height:245mm}
+.slt{border-left:3px solid var(--red);padding-left:10px;color:var(--red);font-size:20px;font-weight:900;margin-bottom:6mm;margin-top:-6mm}
+.rb{margin-bottom:20px;break-inside:avoid;page-break-inside:avoid}
+.photo-rb{margin-top:10mm}
+.rbt{display:flex;align-items:center;gap:6px;font-weight:900;font-size:13px;margin-bottom:6px}
+.rbt::before{content:"";display:inline-block;width:4px;height:28px;background:var(--red);border-radius:2px;flex-shrink:0}
+.rbtt{display:flex;flex-direction:row;align-items:center;gap:6px}
+.dc{font-size:10px;color:#333;white-space:pre-wrap;margin-bottom:6px;padding:4px 6px;background:#f9fafb;border-radius:4px}
+.rt{width:100%;border-collapse:collapse;font-size:12px}
+.rt th{background:#f4f5f7;border:1px solid #ddd;padding:6px 10px;text-align:center;font-weight:700}
+.rt td{border:1px solid #ddd;padding:6px 10px;text-align:center}
+.rt td.left{text-align:left}
+.rv{font-weight:900}
+.re{text-align:center;font-size:12px;font-weight:700;margin:16px 0 0;padding:6px 0;border-top:2px solid #ddd;border-bottom:2px solid #ddd}
+.pb{border:1px solid #dfe3e8;border-radius:4px;height:65mm;display:grid;place-items:center;margin-top:6mm;background:#fcfcfc}
+.pc{width:70mm;height:58mm;border:1px solid #ccc;display:grid;place-items:center;text-align:center;color:#6b7280;background:#fff;overflow:hidden}
+.pc img{width:100%;height:100%;object-fit:contain}
+.cap{text-align:center;font-weight:800;margin-top:8px;font-size:11px}
+.pn{position:absolute;right:10mm;bottom:5mm;text-align:right;font-size:7px;color:#999;margin-top:0;background:#fff;padding-top:2px}
+.p2page{width:210mm;height:297mm;padding:12mm 10mm 10mm;box-sizing:border-box;page-break-after:always;break-after:page;position:relative;background:#fff;overflow:hidden}
+.p2header{border-bottom:1px solid #ddd;padding-bottom:4mm;margin-bottom:6mm}
+.p2content{height:252mm;overflow:hidden}
+.p2footer{position:absolute;right:10mm;bottom:5mm;text-align:right;font-size:7px;color:#999;background:#fff}
+`;
 
-    const p1HTML='<div class="p1">'+
-'<div class="rh"><div class="rt-ttl">'+e2(r.reportTitle||'In House Test Report')+'</div><img src="'+ksrc+'" style="height:48px;object-fit:contain"></div>'+
-'<table class="mt">'+
-'<tr><th>접수번호</th><td>'+e2(r.receiptNo)+'</td><th>용도</th><td>'+e2(r.purpose)+'</td></tr>'+
-'<tr><th>접수일자</th><td>'+f2(r.receivedDate)+'</td><th>발급예정일</th><td>'+f2(r.issuedDate)+'</td></tr>'+
-'<tr><th>의뢰자</th><td>'+e2(r.requestDept)+'</td><th>색상</th><td>'+e2(r.colorInfo)+'</td></tr>'+
-'<tr><th>시료명</th><td>'+e2(r.sampleName)+mt+'</td><th>브랜드</th><td>'+e2(r.brand||'')+'</td></tr>'+
-'</table>'+
-'<div class="red-title">■ 의뢰 시험 항목</div>'+
-'<table class="it"><colgroup><col style="width:8%"><col style="width:55%"><col style="width:37%"></colgroup>'+
-'<thead><tr><th>No.</th><th>시험 항목 (Test Item)</th><th>시험 규격</th></tr></thead>'+
-'<tbody>'+(tests.length?tests.map((t,i)=>'<tr><td>'+(i+1)+'</td><td class="left bold">'+e2(t.name||'')+'</td><td class="left">'+e2(t.spec||'')+'</td></tr>').join(''):'<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>')+'</tbody>'+
-'</table>'+
-'<table class="it" style="margin-top:6mm;border-top:none">'+
-'<tr><td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd">비고</td>'+
-'<td class="left" style="height:136px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">'+e2(r.remarkNote||'')+'</td></tr>'+
-'</table>'+
-'<div class="ft">'+
-'<div class="sr">'+
-'<div class="sc">확&nbsp;인</div>'+
-'<div class="ss"><div class="ss-lbl">작 성 자</div><div class="ss-nm">성 명 : '+e2(r.tester)+' &nbsp;&nbsp; (서명)</div></div>'+
-'<div class="ss"><div class="ss-lbl">기술책임자</div><div class="ss-nm">성 명 : '+e2(r.techManager)+' &nbsp;&nbsp; (서명)</div></div>'+
-'<div class="ss"><div class="ss-lbl">품질책임자</div><div class="ss-nm">성 명 : '+e2(r.qualityManager)+' &nbsp;&nbsp; (서명)</div></div>'+
-'<div class="stamp"><div style="width:52px;height:52px;border:2px solid #c00;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#c00;font-size:8px;font-weight:900;text-align:center;line-height:1.3">품질<br>보증팀<br>직인</div></div>'+
-'</div>'+
-'<div class="cb">기술상담이나 의문사항은 담당자에게 문의하여 주시기 바랍니다.</div>'+
-'<div class="ab"><span><b>'+e2(r.companyName)+'</b> &nbsp; '+e2(r.companyAddress)+'</span><span>T '+e2(r.companyTel)+' &nbsp; 기술책임자 010-9422-5518 &nbsp; '+e2(r.companyWeb)+'</span></div>'+
-'<div class="nb"><ul style="margin:0;padding:0">'+
-'<li>1. 본 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 평가 결과로서, 전체 제품에 대한 품질 및 성능을 보증하지 않습니다.</li>'+
-'<li>2. 본 성적서는 당 연구원의 사전 서면 동의 없이 광고, 선전 등 홍보 목적 및 소송용으로 사용할 수 없으며, 용도 외 사용을 금합니다.</li>'+
-'</ul></div>'+
-'<div class="p1pno" id="p1pno">PAGE(S) : 1 / ?</div>'+
-'</div>'+
-'</div>';
-
-    const p2HTML='<table class="p2w">'+
-'<thead><tr><td class="p2ht"><div class="p2hd"><div class="sh"><span>접수번호 : '+e2(r.receiptNo)+'</span><span>시료명 : '+e2(r.sampleName||'')+'</span></div></div></td></tr></thead>'+
-'<tbody><tr><td class="p2bt">'+
-'<div class="slt">세부 시험 결과 데이터</div>'+
-blocks+
-'<div class="re">- 시험결과 기록 완료 -</div>'+
-'<div class="pn" id="lastPageNo">PAGE(S) : ? / ?</div>'+
-'</td></tr></tbody>'+
-'</table>';
-
-    const HTML='<!DOCTYPE html><html><head><meta charset="utf-8"><style>'+CSS+'</style></head><body>'+p1HTML+p2HTML+'</body></html>';
+    const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
+<div class="p1">
+  <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'In House Test Report')}</div><img src="${ksrc}" style="height:48px;object-fit:contain"></div>
+  <table class="mt">
+    <tr><th>접수번호</th><td>${e2(r.receiptNo)}</td><th>용도</th><td>${e2(r.purpose)}</td></tr>
+    <tr><th>접수일자</th><td>${f2(r.receivedDate)}</td><th>발급예정일</th><td>${f2(r.issuedDate)}</td></tr>
+    <tr><th>의뢰자</th><td>${e2(r.requestDept)}</td><th>색상</th><td>${e2(r.colorInfo)}</td></tr>
+    <tr><th>시료명</th><td>${e2(r.sampleName)}${mt}</td><th>브랜드</th><td>${e2(r.brand||'')}</td></tr>
+  </table>
+  <div class="red-title">■ 의뢰 시험 항목</div>
+  <table class="it">
+    <colgroup><col style="width:8%"><col style="width:55%"><col style="width:37%"></colgroup>
+    <thead><tr><th>No.</th><th>시험 항목 (Test Item)</th><th>시험 규격</th></tr></thead>
+    <tbody>${tests.length?tests.map((t,i)=>`<tr><td>${i+1}</td><td class="left bold">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
+  </table>
+  <table class="it" style="margin-top:6mm;border-top:none">
+    <tr><td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd">비고</td>
+    <td class="left" style="height:136px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${e2(r.remarkNote||'')}</td></tr>
+  </table>
+  <div class="ft">
+    <div class="sr">
+      <div class="sc">확&nbsp;인</div>
+      <div class="ss"><div class="ss-lbl">작 성 자</div><div class="ss-nm">성 명 : ${e2(r.tester)} &nbsp;&nbsp; (서명)</div></div>
+      <div class="ss"><div class="ss-lbl">기술책임자</div><div class="ss-nm">성 명 : ${e2(r.techManager)} &nbsp;&nbsp; (서명)</div></div>
+      <div class="ss"><div class="ss-lbl">품질책임자</div><div class="ss-nm">성 명 : ${e2(r.qualityManager)} &nbsp;&nbsp; (서명)</div></div>
+      <div class="stamp"><div style="width:52px;height:52px;border:2px solid #c00;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#c00;font-size:8px;font-weight:900;text-align:center;line-height:1.3">품질<br>보증팀<br>직인</div></div>
+    </div>
+    <div class="cb">기술상담이나 의문사항은 담당자에게 문의하여 주시기 바랍니다.</div>
+    <div class="ab"><span><b>${e2(r.companyName)}</b> &nbsp; ${e2(r.companyAddress)}</span><span>T ${e2(r.companyTel)} &nbsp; 기술책임자 010-9422-5518 &nbsp; ${e2(r.companyWeb)}</span></div>
+    <div class="nb"><ul style="margin:0;padding:0">
+      <li>1. 본 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 평가 결과로서, 전체 제품에 대한 품질 및 성능을 보증하지 않습니다.</li>
+      <li>2. 본 성적서는 당 연구원의 사전 서면 동의 없이 광고, 선전 등 홍보 목적 및 소송용으로 사용할 수 없으며, 용도 외 사용을 금합니다.</li>
+    </ul></div>
+    <div style="text-align:right;font-size:7px;color:#999;margin-top:2px" class="p1-pno">PAGE(S) : 1 / ?</div>
+  </div>
+</div>
+<div id="p2Source" style="display:none">
+  <div class="slt">세부 시험 결과 데이터</div>
+  ${blocks}
+  <div class="re">- 시험결과 기록 완료 -</div>
+</div>
+<div id="p2Pages"></div>
+<script>
+function _makeP2Page(){
+  var page=document.createElement('div');
+  page.className='p2page';
+  page.innerHTML='<div class="p2header"><div class="sh"><span>접수번호 : ${e2(r.receiptNo)}</span><span>시료명 : ${e2(r.sampleName||'')}</span></div></div><div class="p2content"></div><div class="p2footer"></div>';
+  return page;
+}
+function _paginateForPrint(){
+  var src=document.getElementById('p2Source');
+  var target=document.getElementById('p2Pages');
+  if(!src||!target) return;
+  target.innerHTML='';
+  var nodes=Array.from(src.children).map(function(n){return n.cloneNode(true);});
+  var page=_makeP2Page();
+  target.appendChild(page);
+  var body=page.querySelector('.p2content');
+  nodes.forEach(function(node){
+    body.appendChild(node);
+    if(body.scrollHeight > body.clientHeight && body.children.length>1){
+      body.removeChild(node);
+      page=_makeP2Page();
+      target.appendChild(page);
+      body=page.querySelector('.p2content');
+      body.appendChild(node);
+    }
+  });
+  var pages=Array.from(document.querySelectorAll('.p1,.p2page'));
+  var total=pages.length;
+  var p1=document.querySelector('.p1-pno');
+  if(p1) p1.textContent='PAGE(S) : 1 / '+total;
+  document.querySelectorAll('.p2page').forEach(function(pg,idx){
+    var foot=pg.querySelector('.p2footer');
+    if(foot) foot.textContent='PAGE(S) : '+(idx+2)+' / '+total;
+  });
+}
+window.addEventListener('load',function(){
+  _paginateForPrint();
+  setTimeout(function(){ window.print(); },300);
+});
+<\/script>
+</body></html>`;
 
     const pw=window.open('','_blank');
-    if(pw){
-      pw.document.write(HTML);
-      pw.document.close();
-      pw.onload=function(){
-        setTimeout(function(){
-          try{
-            var A4=1122;
-            var wrap=pw.document.querySelector('.p2w');
-            var p2h=wrap?wrap.offsetHeight:A4;
-            var total=1+Math.ceil(p2h/A4);
-            var el=pw.document.getElementById('lastPageNo');
-            if(el) el.textContent='PAGE(S) : '+total+' / '+total;
-            var p1=pw.document.getElementById('p1pno');
-            if(p1) p1.textContent='PAGE(S) : 1 / '+total;
-          }catch(e){}
-          pw.print();
-        },500);
-      };
-      // onload가 이미 발생한 경우 대비
-      setTimeout(function(){
-        try{
-          var A4=1122;
-          var wrap=pw.document.querySelector('.p2w');
-          if(!wrap) return;
-          var p2h=wrap.offsetHeight;
-          var total=1+Math.ceil(p2h/A4);
-          var el=pw.document.getElementById('lastPageNo');
-          if(el && el.textContent.includes('?')) el.textContent='PAGE(S) : '+total+' / '+total;
-          var p1=pw.document.getElementById('p1pno');
-          if(p1 && p1.textContent.includes('?')) p1.textContent='PAGE(S) : 1 / '+total;
-        }catch(e){}
-      },1000);
-    }
+    if(pw){ pw.document.write(HTML); pw.document.close(); }
   }; $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();}};
   $('searchReport').addEventListener('input',renderList);
   $('exportBtn').onclick=exportData; $('importFile').addEventListener('change',importData); $('clearAllBtn').onclick=clearAll;
@@ -2043,7 +2053,7 @@ function renderPreview(){
           <li>1. 본 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 평가 결과로서, 전체 제품에 대한 품질 및 성능을 보증하지 않습니다.</li>
           <li>2. 본 성적서는 당 연구원의 사전 서면 동의 없이 광고, 선전 등 홍보 목적 및 소송용으로 사용할 수 없으며, 용도 외 사용을 금합니다.</li>
         </ul></div>
-        <div style="text-align:right;font-size:7px;color:#999;margin-top:2px">PAGE(S) : 1 / 2</div>
+        <div class="page-no-footer" style="text-align:right;font-size:7px;color:#999;margin-top:2px">PAGE(S) : 1 / 2</div>
       </div>
     </section>
     <section class="page page-2" style="padding:0!important">
@@ -2156,7 +2166,7 @@ function renderPreview(){
         return blocks;
       })()}
       <div class="result-end">- 시험결과 기록 완료 -</div>
-      <div class="page-no" id="lastPageNo" style="text-align:right;font-size:7px;color:#999;margin-top:4mm">PAGE(S) : 2 / 2</div>
+      <div class="page-no" id="lastPageNo">PAGE(S) : 2 / 2</div>
       </div>
     </section>`;
   // 페이지 수 업데이트 (미리보기 렌더 후)
@@ -3105,74 +3115,112 @@ function initAdminRegTab(){
 
 
 // ── 로그인 ──────────────────────────────────────────
-(function(){
+// 중요: Supabase 설정/함수 선언이 모두 끝난 뒤 실행되도록 DOMContentLoaded에서 로그인 초기화
+window.addEventListener('DOMContentLoaded', function(){
   var LS = document.getElementById('loginScreen');
+  if(!LS) return;
+
+  var loginIdEl = document.getElementById('loginId');
+  var loginPwEl = document.getElementById('loginPw');
+  var loginBtnEl = document.getElementById('loginBtn');
+  var logoutBtnEl = document.getElementById('logoutBtn');
+  var saveIdEl = document.getElementById('saveIdCheck');
+  var errEl = document.getElementById('loginErr');
+
+  function showLogin(){
+    LS.style.removeProperty('display');
+    LS.style.visibility = 'visible';
+    LS.removeAttribute('data-hide');
+    LS.classList.remove('hidden');
+    setTimeout(function(){
+      if(loginIdEl && !loginIdEl.value) loginIdEl.focus();
+      else if(loginPwEl) loginPwEl.focus();
+    }, 50);
+  }
+
+  function hideLogin(){
+    LS.style.setProperty('display','none','important');
+    LS.style.visibility = 'hidden';
+    LS.setAttribute('data-hide','1');
+    LS.classList.add('hidden');
+  }
+
+  function startApp(user){
+    hideLogin();
+    if(!window._appInited){
+      window._appInited = true;
+      init();
+    }
+    if(user) applyRoleTabControl(user);
+  }
 
   // 저장된 아이디 불러오기
   var savedId = localStorage.getItem('iloom_saved_id');
-  if(savedId){
-    document.getElementById('loginId').value = savedId;
-    document.getElementById('saveIdCheck').checked = true;
-    document.getElementById('loginPw').focus();
+  if(savedId && loginIdEl){
+    loginIdEl.value = savedId;
+    if(saveIdEl) saveIdEl.checked = true;
   }
 
   function doLogin(){
-    var id = (document.getElementById('loginId').value||'').trim();
-    var pw = (document.getElementById('loginPw').value||'').trim();
-    var err = document.getElementById('loginErr');
-    var saveId = document.getElementById('saveIdCheck').checked;
-    if(!id){ err.textContent='아이디를 입력해주세요.'; return; }
-    if(!pw){ err.textContent='비밀번호를 입력해주세요.'; return; }
+    var id = (loginIdEl && loginIdEl.value || '').trim();
+    var pw = (loginPwEl && loginPwEl.value || '').trim();
+    var saveId = !!(saveIdEl && saveIdEl.checked);
+    if(errEl) errEl.textContent = '';
+
+    if(!id){ if(errEl) errEl.textContent='아이디를 입력해주세요.'; if(loginIdEl) loginIdEl.focus(); return; }
+    if(!pw){ if(errEl) errEl.textContent='비밀번호를 입력해주세요.'; if(loginPwEl) loginPwEl.focus(); return; }
+
     var accs = getAccounts();
-    console.log('로그인 시도:', id, '/ 저장 계정수:', accs.length);
     var matched = accs.find(function(a){ return a.id===id && a.pw===pw; });
-    if(matched){
-      sessionStorage.setItem('iloom_auth','ok');
-      sessionStorage.setItem('iloom_user', JSON.stringify(matched));
-      // 로그인 시 전체 계정 Supabase 동기화
-      var allAccs = getAccounts();
-      allAccs.forEach(function(a){
-        supaFetch('accounts', 'POST', {id:a.id, data:a})
-          .catch(function(e){ console.warn('계정 동기화 실패:', a.id, e); });
-      });
-      if(saveId){ localStorage.setItem('iloom_saved_id', id); }
-      else { localStorage.removeItem('iloom_saved_id'); }
-      LS.style.setProperty('display','none','important');
-      LS.style.visibility = 'hidden';
-      if(!window._appInited){ window._appInited=true; init(); }
-      // 역할별 탭 제어
-      const _adminPanel = document.getElementById('adminMemberBtn');
-      if(_adminPanel){
-        if(matched.role==='관리자' || matched.id===ADMIN_ID){
-          _adminPanel.style.display='block'; renderSideMemberList();
-        } else {
-          _adminPanel.style.display='none';
-        }
-      }
-      applyRoleTabControl(matched);
-    } else {
-      err.textContent='아이디 또는 비밀번호가 올바르지 않습니다.';
-      document.getElementById('loginPw').value='';
-      document.getElementById('loginPw').focus();
+
+    if(!matched){
+      if(errEl) errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.';
+      if(loginPwEl){ loginPwEl.value=''; loginPwEl.focus(); }
+      return;
     }
+
+    sessionStorage.setItem('iloom_auth','ok');
+    sessionStorage.setItem('iloom_user', JSON.stringify(matched));
+
+    if(saveId) localStorage.setItem('iloom_saved_id', id);
+    else localStorage.removeItem('iloom_saved_id');
+
+    // 로그인 성공 후 계정 서버 동기화는 실패해도 화면 사용 가능하게 처리
+    try {
+      getAccounts().forEach(function(a){
+        if(typeof supaFetch === 'function'){
+          supaFetch('accounts', 'POST', {id:a.id, data:a})
+            .catch(function(e){ console.warn('계정 동기화 실패:', a.id, e); });
+        }
+      });
+    } catch(e){ console.warn('계정 동기화 생략:', e); }
+
+    startApp(matched);
   }
 
-  document.getElementById('loginBtn').onclick = doLogin;
-  document.getElementById('loginId').onkeydown = function(e){ if(e.key==='Enter') document.getElementById('loginPw').focus(); };
-  document.getElementById('loginPw').onkeydown = function(e){ if(e.key==='Enter') doLogin(); };
-  document.getElementById('logoutBtn').onclick = function(){
+  if(loginBtnEl) loginBtnEl.onclick = doLogin;
+  if(loginIdEl) loginIdEl.onkeydown = function(e){ if(e.key==='Enter' && loginPwEl) loginPwEl.focus(); };
+  if(loginPwEl) loginPwEl.onkeydown = function(e){ if(e.key==='Enter') doLogin(); };
+  if(logoutBtnEl) logoutBtnEl.onclick = function(){
     sessionStorage.removeItem('iloom_auth');
     sessionStorage.removeItem('iloom_user');
     location.reload();
   };
 
-  // 세션 유지
-  if(sessionStorage.getItem('iloom_auth')==='ok'){
-    LS.style.setProperty('display','none','important');
-    LS.style.visibility = 'hidden';
-    window._appInited=true; init();
+  // 세션 유지: script 전체 로딩 후 실행되므로 Supabase const 초기화 전 오류 방지
+  if(sessionStorage.getItem('iloom_auth') === 'ok'){
+    try {
+      var savedUser = JSON.parse(sessionStorage.getItem('iloom_user') || '{}');
+      startApp(savedUser);
+    } catch(e){
+      sessionStorage.removeItem('iloom_auth');
+      sessionStorage.removeItem('iloom_user');
+      showLogin();
+    }
+  } else {
+    showLogin();
   }
-})();
+});
   
 // ══════════════════════════════════════════
 // Supabase 연동
