@@ -1126,10 +1126,20 @@ async function migrateLocalToSupabase(){
   const migKey = 'iloom_migrated_v3';
   if(localStorage.getItem(migKey)) return;
 
+  // Supabase에 이미 데이터가 있으면 마이그레이션 건너뜀 (새 컴퓨터에서 덮어쓰기 방지)
+  try {
+    const existingRows = await supaFetch('reports', 'GET');
+    if(existingRows && existingRows.length > 0){
+      console.log('Supabase에 이미 데이터 있음, 마이그레이션 건너뜀:', existingRows.length+'개');
+      localStorage.setItem(migKey, '1');
+      return;
+    }
+  } catch(e){ console.warn('마이그레이션 전 Supabase 확인 실패:', e); return; }
+
   console.log('Supabase 최초 마이그레이션...');
   let migrated = 0;
 
-  // 성적서 마이그레이션
+  // 성적서 마이그레이션 (로컬에 데이터가 있을 때만)
   const reportKeys = ['iloom_inhouse_reports_v1', 'iloom_reports_v2', storeKey];
   const allReports = {};
   reportKeys.forEach(function(key){
@@ -1138,15 +1148,19 @@ async function migrateLocalToSupabase(){
       data.forEach(function(r){ if(r && r.id) allReports[r.id] = r; });
     } catch(e){}
   });
-  for(const r of Object.values(allReports)){
-    try { await setReportAsync(r); migrated++; } catch(e){}
+  if(Object.keys(allReports).length > 0){
+    for(const r of Object.values(allReports)){
+      try { await setReportAsync(r); migrated++; } catch(e){}
+    }
   }
 
-  // 의뢰서 마이그레이션
+  // 의뢰서 마이그레이션 (로컬에 데이터가 있을 때만)
   try {
     const reqs = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
-    for(const r of reqs){
-      try { await setRequestAsync(r); migrated++; } catch(e){}
+    if(reqs.length > 0){
+      for(const r of reqs){
+        try { await setRequestAsync(r); migrated++; } catch(e){}
+      }
     }
   } catch(e){}
 
@@ -3422,7 +3436,7 @@ window.addEventListener('DOMContentLoaded', function(){
     if(saveIdEl) saveIdEl.checked = true;
   }
 
-  function doLogin(){
+  async function doLogin(){
     var id = (loginIdEl && loginIdEl.value || '').trim();
     var pw = (loginPwEl && loginPwEl.value || '').trim();
     var saveId = !!(saveIdEl && saveIdEl.checked);
@@ -3430,6 +3444,23 @@ window.addEventListener('DOMContentLoaded', function(){
 
     if(!id){ if(errEl) errEl.textContent='아이디를 입력해주세요.'; if(loginIdEl) loginIdEl.focus(); return; }
     if(!pw){ if(errEl) errEl.textContent='비밀번호를 입력해주세요.'; if(loginPwEl) loginPwEl.focus(); return; }
+
+    // 로그인 전에 Supabase에서 최신 계정 목록 동기화 (새 컴퓨터에서도 정상 로그인)
+    if(loginBtnEl){ loginBtnEl.disabled = true; loginBtnEl.textContent = '확인 중...'; }
+    try {
+      var supaAccRows = await supaFetch('accounts', 'GET');
+      if(supaAccRows && supaAccRows.length > 0){
+        var remoteAccs = supaAccRows.map(function(r){ return r.data; });
+        var defaultAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
+        if(!remoteAccs.find(function(a){ return a.id==='jiyoung_kang'; })){
+          remoteAccs.unshift(defaultAdmin);
+        }
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(remoteAccs));
+      }
+    } catch(e){ console.warn('로그인 전 계정 동기화 실패, 로컬 사용:', e); }
+    finally {
+      if(loginBtnEl){ loginBtnEl.disabled = false; loginBtnEl.textContent = '로그인'; }
+    }
 
     var accs = getAccounts();
     var matched = accs.find(function(a){ return a.id===id && a.pw===pw; });
@@ -3445,16 +3476,6 @@ window.addEventListener('DOMContentLoaded', function(){
 
     if(saveId) localStorage.setItem('iloom_saved_id', id);
     else localStorage.removeItem('iloom_saved_id');
-
-    // 로그인 성공 후 계정 서버 동기화는 실패해도 화면 사용 가능하게 처리
-    try {
-      getAccounts().forEach(function(a){
-        if(typeof supaFetch === 'function'){
-          supaFetch('accounts', 'POST', {id:a.id, data:a})
-            .catch(function(e){ console.warn('계정 동기화 실패:', a.id, e); });
-        }
-      });
-    } catch(e){ console.warn('계정 동기화 생략:', e); }
 
     startApp(matched);
   }
