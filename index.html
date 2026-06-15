@@ -1841,17 +1841,15 @@ function renderDetailSection(){
               const res = row.querySelector('[data-key="dim_result_'+i+'_'+idx+'"]');
               if(res && !isNaN(lv) && !isNaN(wv)){
                 // 호칭 산출: L*W/10000 → 반올림 후 등급
-                const area = lv * wv / 10000;
-                let label = Math.round(area*10)/10 + '';
-                // 등급 suffix: W/L 비율로 A/B/C 결정
+                // 호칭 숫자 = W(너비)/10 반올림
+                const hoching = Math.round(wv / 10);
+                // 등급: W/L 비율로 A/B/C
+                const ratio = wv / lv;
                 let grade = '';
-                if(!isNaN(lv)&&!isNaN(wv)&&lv>0){
-                  const ratio = wv/lv;
-                  if(ratio >= 0.9) grade = '-A';
-                  else if(ratio >= 0.75) grade = '-B';
-                  else grade = '-C';
-                }
-                res.value = label + grade;
+                if(ratio < 0.6) grade = '-A';
+                else if(ratio < 0.8) grade = '-B';
+                else grade = '-C';
+                res.value = hoching + grade;
               }
               renderPreview();
             });
