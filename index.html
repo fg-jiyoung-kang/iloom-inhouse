@@ -1800,6 +1800,7 @@ function renderDetailSection(){
     const name = (t.name||'').toLowerCase();
     const cat  = (t.category||'').toLowerCase();
 
+    // ── 기준 공통 표시 (모든 항목) ──
     if(t.crit){
       const critBox = document.createElement('div');
       critBox.style.cssText = 'margin-bottom:10px;padding:10px 12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;color:#374151;white-space:pre-wrap;line-height:1.7';
@@ -1926,7 +1927,6 @@ function renderDetailSection(){
     // ── 내구성시험 ──
     } else if(name.includes('내구성')){
 
-
       const grid = document.createElement('div');
       grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px';
       ['d1','d2','d3','d4'].forEach(function(d){
@@ -1963,7 +1963,6 @@ function renderDetailSection(){
 
     // ── 수직하중시험 ──
     } else if(name.includes('수직하중') || name.includes('하중')){
-
 
       const cycles = ['0회','200회','10000회','80000회','480000회'];
       cycles.forEach(function(cycle){
@@ -2213,12 +2212,14 @@ function renderPreview(){
           // 영구압축줄음률
           } else if(name.includes('압축줄음률') || name.includes('줄음률')){
             const t0=detail['t0_'+i]||''; const t1=detail['t1_'+i]||''; const pct=detail['cs_pct_'+i]||'';
+            const critRow = crit ? '<div style="font-size:10px;color:#374151;white-space:pre-wrap;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>'+esc(crit)+'</div>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:50%">측정항목</th><th>값</th></tr>'
-              +'<tr><td class="left">시험 전 두께 (t₀)</td><td class="result-val">'+t0+(t0?' mm':'')+'</td></tr>'
+              +critRow
+              +'<table class="result-table"><tr><th style="width:40%">측정항목</th><th>값</th><th style="width:25%">시험결과</th></tr>'
+              +'<tr><td class="left">시험 전 두께 (t₀)</td><td class="result-val">'+t0+(t0?' mm':'')+'</td><td rowspan="3" style="text-align:center;font-weight:900;font-size:13px;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge||'')+'</td></tr>'
               +'<tr><td class="left">시험 후 두께 (t₁)</td><td class="result-val">'+t1+(t1?' mm':'')+'</td></tr>'
               +'<tr><td class="left">줄음률</td><td class="result-val" style="color:var(--blue)">'+pct+(pct&&!pct.includes('%')?' %':'')+'</td></tr>'
-              +judgeCell.replace('<td></td></tr>','</tr>')+'</table></div>';
+              +'</table></div>';
 
           // 롤링내구성 - 판정만
           } else if(name.includes('롤링')){
