@@ -444,7 +444,7 @@ button,input,select{font:inherit}
             <div class="form-grid">
               <label>의뢰번호
                 <div style="display:flex;gap:6px;align-items:center">
-                  <input id="receiptNo" placeholder="의뢰번호 입력 (예: IM_2026001)" style="flex:1">
+                  <input id="receiptNo" placeholder="의뢰번호 입력 (예: IM_2026001)" style="flex:1" onblur="autoImportFromRequest(this.value)">
                   <button type="button" onclick="importFromRequest()" style="background:#e60012;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap">📋 의뢰서 불러오기</button>
                 </div>
               </label>
@@ -934,6 +934,25 @@ function getCheckedReqItems(){
 }
 
 // ── 의뢰서 → 성적서 항목 불러오기 ──
+async function autoImportFromRequest(no){
+  no = (no||'').trim();
+  if(!no) return;
+  let reqList = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+  try {
+    const supaReqs = await getRequestsAsync();
+    supaReqs.forEach(function(r){
+      const idx = reqList.findIndex(function(x){ return x.no===r.no; });
+      if(idx === -1) reqList.push(r);
+      else reqList[idx] = r;
+    });
+    localStorage.setItem('iloom_requests_v1', JSON.stringify(reqList));
+  } catch(e){}
+  const found = reqList.find(function(r){
+    return (r.no||'').toLowerCase() === no.toLowerCase();
+  });
+  if(found) applyRequestToReport(found);
+}
+
 async function importFromRequest(){
   const no = (document.getElementById('receiptNo')?.value||'').trim();
 
@@ -1034,15 +1053,7 @@ function applyRequestToReport(req){
   markUnsaved();
   renderPreview();
   renderDetailSection();
-  var msg = '✅ 의뢰서 정보를 불러왔습니다!\n\n' +
-    '· 의뢰번호: ' + (req.no||'-') + '\n' +
-    '· 접수일자: ' + (req.date||'-') + '\n' +
-    '· 의뢰자: '  + (req.person||'-') + '\n' +
-    '· 시료명: '  + (req.product||'-') + '\n' +
-    '· 브랜드: '  + (req.brand||'-') + '\n' +
-    '· 색상: '    + (req.color||'-') + '\n' +
-    '· 시험항목: ' + items.length + '개';
-  alert(msg);
+  showToast('✅ 의뢰서 [' + (req.no||'-') + '] 정보를 불러왔습니다.');
 }
 
 async function showRequestPickerModal(callback){
