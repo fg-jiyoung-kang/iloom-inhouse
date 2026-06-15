@@ -1505,7 +1505,7 @@ function bindInputs(){
         blocks+=`<div class="result-block">${titleHTML}<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr><tr><td class="left">결과</td><td class="result-val">${esc2(detail['genResult_'+i]||'')}</td><td>${esc2(crit||t.result||'')}</td></tr>${judgeRow}</table></div>`;
       }
     });
-    blocks+=`<div class="result-block" style="break-inside:avoid;page-break-inside:avoid;margin-top:0"><div class="result-block-title photo-block-title"><div class="result-block-title-text"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="photo-box"><div><div class="photo-card">${sampleImageData?`<img src="${sampleImageData}">`:`[ ${esc2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="caption">${esc2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${esc2(r.sampleName)}</div></div></div></div>`;
+    blocks+=`<div class="result-block" style="break-inside:avoid;page-break-inside:avoid;margin-top:10mm"><div class="result-block-title"><div class="result-block-title-text"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="photo-box"><div><div class="photo-card">${sampleImageData?`<img src="${sampleImageData}">`:`[ ${esc2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="caption">${esc2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${esc2(r.sampleName)}</div></div></div></div>`;
 
     const CSS = `
       :root{--red:#e60012;--green:#008a3d}
@@ -1609,22 +1609,29 @@ function bindInputs(){
         <div id="lastPageNo" style="text-align:right;font-size:7px;color:#999;margin-top:4mm;padding-right:0">PAGE(S) : ? / ?</div>
       </td></tr></tbody>
     </table>
-    <script>
-    window.onload=function(){
-      setTimeout(function(){
-        var A4=1122;
-        var p2h=document.querySelector('.page-2-wrap').offsetHeight;
-        var total=1+Math.ceil(p2h/A4);
-        document.getElementById('lastPageNo').textContent='PAGE(S) : '+total+' / '+total;
-        window.print();
-      }, 300);
-    };
-    <\/script>
     </body></html>`;
 
+    // 페이지 수 계산 후 출력
     const pw = window.open('','_blank');
-    if(pw){ pw.document.write(HTML); pw.document.close(); }
-  }; $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();}};
+    if(pw){
+      pw.document.write(HTML);
+      pw.document.close();
+      pw.onload = function(){
+        setTimeout(function(){
+          var A4=1122;
+          var wrap=pw.document.querySelector('.page-2-wrap');
+          var p2h=wrap?wrap.offsetHeight:1122;
+          var total=1+Math.ceil(p2h/A4);
+          var el=pw.document.getElementById('lastPageNo');
+          if(el) el.textContent='PAGE(S) : '+total+' / '+total;
+          pw.print();
+        },300);
+      };
+    }
+    return;
+  };
+
+ $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();}};
   $('searchReport').addEventListener('input',renderList);
   $('exportBtn').onclick=exportData; $('importFile').addEventListener('change',importData); $('clearAllBtn').onclick=clearAll;
 }
