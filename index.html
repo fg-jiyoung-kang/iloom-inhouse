@@ -1380,6 +1380,12 @@ function restorePage2AfterPrint(){
 }
 
 function init(){
+  // 기존 localStorage에서 이미지 데이터 제거 (용량 확보)
+  try {
+    const existing = JSON.parse(localStorage.getItem(storeKey)||'[]');
+    const cleaned = existing.map(function(r){ const c=Object.assign({},r); delete c.image; return c; });
+    localStorage.setItem(storeKey, JSON.stringify(cleaned));
+  } catch(e) { localStorage.removeItem(storeKey); }
   if(!localStorage.getItem(standardsKey)) setStandards([]); // 기본 고정 규격 없음
   navInit(); bindInputs(); renderStandardSelect(); renderStandards(); newReport();
   initAccounts(); initListActions();
@@ -3052,8 +3058,16 @@ function clearAll(){
   init();
 }
 
-function loadReport(r){currentId=r.id; fields.forEach(id=>setVal(id,r[id]||'')); sampleImageData=r.image||'';
-  const matEl3=document.getElementById('sampleMaterials'); if(matEl3){ const matMap={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'}; matEl3.textContent=Array.isArray(r.materials)&&r.materials.length?'['+r.materials.map(function(m){return matMap[m]||m;}).join(', ')+']':''; matEl3.dataset.materials=JSON.stringify(r.materials||[]); } $('testTable').querySelector('tbody').innerHTML=''; window._loadingReport=true; (r.tests||[]).forEach(addTest); window._loadingReport=false; renderImage(); renderDetailSection(r.detailData); setTimeout(function(){ renderPreview(); }, 100); document.querySelector('[data-tab="write"]').click();}
+async function loadReport(r){
+  // Supabase에서 이미지 포함 전체 데이터 가져오기
+  try {
+    const rows = await supaFetch('reports', 'GET');
+    const full = (rows||[]).find(function(x){ return x.id === r.id; });
+    if(full && full.data) r = full.data;
+  } catch(e){ console.warn('Supabase 불러오기 실패, 로컬 사용:', e); }
+  currentId=r.id; fields.forEach(id=>setVal(id,r[id]||'')); sampleImageData=r.image||'';
+  const matEl3=document.getElementById('sampleMaterials'); if(matEl3){ const matMap={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'}; matEl3.textContent=Array.isArray(r.materials)&&r.materials.length?'['+r.materials.map(function(m){return matMap[m]||m;}).join(', ')+']':''; matEl3.dataset.materials=JSON.stringify(r.materials||[]); } $('testTable').querySelector('tbody').innerHTML=''; window._loadingReport=true; (r.tests||[]).forEach(addTest); window._loadingReport=false; renderImage(); renderDetailSection(r.detailData); setTimeout(function(){ renderPreview(); }, 100); document.querySelector('[data-tab="write"]').click();
+}
 async function saveReport(silent=false){
   if(!isAdmin()){
     // 비관리자는 본인이 작성한 성적서만 저장 가능 (새 성적서는 허용)
@@ -3526,7 +3540,22 @@ async function setAccountsAsync(list) {
 
 // ── localStorage 캐시 래퍼 ──
 function getReports() { return JSON.parse(localStorage.getItem(storeKey)||'[]'); }
-function setReports(list) { localStorage.setItem(storeKey, JSON.stringify(list)); }
+function setReports(list) {
+  // localStorage에는 이미지 제외하고 저장 (용량 초과 방지)
+  const slim = list.map(function(r){
+    const copy = Object.assign({}, r);
+    delete copy.image;
+    return copy;
+  });
+  try {
+    localStorage.setItem(storeKey, JSON.stringify(slim));
+  } catch(e) {
+    // 그래도 초과하면 오래된 것부터 제거
+    console.warn('localStorage 용량 부족, 오래된 성적서 제거:', e);
+    const trimmed = slim.slice(0, Math.floor(slim.length / 2));
+    try { localStorage.setItem(storeKey, JSON.stringify(trimmed)); } catch(e2) {}
+  }
+}
 
 </script>
 </body>
