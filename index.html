@@ -1302,11 +1302,17 @@ async function loadSharedFromSupabase(){
     const settingRows = await supaFetch('settings', 'GET');
     if(settingRows && settingRows.length){
       const stdRow = settingRows.find(function(r){ return r.id==='standards'; });
-      if(stdRow && Array.isArray(stdRow.data)){
-        // Supabase가 정답 - 완전 덮어쓰기
+      if(stdRow && Array.isArray(stdRow.data) && stdRow.data.length > 0){
         localStorage.setItem(standardsKey, JSON.stringify(stdRow.data));
         renderStandardSelect(); renderStandards();
-        console.log('✅ 규격 동기화 (덮어쓰기):', stdRow.data.length+'개');
+        console.log('✅ 규격 동기화:', stdRow.data.length+'개');
+      } else {
+        // Supabase가 비어있으면 로컬 데이터를 올림
+        const localStds = getStandards();
+        if(localStds.length > 0){
+          supaFetch('settings','POST',{id:'standards',data:localStds,updated_at:new Date().toISOString()}).catch(function(){});
+          console.log('⬆️ 로컬 규격 → Supabase 업로드:', localStds.length+'개');
+        }
       }
       // 의뢰항목 불러오기
       const reqRow = settingRows.find(function(r){ return r.id==='req_items'; });
