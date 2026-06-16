@@ -2124,33 +2124,7 @@ function renderDetailSection(externalData){
     sec.appendChild(fieldsWrap);
     box.appendChild(sec);
 
-    // crit_edit / name_edit 값은 getDetailData()에서 수집됨
-    // saveBtn2.onclick 로직 — 입력 시 실시간으로 테이블 동기화되므로 별도 저장 버튼 불필요
-    // (하위 호환을 위해 dummy 변수 유지)
-    const dummy_compat = function(){
-      const newCrit = critEdit.value;
-      const newName = nameEdit.value;
-      const rows = document.querySelectorAll('#testTable tbody tr:not(.t-detail-row)');
-      if(rows[i]){
-        const nameInp = rows[i].querySelector('.t-name');
-        const critInp = rows[i].querySelector('.t-crit');
-        if(nameInp && newName) nameInp.value = newName;
-        if(critInp) critInp.value = newCrit;
-      }
-      // 화면 업데이트
-      critView.textContent = newCrit || '기준 없음';
-      titleEl.textContent = (i+1) + '. ' + (newName||t.name||'항목 '+(i+1)) + (t.spec ? '  ('+t.spec+')' : '');
-      exitEditMode();
-      renderPreview();
-      saveReport(true); // 즉시 저장
-      showToast('✅ 저장되었습니다.');
-    };
-
-    cancelBtn2.onclick = function(){
-      critEdit.value = originalCrit;
-      nameEdit.value = originalName;
-      exitEditMode();
-    };
+    // 입력 시 실시간으로 테이블 동기화 (별도 저장 버튼 불필요)
   });
 
   setTimeout(updateJudgeColors,0);
