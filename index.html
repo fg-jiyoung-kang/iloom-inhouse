@@ -2683,20 +2683,22 @@ function previewRequestOnly(){
 }
 
 async function generateReqNo(){
-  // 로컬 + Supabase 모두 확인해서 가장 큰 번호 + 1
+  // Supabase 기준으로 가장 큰 번호 + 1 (로컬 캐시 무시)
   let max = 0;
-  const localList = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
-  localList.forEach(r=>{
-    const m=(r.no||'').match(/^IM_\d{4}(\d+)$/);
-    if(m) max=Math.max(max,parseInt(m[1]));
-  });
   try {
     const supaReqs = await getRequestsAsync();
     (supaReqs||[]).forEach(r=>{
       const m=(r.no||'').match(/^IM_\d{4}(\d+)$/);
       if(m) max=Math.max(max,parseInt(m[1]));
     });
-  } catch(e){}
+  } catch(e){
+    // Supabase 실패 시 로컬 fallback
+    const localList = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+    localList.forEach(r=>{
+      const m=(r.no||'').match(/^IM_\d{4}(\d+)$/);
+      if(m) max=Math.max(max,parseInt(m[1]));
+    });
+  }
   const year = new Date().getFullYear();
   return 'IM_' + year + String(max + 1).padStart(3, '0');
 }
