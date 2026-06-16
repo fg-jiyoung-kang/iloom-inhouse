@@ -1425,7 +1425,7 @@ async function init(){
   await renderListAsync();
   // Supabase에서 공유 데이터 불러오기 (병합)
   loadSharedFromSupabase();
-  startAutoSave(); // 5초 자동저장 시작
+  // startAutoSave 비활성화 — 수동 저장만 사용
   startSyncTimer(); // 10초 전체 동기화 시작
   // 로컬 데이터를 Supabase에 업로드
   migrateLocalToSupabase();
@@ -1511,7 +1511,7 @@ function markUnsaved(){
   const btn = document.getElementById('saveBtn');
   const status = document.getElementById('autoSaveStatus');
   if(btn){ btn.style.background='#e60012'; btn.style.color='#fff'; btn.style.borderColor='#e60012'; }
-  if(status){ status.style.display=''; status.textContent='● 저장 안됨 (5초 후 자동저장)'; }
+  if(status){ status.style.display=''; status.textContent='● 저장 안됨 — 저장 버튼을 눌러주세요'; }
 }
 function clearUnsaved(){
   _hasUnsaved = false;
@@ -2998,14 +2998,18 @@ function printReqPreview(){
 }
 
 function clearRequest(){
-  ['req_date','req_dept','req_person','req_product','req_brand','req_color','req_note']
+  ['req_date','req_dept','req_person','req_product','req_brand','req_color','req_note',
+   'req_company','req_hp','req_email','req_style','req_fiber','req_buyer']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   const noEl=document.getElementById('req_no');
   if(noEl) generateReqNo().then(function(no){ noEl.value = no; });
   const nameEl2=document.getElementById('req_items_custom_name'); if(nameEl2) nameEl2.value='';
   const specEl2=document.getElementById('req_items_custom_spec'); if(specEl2) specEl2.value='';
+  // 재질 체크박스 초기화
   ['req_mat_fabric','req_mat_sponge','req_mat_antibac','req_mat_padding'].forEach(function(id){ const el=document.getElementById(id); if(el) el.checked=false; });
-  // 체크박스 초기화
+  // KOLAS/내부 체크박스 초기화
+  ['req_chk_kolas','req_chk_internal'].forEach(function(id){ const el=document.getElementById(id); if(el) el.checked=false; });
+  // 시험항목 체크박스 초기화
   document.querySelectorAll('.req-item-chk').forEach(c=>c.checked=false);
   // 커스텀 항목 제거
   document.querySelectorAll('.req-item-custom').forEach(el=>el.remove());
@@ -3171,23 +3175,11 @@ let _autoSaveTimer = null;
 let _hasUnsaved = false;
 
 function autoSave(){
-  // 변경사항 없으면 건너뜀
-  if(!_hasUnsaved) return;
-  // 현재 성적서 작성 탭이 활성화된 경우만
-  if(!document.getElementById('tab-write')?.classList.contains('active')) return;
-  // 의뢰번호가 없으면 건너뜀 (빈 양식)
-  const receiptNo = val('receiptNo');
-  if(!receiptNo) return;
-  // 시험 항목이 1개 이상 있어야 저장
-  const tbody = document.querySelector('#testTable tbody');
-  const hasTests = tbody && tbody.querySelectorAll('tr:not(.t-detail-row)').length > 0;
-  if(!hasTests) return;
-  saveReport(true); // silent=true (토스트 없이 저장)
+  // 자동저장 비활성화 — 저장 버튼을 눌러야만 저장됨
 }
 
 function startAutoSave(){
-  if(_autoSaveTimer) clearInterval(_autoSaveTimer);
-  _autoSaveTimer = setInterval(autoSave, 5000);
+  // 자동저장 비활성화
 }
 function showSaveToast(){
   const existing = document.getElementById('saveToastModal');
