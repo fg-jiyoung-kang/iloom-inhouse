@@ -985,7 +985,22 @@ async function importFromRequest(){
 }
 
 async function applyRequestToReport(req){
-  // ── 새 성적서 — 의뢰서 정보로만 채우기 ──
+  // ── 1. 기존 성적서가 있으면 loadReport로 완전 복원 ──
+  let existingReport = getReports().find(function(r){ return r.receiptNo === (req.no||''); });
+  if(!existingReport){
+    try {
+      const rows = await supaFetch('reports','GET');
+      const supaMatch = (rows||[]).find(function(x){ return x.data && x.data.receiptNo === req.no; });
+      if(supaMatch && supaMatch.data) existingReport = supaMatch.data;
+    } catch(e){}
+  }
+  if(existingReport){
+    await loadReport(existingReport);
+    showToast('📋 기존 성적서 [' + req.no + '] 를 불러왔습니다.');
+    return;
+  }
+
+  // ── 2. 새 성적서 — 의뢰서 정보로만 채우기 ──
   currentId = null;
   _hasUnsaved = false;
 
