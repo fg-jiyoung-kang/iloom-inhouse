@@ -1294,7 +1294,7 @@ function openMyPage(){
   document.getElementById('myPageCurPw').focus();
 }
 
-function changeMyPassword(){
+async function changeMyPassword(){
   const u = JSON.parse(sessionStorage.getItem('iloom_user')||'{}');
   const curPw  = document.getElementById('myPageCurPw')?.value||'';
   const newPw  = document.getElementById('myPageNewPw')?.value||'';
@@ -1308,14 +1308,21 @@ function changeMyPassword(){
   const accs = getAccounts();
   const idx = accs.findIndex(function(a){ return a.id === u.id; });
   if(idx === -1){ err.textContent='계정을 찾을 수 없습니다.'; return; }
-  if(accs[idx].pw !== curPw){ err.textContent='현재 비밀번호가 올바르지 않습니다.'; return; }
 
-  // 비밀번호 변경
-  accs[idx].pw = newPw;
+  // 현재 비밀번호 확인 (해시 또는 평문 모두 처리)
+  const curHash = await hashPassword(curPw);
+  const stored = accs[idx].pw;
+  const isMatch = isHashed(stored) ? stored === curHash : stored === curPw;
+  if(!isMatch){ err.textContent='현재 비밀번호가 올바르지 않습니다.'; return; }
+
+  // 새 비밀번호는 해시로 저장
+  const newHash = await hashPassword(newPw);
+  accs[idx].pw = newHash;
   setAccounts(accs);
 
-  // 세션 정보도 업데이트
-  const updated = Object.assign({}, u, {pw: newPw});
+  // 세션 정보도 업데이트 (pw는 세션에 저장 안 함)
+  const updated = Object.assign({}, u);
+  delete updated.pw;
   sessionStorage.setItem('iloom_user', JSON.stringify(updated));
 
   document.getElementById('myPageModal').remove();
@@ -1424,7 +1431,9 @@ async function init(){
   // Supabase에서 최신 데이터 가져온 뒤 렌더링 (await로 완료 보장)
   await renderListAsync();
   // Supabase에서 공유 데이터 불러오기 (병합)
-  loadSharedFromSupabase();
+  await loadSharedFromSupabase();
+  // 비밀번호 해싱 마이그레이션 (서버 동기화 후 실행 — 평문 → SHA-256)
+  await migratePasswordsIfNeeded();
   // startAutoSave 비활성화 — 수동 저장만 사용
   startSyncTimer(); // 10초 전체 동기화 시작
   // 로컬 데이터를 Supabase에 업로드
@@ -3302,6 +3311,7 @@ function requireOwner(){
 
 
 function getAccounts(){
+  // 기본 관리자 — 비번은 해싱된 상태로만 존재 (초기엔 평문, 마이그레이션 후 해시)
   const defaultAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
   try {
     const raw = localStorage.getItem(ACCOUNTS_KEY);
@@ -3310,7 +3320,7 @@ function getAccounts(){
       if(!Array.isArray(list)) throw new Error('not array');
       const adminIdx = list.findIndex(a=>a.id==='jiyoung_kang');
       if(adminIdx === -1) list.unshift(defaultAdmin);
-      else list[adminIdx].pw = '1111'; // 관리자 비번 항상 1111 고정
+      // ※ 비번 강제 고정 제거 — 해싱된 비번 그대로 사용
       return list;
     }
   } catch(e){
@@ -3318,6 +3328,22 @@ function getAccounts(){
     localStorage.removeItem(ACCOUNTS_KEY);
   }
   return [defaultAdmin];
+}
+
+// 평문 비밀번호가 남아있는 계정을 자동으로 해싱해서 저장 (마이그레이션)
+async function migratePasswordsIfNeeded(){
+  const list = getAccounts();
+  let changed = false;
+  for(const acc of list){
+    if(acc.pw && !isHashed(acc.pw)){
+      acc.pw = await hashPassword(acc.pw);
+      changed = true;
+    }
+  }
+  if(changed){
+    setAccounts(list);
+    console.log('✅ 비밀번호 해싱 마이그레이션 완료');
+  }
 }
 function setAccounts(list){
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list));
@@ -3411,14 +3437,14 @@ function renderAccounts(){
       const resetBtn = document.createElement('button');
       resetBtn.textContent = '🔑 비번 초기화';
       resetBtn.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;color:#2563eb;cursor:pointer;font-size:11px;font-weight:700;padding:4px 10px;white-space:nowrap';
-      resetBtn.onclick = (function(a){ return function(){
-        var newPw = prompt('"'+a.id+'" 계정의 새 비밀번호를 입력하세요 (4자 이상):', '1234');
+      resetBtn.onclick = (function(a){ return async function(){
+        var newPw = prompt('"'+a.id+'" 계정의 새 비밀번호를 입력하세요 (4자 이상):', '');
         if(!newPw) return;
         if(newPw.length < 4){ alert('비밀번호는 4자 이상이어야 합니다.'); return; }
         var list2 = getAccounts();
         var idx = list2.findIndex(function(x){ return x.id===a.id; });
         if(idx > -1){
-          list2[idx].pw = newPw;
+          list2[idx].pw = await hashPassword(newPw);
           setAccounts(list2);
           alert('"'+a.id+'" 비밀번호가 초기화되었습니다.');
         }
@@ -3461,7 +3487,7 @@ function initAdminRegTab(){
   // 등록 버튼 - onclick으로 단순하게
   var btn = document.getElementById('adminRegBtn');
   if(btn){
-    btn.onclick = function(){
+    btn.onclick = async function(){
       var id   = (document.getElementById('adminRegId').value||'').trim();
       var pw   = (document.getElementById('adminRegPw').value||'').trim();
       var name = (document.getElementById('adminRegName').value||'').trim();
@@ -3472,7 +3498,8 @@ function initAdminRegTab(){
       var list = getAccounts();
       if(list.find(function(a){ return a.id===id; })){ err.textContent='이미 존재하는 아이디입니다.'; return; }
       var role = (document.getElementById('adminRegRole').value||'시험원');
-      var newAcc = {id:id, pw:pw, name:name||id, role:role};
+      var hashedPw = await hashPassword(pw);
+      var newAcc = {id:id, pw:hashedPw, name:name||id, role:role};
       list.push(newAcc);
       setAccounts(list);
       // Supabase에 직접 저장
@@ -3585,7 +3612,15 @@ window.addEventListener('DOMContentLoaded', function(){
     }
 
     var accs = getAccounts();
-    var matched = accs.find(function(a){ return a.id===id && a.pw===pw; });
+    var inputHash = await hashPassword(pw);
+    var matched = accs.find(function(a){
+      // 저장값이 해시면 해시 비교, 평문이면 평문 비교 (마이그레이션 전 대비)
+      if(isHashed(a.pw)){
+        return a.id === id && a.pw === inputHash;
+      } else {
+        return a.id === id && a.pw === pw;
+      }
+    });
 
     if(!matched){
       if(errEl) errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.';
@@ -3626,6 +3661,21 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 });
   
+// ══════════════════════════════════════════
+// 비밀번호 해싱 (SHA-256)
+// ══════════════════════════════════════════
+async function hashPassword(pw) {
+  const msgBuffer = new TextEncoder().encode(pw);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function isHashed(pw) {
+  // SHA-256 해시는 항상 64자리 16진수
+  return typeof pw === 'string' && /^[0-9a-f]{64}$/.test(pw);
+}
+
 // ══════════════════════════════════════════
 // Supabase 연동
 // ══════════════════════════════════════════
