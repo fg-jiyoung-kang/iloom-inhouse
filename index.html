@@ -1545,6 +1545,7 @@ function bindInputs(){
     const tests=r.tests||[];
     const det=r.detailData||{};
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
+    const showKolas=r.chk_kolas||false;
     const ml={fabric:'원단',sponge:'스펀지',antibac:'항균',padding:'패딩'};
     const mt=(r.materials&&r.materials.length)?' ['+r.materials.map(m=>ml[m]||m).join(', ')+']':'';
     let blocks='';
@@ -1647,7 +1648,7 @@ body{font-family:Arial,'Noto Sans KR','Malgun Gothic',sans-serif;background:#fff
 
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
 <div class="p1">
-  <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'In House Test Report')}</div><img src="${ksrc}" style="height:48px;object-fit:contain"></div>
+  <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'In House Test Report')}</div>${showKolas?`<img src="${ksrc}" style="height:48px;object-fit:contain">`:'<div></div>'}</div>
   <table class="mt">
     <tr><th>접수번호</th><td>${e2(r.receiptNo)}</td><th>용도</th><td>${e2(r.purpose)}</td></tr>
     <tr><th>접수일자</th><td>${f2(r.receivedDate)}</td><th>발급예정일</th><td>${f2(r.issuedDate)}</td></tr>
@@ -1860,6 +1861,7 @@ function collectReport(autoSaved){
   fields.forEach(function(fid){data[fid]=val(fid);});
   const me=document.getElementById('sampleMaterials');
   data.materials=me&&me.dataset.materials?JSON.parse(me.dataset.materials):[];
+  data.chk_kolas=document.getElementById('req_chk_kolas')?.checked||false;
   return data;
 }
 
