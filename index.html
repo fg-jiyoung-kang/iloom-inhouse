@@ -472,7 +472,7 @@ button,input,select{font:inherit}
               <select id="tester" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer">
                 <option value="이용희">이용희</option>
                 <option value="양지운">양지운</option>
-                <option value="">강지영</option>
+                <option value="강지영">강지영</option>
                 <option value="장성진">장성진</option>
               </select>
             </label>
@@ -1557,13 +1557,14 @@ function bindInputs(){
           rows+=`<tr><td class="left">L=${e2(lv)} mm / W=${e2(wv)} mm</td><td class="rv" style="color:#2563eb">${e2(rv)}</td></tr>`;
         }
         if(!rows) rows='<tr><td colspan="2" style="color:#aaa">입력된 측정값 없음</td></tr>';
-        blocks+=`<div class="rb">${th}${crit?`<div class="dc"><b>기준</b><br>${e2(crit)}</div>`:''}<table class="rt"><tr><th style="width:55%">측정값</th><th>시험 결과</th></tr>${rows}</table></div>`;
+        blocks+=`<div class="rb">${th}${crit?`<div class="dc"><b>기준</b><br>${e2(crit)}</div>`:''}<table class="rt"><tr><th style="width:55%">측정값</th><th>시험 결과 (mm, class)</th></tr>${rows}</table></div>`;
       } else if(nm.includes('압축줄음률') || nm.includes('영구압축') || nm.includes('줄음률')){
         const t0=det['t0_'+i]||'';
         const t1=det['t1_'+i]||'';
         const pct=det['cs_pct_'+i]||'';
         const csJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
-        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr><tr><td class="left">시험 전 두께 (t₀)</td><td class="rv">${e2(t0)}${t0?' mm':''}</td><td></td></tr><tr><td class="left">시험 후 두께 (t₁)</td><td class="rv">${e2(t1)}${t1?' mm':''}</td><td></td></tr><tr><td class="left">영구압축 줄음률</td><td class="rv" style="color:#2563eb">${e2(pct)}${pct&&!String(pct).includes('%')?' %':''}</td><td style="white-space:pre-wrap">${crit?e2(crit):''}</td></tr>${csJudge}</table></div>`;
+        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr><tr><td class="left">시험 전 두께 (t₀)</td><td class="rv">${e2(t0)}</td><td>-</td></tr><tr><td class="left">시험 후 두께 (t₁)</td><td class="rv">${e2(t1)}</td><td>-</td></tr><tr><td class="left">영구압축 줄음률</td><td class="rv" style="color:#2563eb">${e2(pct)}</td><td style="white-space:pre-line">1종 ≤ 10
+2종 ≤ 13</td></tr>${csJudge}</table></div>`;
       } else if(nm.includes('내구성')){
         const dc=det['detail_crit_'+i]||crit||'';
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
@@ -2250,7 +2251,7 @@ function renderPreview(){
               rows += '<tr><td class="left">L='+esc(lv||'')+' mm / W='+esc(wv||'')+' mm</td><td class="result-val">'+esc(rv||'')+'</td></tr>';
             }
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +critBox+'<table class="result-table"><tr><th style="width:55%">측정값</th><th>결과</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:55%">측정값</th><th>시험 결과 (mm, class)</th></tr>'
               +rows+'</table></div>';
 
           // 영구압축줄음률
@@ -2258,10 +2259,10 @@ function renderPreview(){
             const t0=detail['t0_'+i]||''; const t1=detail['t1_'+i]||''; const pct=detail['cs_pct_'+i]||'';
             const csJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td>KS G 4300 기준 만족</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr>'
-              +'<tr><td class="left">시험 전 두께 (t₀)</td><td class="result-val">'+t0+(t0?' mm':'')+'</td><td></td></tr>'
-              +'<tr><td class="left">시험 후 두께 (t₁)</td><td class="result-val">'+t1+(t1?' mm':'')+'</td><td></td></tr>'
-              +'<tr><td class="left">영구압축 줄음률</td><td class="result-val" style="color:var(--blue)">'+pct+(pct&&!pct.includes('%')?' %':'')+'</td><td style="white-space:pre-wrap">'+(crit?esc(crit):'')+'</td></tr>'
+              +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr>'
+              +'<tr><td class="left">시험 전 두께 (t₀)</td><td class="result-val">'+t0+'</td><td>-</td></tr>'
+              +'<tr><td class="left">시험 후 두께 (t₁)</td><td class="result-val">'+t1+'</td><td>-</td></tr>'
+              +'<tr><td class="left">영구압축 줄음률</td><td class="result-val" style="color:var(--blue)">'+pct+'</td><td style="white-space:pre-line">1종 ≤ 10\n2종 ≤ 13</td></tr>'
               +csJudgeRow
               +'</table></div>';
 
