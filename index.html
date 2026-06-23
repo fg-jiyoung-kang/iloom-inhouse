@@ -5,13 +5,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>품질보증팀 (일룸시험연구소) · IN HOUSE TEST REPORT</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <style>
 /* 시험 항목 체크박스 체크 시 빨간 강조 */
 .req-item-chk:checked + span span:first-child{color:#e60012!important;font-weight:900!important}
 .req-item-row:has(.req-item-chk:checked){background:#fff5f5!important;border-left:3px solid #e60012!important;padding-left:7px!important}
 :root{--red:#e60012;--dark:#1f2937;--muted:#6b7280;--line:#e5e7eb;--bg:#f3f5f8;--card:#fff;--green:#008a3d;--blue:#2563eb;--soft-red:#fff5f5}
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--dark)}
+body{margin:0;font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;background:var(--bg);color:var(--dark)}
 button,input,select{font:inherit}
 .app-shell{display:flex;min-height:100vh}
 .sidebar{width:270px;background:#101827;color:white;padding:22px;position:sticky;top:0;height:100vh;overflow-y:auto}
@@ -1607,7 +1608,7 @@ function bindInputs(){
     const CSS=`
 :root{--red:#e60012}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0;padding:0}
-body{font-family:Arial,'Noto Sans KR','Malgun Gothic',sans-serif;background:#fff;color:#111;font-size:11px}
+body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;background:#fff;color:#111;font-size:11px}
 @page{size:A4;margin:0}
 .p1{width:210mm;height:297mm;padding:16mm 10mm 52mm;box-sizing:border-box;overflow:hidden;page-break-after:always;break-after:page;position:relative;background:#fff}
 .rh{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:8px;border-bottom:2px solid var(--red)}
@@ -3050,7 +3051,7 @@ function printReqPreview(){
     :root{--red:#e60012;--dark:#1f2937;--muted:#6b7280;--line:#e5e7eb}
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box}
     @page{size:A4;margin:0}
-    body{margin:20mm 18mm;font-family:"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic","Segoe UI",Arial,sans-serif;font-size:11px;color:#111}
+    body{margin:20mm 18mm;font-family:'Pretendard Variable',Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif;font-size:11px;color:#111}
     .p1f-contact-bar{background:#e60012!important;color:#fff!important;text-align:center;padding:5px 8px;font-size:9.5px;margin:3px 0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     .red-title{color:#e60012!important;font-weight:900;font-size:13px;margin:16px 0 6px}
     .req-red-bar,[style*="background:#e60012"],[style*="background:var(--red)"]{background:#e60012!important;color:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
