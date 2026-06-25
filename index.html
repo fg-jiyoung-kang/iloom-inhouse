@@ -2245,13 +2245,29 @@ function renderDetailSection(externalData){
         fieldsWrap.appendChild(rowFr);
 
       } else if((name.includes('땀') || name.includes('물')) && (name.includes('견뢰') || name.includes('fastness'))){
-        var sw=document.createElement('div'); sw.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
-        sw.appendChild(_makeInput({label:'변퇴색 (급)',key:'swChange_'+i,ph:'예: 4-5'},saved));
-        ['아세테이트','면','나일론','폴리에스터','아크릴','모'].forEach(function(fb){
-          sw.appendChild(_makeInput({label:'오염-'+fb+' (급)',key:'sw_'+fb+'_'+i,ph:'예: 4-5'},saved));
+        var swTbl=document.createElement('table');
+        swTbl.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px';
+        var swTHead=document.createElement('thead');
+        var swTHR=document.createElement('tr');
+        var swTH1=document.createElement('th'); swTH1.style.cssText='border:1px solid #ddd;padding:8px 10px;background:#f9fafb;text-align:left;font-size:12px;width:45%'; swTH1.textContent='구분';
+        var swTH2=document.createElement('th'); swTH2.style.cssText='border:1px solid #ddd;padding:8px;background:#f9fafb;text-align:center;font-size:12px'; swTH2.innerHTML='시험 결과<br><span style="font-weight:400;color:#6b7280;font-size:11px">(A)</span>';
+        swTHR.appendChild(swTH1); swTHR.appendChild(swTH2);
+        swTHead.appendChild(swTHR); swTbl.appendChild(swTHead);
+        var swTBody=document.createElement('tbody');
+        [['변퇴색','swChange_'+i],['(오염) 아세테이트','sw_아세테이트_'+i],['(오염) 면','sw_면_'+i],['(오염) 나일론','sw_나일론_'+i],['(오염) 폴리에스터','sw_폴리에스터_'+i],['(오염) 아크릴','sw_아크릴_'+i],['(오염) 모','sw_모_'+i]].forEach(function(row){
+          var tr2=document.createElement('tr');
+          var td1=document.createElement('td'); td1.style.cssText='border:1px solid #ddd;padding:8px 10px;font-weight:700;font-size:12px;color:#374151'; td1.textContent=row[0];
+          var td2=document.createElement('td'); td2.style.cssText='border:1px solid #ddd;padding:5px 8px';
+          var inp2=document.createElement('input'); inp2.type='text'; inp2.dataset.key=row[1]; inp2.placeholder='예: 4-5';
+          inp2.value=saved[row[1]]||'';
+          inp2.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;width:100%;text-align:center;box-sizing:border-box';
+          inp2.addEventListener('input',function(){ renderPreview(); });
+          td2.appendChild(inp2); tr2.appendChild(td1); tr2.appendChild(td2); swTBody.appendChild(tr2);
         });
-        sw.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
-        fieldsWrap.appendChild(sw);
+        swTbl.appendChild(swTBody); fieldsWrap.appendChild(swTbl);
+        var swJRow=document.createElement('div'); swJRow.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        swJRow.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(swJRow);
 
       } else if(name.includes('인장강도') || (name.includes('인장') && name.includes('강도'))){
         var rowTs=document.createElement('div'); rowTs.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
@@ -2480,13 +2496,15 @@ function renderPreview(){
           // 땀/물견뢰도
           } else if((name.includes('땀') || name.includes('물')) && (name.includes('견뢰') || name.includes('fastness'))){
             const swChg=detail['swChange_'+i]||'';
-            let swRows='<tr><td class="left">변퇴색 (급)</td><td class="result-val">'+esc(swChg)+'</td><td>'+(crit||'')+'</td></tr>';
+            let swRows='<tr><th style="width:55%;text-align:left;background:#f9fafb;font-weight:700;font-size:11px">구분</th><th style="text-align:center;background:#f9fafb;font-size:11px">시험 결과<br><span style="font-weight:400;color:#6b7280">(A)</span></th></tr>';
+            swRows+='<tr><td class="left">변퇴색</td><td class="result-val">'+esc(swChg)+'</td></tr>';
             ['아세테이트','면','나일론','폴리에스터','아크릴','모'].forEach(function(fb){
-              swRows+='<tr><td class="left">오염-'+fb+' (급)</td><td class="result-val">'+esc(detail['sw_'+fb+'_'+i]||'')+'</td><td></td></tr>';
+              swRows+='<tr><td class="left">(오염) '+fb+'</td><td class="result-val">'+esc(detail['sw_'+fb+'_'+i]||'')+'</td></tr>';
             });
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
-              +swRows+judgeCell+'</table></div>';
+              +critBox+'<table class="result-table">'+swRows+'</table>'
+              +(judge?'<div style="margin-top:6px;text-align:right;font-size:12px;font-weight:800">판정 : <span style="color:'+(judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</span></div>':'')
+              +'</div>';
 
           // 인장강도
           } else if(name.includes('인장강도') || (name.includes('인장') && name.includes('강도'))){
