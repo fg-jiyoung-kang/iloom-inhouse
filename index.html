@@ -2237,6 +2237,48 @@ function renderDetailSection(externalData){
         jRow2.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(jRow2);
 
+      } else if(name.includes('마찰') && (name.includes('견뢰') || name.includes('fastness'))){
+        var rowFr=document.createElement('div'); rowFr.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        rowFr.appendChild(_makeInput({label:'건 (Dry) 급',key:'frDry_'+i,ph:'예: 4'},saved));
+        rowFr.appendChild(_makeInput({label:'습 (Wet) 급',key:'frWet_'+i,ph:'예: 3-4'},saved));
+        rowFr.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(rowFr);
+
+      } else if((name.includes('땀') || name.includes('물')) && (name.includes('견뢰') || name.includes('fastness'))){
+        var sw=document.createElement('div'); sw.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
+        sw.appendChild(_makeInput({label:'변퇴색 (급)',key:'swChange_'+i,ph:'예: 4-5'},saved));
+        ['아세테이트','면','나일론','폴리에스터','아크릴','모'].forEach(function(fb){
+          sw.appendChild(_makeInput({label:'오염-'+fb+' (급)',key:'sw_'+fb+'_'+i,ph:'예: 4-5'},saved));
+        });
+        sw.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(sw);
+
+      } else if(name.includes('인장강도') || (name.includes('인장') && name.includes('강도'))){
+        var rowTs=document.createElement('div'); rowTs.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        rowTs.appendChild(_makeInput({label:'웨일방향 (N/5cm)',key:'tsWale_'+i,type:'number',step:'0.1',ph:'예: 120.5'},saved));
+        rowTs.appendChild(_makeInput({label:'코스방향 (N/5cm)',key:'tsCourse_'+i,type:'number',step:'0.1',ph:'예: 98.3'},saved));
+        rowTs.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(rowTs);
+
+      } else if(name.includes('인열강도') || (name.includes('인열') && name.includes('강도'))){
+        var rowTe=document.createElement('div'); rowTe.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        rowTe.appendChild(_makeInput({label:'웨일방향 (N)',key:'teWale_'+i,type:'number',step:'0.1',ph:'예: 35.2'},saved));
+        rowTe.appendChild(_makeInput({label:'코스방향 (N)',key:'teCourse_'+i,type:'number',step:'0.1',ph:'예: 28.6'},saved));
+        rowTe.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(rowTe);
+
+      } else if(name.toLowerCase().includes('ph') || name.includes('피에이치')){
+        var rowPh=document.createElement('div'); rowPh.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        rowPh.appendChild(_makeInput({label:'pH 값',key:'phVal_'+i,type:'number',step:'0.1',ph:'예: 6.3'},saved));
+        rowPh.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(rowPh);
+
+      } else if(name.includes('포름알데히드') || name.toLowerCase().includes('formaldehyde')){
+        var rowFm=document.createElement('div'); rowFm.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        rowFm.appendChild(_makeInput({label:'결과 (mg/kg)',key:'fmVal_'+i,ph:'검출안됨 또는 수치 입력'},saved));
+        rowFm.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','PASS','FAIL'],placeholder:'선택'},saved));
+        fieldsWrap.appendChild(rowFm);
+
       } else if(name.includes('염색') || name.includes('견뢰도')){
         var rowE=document.createElement('div'); rowE.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowE.appendChild(_makeInput({label:'변퇴색 (급)',key:'colorChange_'+i,ph:'예: 4-5'},saved));
@@ -2425,6 +2467,60 @@ function renderPreview(){
               +critBox2
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:35%">시험 결과</th><th>기준</th></tr>'
               +rows+lJudge+'</table></div>';
+
+          // 마찰견뢰도
+          } else if(name.includes('마찰') && (name.includes('견뢰') || name.includes('fastness'))){
+            const dry=detail['frDry_'+i]||''; const wet=detail['frWet_'+i]||'';
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +'<tr><td class="left">건 (Dry) 급</td><td class="result-val">'+esc(dry)+'</td><td>'+(crit||'')+'</td></tr>'
+              +'<tr><td class="left">습 (Wet) 급</td><td class="result-val">'+esc(wet)+'</td><td></td></tr>'
+              +judgeCell+'</table></div>';
+
+          // 땀/물견뢰도
+          } else if((name.includes('땀') || name.includes('물')) && (name.includes('견뢰') || name.includes('fastness'))){
+            const swChg=detail['swChange_'+i]||'';
+            let swRows='<tr><td class="left">변퇴색 (급)</td><td class="result-val">'+esc(swChg)+'</td><td>'+(crit||'')+'</td></tr>';
+            ['아세테이트','면','나일론','폴리에스터','아크릴','모'].forEach(function(fb){
+              swRows+='<tr><td class="left">오염-'+fb+' (급)</td><td class="result-val">'+esc(detail['sw_'+fb+'_'+i]||'')+'</td><td></td></tr>';
+            });
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +swRows+judgeCell+'</table></div>';
+
+          // 인장강도
+          } else if(name.includes('인장강도') || (name.includes('인장') && name.includes('강도'))){
+            const tw=detail['tsWale_'+i]||''; const tc=detail['tsCourse_'+i]||'';
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +'<tr><td class="left">웨일방향</td><td class="result-val">'+esc(tw)+' N/5cm</td><td>'+(crit||'')+'</td></tr>'
+              +'<tr><td class="left">코스방향</td><td class="result-val">'+esc(tc)+' N/5cm</td><td></td></tr>'
+              +judgeCell+'</table></div>';
+
+          // 인열강도
+          } else if(name.includes('인열강도') || (name.includes('인열') && name.includes('강도'))){
+            const tew=detail['teWale_'+i]||''; const tec=detail['teCourse_'+i]||'';
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +'<tr><td class="left">웨일방향</td><td class="result-val">'+esc(tew)+' N</td><td>'+(crit||'')+'</td></tr>'
+              +'<tr><td class="left">코스방향</td><td class="result-val">'+esc(tec)+' N</td><td></td></tr>'
+              +judgeCell+'</table></div>';
+
+          // pH
+          } else if(name.toLowerCase().includes('ph') || name.includes('피에이치')){
+            const ph=detail['phVal_'+i]||'';
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +'<tr><td class="left">pH 값</td><td class="result-val">'+esc(ph)+'</td><td>'+(crit||'')+'</td></tr>'
+              +judgeCell+'</table></div>';
+
+          // 포름알데히드
+          } else if(name.includes('포름알데히드') || name.toLowerCase().includes('formaldehyde')){
+            const fm=detail['fmVal_'+i]||'';
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr>'
+              +'<tr><td class="left">포름알데히드</td><td class="result-val">'+esc(fm)+' mg/kg</td><td>'+(crit||'')+'</td></tr>'
+              +judgeCell+'</table></div>';
 
           // 염색견뢰도
           } else if(name.includes('염색')||name.includes('견뢰도')){
