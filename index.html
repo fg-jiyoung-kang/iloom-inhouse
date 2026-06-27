@@ -411,6 +411,7 @@ button,input,select{font:inherit}
                 </label>
               </div>
             </label>
+            <div style="grid-column:1/-1;background:#f1f5f9;border-left:3px solid #e60012;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;color:#374151;margin-top:4px;letter-spacing:0.3px">신청자 정보</div>
             <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
               회사명
               <input id="req_company" value="" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none">
@@ -427,6 +428,7 @@ button,input,select{font:inherit}
               E-mail
               <input id="req_email" value="" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none">
             </label>
+            <div style="grid-column:1/-1;background:#f1f5f9;border-left:3px solid #e60012;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;color:#374151;margin-top:4px;letter-spacing:0.3px">시료 정보</div>
             <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#374151;grid-column:1/-1">
               시료명
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -474,8 +476,8 @@ button,input,select{font:inherit}
             </label>
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151;margin-bottom:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-              <span>의뢰 시험 항목 (시험방법 포함)</span>
+            <div style="background:#f1f5f9;border-left:3px solid #e60012;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;color:#374151;letter-spacing:0.3px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <span>의뢰 시험 항목</span>
               <div style="display:flex;gap:6px">
                 <button type="button" onclick="if(requireAdmin())saveReqItemList();" style="background:#e60012;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">목록 저장</button>
                 <button type="button" onclick="if(requireAdmin())resetReqItemList();" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">↺ 기본값 복원</button>
@@ -492,8 +494,8 @@ button,input,select{font:inherit}
             </div>
             <div id="reqItemSaveMsg" style="display:none;font-size:11px;color:#008a3d;font-weight:700;padding:4px 0">항목 목록이 저장되었습니다.</div>
           </div>
+          <div style="background:#f1f5f9;border-left:3px solid #e60012;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;letter-spacing:0.3px">비고</div>
           <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151;margin-bottom:16px">
-            비고
             <textarea id="req_note" rows="2" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none;resize:vertical" placeholder="기타 요청사항"></textarea>
           </label>
           <div style="display:flex;gap:10px">
