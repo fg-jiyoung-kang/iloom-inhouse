@@ -456,9 +456,22 @@ button,input,select{font:inherit}
               색상
               <input id="req_color" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none" placeholder="색상">
             </label>
-            
-            
-            
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
+              시료반환여부
+              <select id="req_return" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none;background:#fff;cursor:pointer">
+                <option value="">선택</option>
+                <option value="반환">반환</option>
+                <option value="폐기">폐기</option>
+              </select>
+            </label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
+              시료수량
+              <input id="req_qty" type="number" min="1" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none" placeholder="개수 입력">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
+              시료재질
+              <input id="req_material_desc" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none" placeholder="예: 폴리에스터 100%">
+            </label>
           </div>
           <div style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151;margin-bottom:12px">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -544,6 +557,15 @@ button,input,select{font:inherit}
               </label>
               <label>브랜드<input id="brand" placeholder=""></label>
               <label class="wide">색상<input id="colorInfo" placeholder=""></label>
+              <label>시료반환여부
+                <select id="sampleReturn" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer">
+                  <option value="">선택</option>
+                  <option value="반환">반환</option>
+                  <option value="폐기">폐기</option>
+                </select>
+              </label>
+              <label>시료수량<input id="sampleQty" type="number" min="1" placeholder="개수"></label>
+              <label class="wide">시료재질<input id="sampleMaterial" placeholder="예: 폴리에스터 100%"></label>
             </div>
             <!-- 성적서 서명란용 hidden 필드 -->
             <label style="display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px;color:#374151">작성자
@@ -802,7 +824,7 @@ const defaultStandards = [
   {name:'세탁 후 외관 상태 관찰', spec:'코팅/봉제/프린트/부자재 육안 검사', result:'육안상 변화없음', category:'치수/외관'}
 ];
 
-const fields = ['receiptNo','purpose','receivedDate','issuedDate','requestDept','sampleName','colorInfo','brand','tester','techManager','qualityManager','companyName','companyAddress','companyTel','companyFax','companyWeb','reportTitle','colorChange','staining','lengthBefore','lengthAfter','widthBefore','widthAfter','pillingResult','appearanceResult','remarkNote'];
+const fields = ['receiptNo','purpose','receivedDate','issuedDate','requestDept','sampleName','colorInfo','brand','sampleReturn','sampleQty','sampleMaterial','tester','techManager','qualityManager','companyName','companyAddress','companyTel','companyFax','companyWeb','reportTitle','colorChange','staining','lengthBefore','lengthAfter','widthBefore','widthAfter','pillingResult','appearanceResult','remarkNote'];
 const today = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const fmt = (d) => d ? d.replaceAll('-','.') : '';
 const num = (v) => Number.parseFloat(v || 0);
@@ -1119,9 +1141,12 @@ async function applyRequestToReport(req){
   setVal('receiptNo',    req.no      || '');
   setVal('receivedDate', req.date    || '');
   setVal('requestDept',  req.person  || req.dept || '');
-  setVal('sampleName',   req.product || '');
-  setVal('brand',        req.brand   || '');
-  setVal('colorInfo',    req.color   || '');
+  setVal('sampleName',     req.product       || '');
+  setVal('brand',          req.brand         || '');
+  setVal('colorInfo',      req.color         || '');
+  setVal('sampleReturn',   req.return_type   || '');
+  setVal('sampleQty',      req.qty           || '');
+  setVal('sampleMaterial', req.material_desc || '');
 
   // 용도 자동 설정
   var purposeEl = document.getElementById('purpose');
@@ -1760,6 +1785,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     <tr><th>접수일자</th><td>${f2(r.receivedDate)}</td><th>발급예정일</th><td>${f2(r.issuedDate)}</td></tr>
     <tr><th>의뢰자</th><td>${e2(r.requestDept)}</td><th>색상</th><td>${e2(r.colorInfo)}</td></tr>
     <tr><th>시료명</th><td>${e2(r.sampleName)}${mt}</td><th>브랜드</th><td>${e2(r.brand||'')}</td></tr>
+    ${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${e2(r.sampleReturn||'-')}</td><th>시료수량</th><td>${e2(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${e2(r.sampleMaterial||'-')}</td></tr>`:''}
   </table>
   <div class="red-title">■ 의뢰 시험 항목</div>
   <table class="it">
@@ -2364,7 +2390,7 @@ function renderPreview(){
     $('reportPreview').innerHTML=`
     <section class="page page-1">
       <div class="report-head"><div class="report-head-row"><div class="report-title">${esc(r.reportTitle)}</div><div class="logo-block"><img src="${kolasSrc}" alt="KOLAS ILAC" style="height:52px;object-fit:contain"></div></div></div>
-      <table class="meta-table"><tr><th>접수번호</th><td>${esc(r.receiptNo)}</td><th>용도</th><td>${esc(r.purpose)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr></table>
+      <table class="meta-table"><tr><th>접수번호</th><td>${esc(r.receiptNo)}</td><th>용도</th><td>${esc(r.purpose)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr>${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${esc(r.sampleReturn||'-')}</td><th>시료수량</th><td>${esc(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${esc(r.sampleMaterial||'-')}</td></tr>`:''}</table>
       <div class="red-title">■ 의뢰 시험 항목</div>
       <table class="report-table"><thead><tr><th style="width:8%">No.</th><th>시험 항목 (Test Item)</th><th style="width:35%">시험 규격</th></tr></thead>
         <tbody>${tests.length ? tests.map((t,i)=>'<tr><td>'+(i+1)+'</td><td class="left bold">'+esc(t.name||'')+'</td><td class="left">'+esc(t.spec||'')+'</td></tr>').join('') : '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
@@ -2906,6 +2932,7 @@ function previewRequestOnly(){
     person:v('req_person'), dept:v('req_dept'), hp:v('req_hp'), email:v('req_email'),
     product:v('req_product'), brand:v('req_brand'), color:v('req_color'),
     style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
+    return_type:v('req_return'), qty:v('req_qty'), material_desc:v('req_material_desc'),
     items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
     chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
     chk_internal: document.getElementById('req_chk_internal')?.checked||false
@@ -2998,10 +3025,10 @@ function renderReqList(){
       // 탭 이동 후 DOM 준비되면 값 채우기
       setTimeout(function(){
         // 기본 텍스트 필드 복원
-        ['no','company','person','dept','hp','email','product','brand','color','style','fiber','buyer','note'].forEach(function(k){
-
+        ['no','company','person','dept','hp','email','product','brand','color','style','fiber','buyer','note','qty','material_desc'].forEach(function(k){
           var el = document.getElementById('req_'+k); if(el) el.value = r[k]||'';
         });
+        var retEl2=document.getElementById('req_return'); if(retEl2) retEl2.value=r.return_type||'';
           var dateEl2=document.getElementById('req_date'); if(dateEl2) dateEl2.value=(function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
         // KOLAS/내부 체크박스
         if(r.chk_kolas !== undefined){
@@ -3162,7 +3189,11 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<tr><th '+th+'>색 상</th><td '+td+'>'+data.color+'</td>'
     +'<th '+th+'>브 랜 드</th><td '+td+'>'+data.brand+'</td></tr>'
     +'<tr><th '+th+'>시 료 명</th><td '+td+' colspan="3" style="font-weight:700">'+data.product+(data.materials&&data.materials.length?' <span style="font-weight:900;color:#e60012;font-size:11px">['+data.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+']</span>':'')+'</td></tr>'
-    
+    +(data.return_type||data.qty||data.material_desc
+      ? '<tr><th '+th+'>시료반환여부</th><td '+td+'>'+((data.return_type)||'-')+'</td>'
+        +'<th '+th+'>시료수량</th><td '+td+'>'+((data.qty)||'-')+' 개</td></tr>'
+        +'<tr><th '+th+'>시 료 재 질</th><td '+td+' colspan="3">'+((data.material_desc)||'-')+'</td></tr>'
+      : '')
     +'</table>'
     +'<div style="font-weight:900;font-size:13px;color:#e60012;border-bottom:2px solid #e60012;padding-bottom:4px;margin-bottom:6px;letter-spacing:.3px">■ 의뢰 시험 항목</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
@@ -3228,6 +3259,7 @@ async function saveAndPreviewRequest(){
     person:v('req_person'), dept:v('req_dept'), hp:v('req_hp'), email:v('req_email'),
     product:v('req_product'), brand:v('req_brand'), color:v('req_color'),
     style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
+    return_type:v('req_return'), qty:v('req_qty'), material_desc:v('req_material_desc'),
     items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
     chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
     chk_internal: document.getElementById('req_chk_internal')?.checked||false
@@ -3274,8 +3306,10 @@ function printReqPreview(){
 
 function clearRequest(){
   ['req_dept','req_person','req_product','req_brand','req_color','req_note',
-   'req_company','req_hp','req_email','req_style','req_fiber','req_buyer']
+   'req_company','req_hp','req_email','req_style','req_fiber','req_buyer',
+   'req_qty','req_material_desc']
     .forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const retEl=document.getElementById('req_return'); if(retEl) retEl.value='';
   const reqDEl=document.getElementById('req_date'); if(reqDEl) reqDEl.value=(function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
   const noEl=document.getElementById('req_no');
   if(noEl) generateReqNo().then(function(no){ noEl.value = no; });
