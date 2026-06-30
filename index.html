@@ -1030,7 +1030,7 @@ function makeReqItemRow(item, isCustom){
   if(!(JSON.parse(sessionStorage.getItem('iloom_user')||'{}').id===ADMIN_ID)) delBtn.style.display='none';
   delBtn.onmouseover = function(){ this.style.background='#fecaca'; };
   delBtn.onmouseout  = function(){ this.style.background='#fee2e2'; };
-  delBtn.onclick = function(e){ e.stopPropagation(); row.remove(); };
+  delBtn.onclick = function(e){ e.stopPropagation(); row.remove(); saveReqItemList(); };
 
   row.appendChild(lbl);
   row.appendChild(editBtn);
@@ -1978,7 +1978,22 @@ function addTest(item){
   detailTr.querySelectorAll('input').forEach(el=>el.addEventListener('input',renderPreview));
   var iconBtn = tr.querySelector('.icon-btn');
   try{ if(JSON.parse(sessionStorage.getItem('iloom_user')||'{}').id!==ADMIN_ID) iconBtn.style.display='none'; }catch(e){}
-  iconBtn.onclick=()=>{tr.remove(); detailTr.remove(); renumber(); renderDetailSection(); renderPreview(); markUnsaved();};
+  iconBtn.onclick=()=>{
+    var deletedName = (tr.querySelector('.t-name')||{}).value||'';
+    tr.remove(); detailTr.remove(); renumber(); renderDetailSection(); renderPreview(); markUnsaved();
+    if(deletedName && window._currentReqData){
+      var d = window._currentReqData;
+      d.items = (d.items||[]).filter(function(it){
+        var label = typeof it==='object' ? (it.label||'') : String(it).split(' - ')[0].trim();
+        return label.trim() !== deletedName.trim();
+      });
+      var list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+      var fi = list.findIndex(function(r){ return r.no===d.no; });
+      if(fi>=0){ list[fi].items = d.items; localStorage.setItem('iloom_requests_v1', JSON.stringify(list)); }
+      var iloomEl=document.getElementById('iloom-logo-src'), kolasEl=document.getElementById('kolas-logo-src');
+      renderReqPreviewHTML(d, iloomEl?iloomEl.src:'', kolasEl?kolasEl.src:'');
+    }
+  };
   renumber();
   renderPreview();
   // 로딩 중이 아닐 때만 세부데이터 갱신
