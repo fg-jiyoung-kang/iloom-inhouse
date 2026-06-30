@@ -3276,7 +3276,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<input id="reqSigInput" type="text" placeholder="성명을 입력하세요" style="width:160px;border:1.5px dashed #cbd5e1;border-radius:6px;padding:6px 10px;font-size:13px;text-align:center;outline:none;background:#f8fafc;font-family:inherit">'
     +'<div style="margin-top:6px"><button type="button" id="reqSigConfirmBtn" style="background:#e60012;border:none;border-radius:6px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;color:#fff">② 서명 확인</button></div>'
     +'</div>'
-    +'<div id="reqSigDisplay" style="display:none;font-family:\'Caveat\',cursive;font-size:28px;color:#111;padding:8px 0;min-height:52px;text-align:center;line-height:1.2"><span id="reqSigText"></span></div>'
+    +'<div id="reqSigDisplay" style="display:none;font-family:\'Caveat\',sans-serif;font-style:italic;font-size:28px;color:#111;padding:8px 0;min-height:52px;text-align:center;line-height:1.2"><span id="reqSigText"></span></div>'
     +'<div id="reqSigEditArea" style="display:none;margin-top:4px"><button type="button" id="reqSigEditBtn" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;color:#374151">다시 입력</button></div>'
     +'<div id="reqSigStatus" style="font-size:9.5px;color:#22c55e;margin-top:3px;min-height:12px"></div>'
     +'</td>'
@@ -3286,7 +3286,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<input id="mgSigInput" type="text" placeholder="담당자 성명" style="width:160px;border:1.5px dashed #cbd5e1;border-radius:6px;padding:6px 10px;font-size:13px;text-align:center;outline:none;background:#f8fafc;font-family:inherit">'
     +'<div style="margin-top:6px"><button type="button" id="mgSigConfirmBtn" style="background:#1f2937;border:none;border-radius:6px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;color:#fff">서명 확인</button></div>'
     +'</div>'
-    +'<div id="mgSigDisplay" style="display:none;font-family:\'Caveat\',cursive;font-size:28px;color:#111;padding:8px 0;min-height:52px;text-align:center;line-height:1.2"><span id="mgSigText"></span></div>'
+    +'<div id="mgSigDisplay" style="display:none;font-family:\'Caveat\',sans-serif;font-style:italic;font-size:28px;color:#111;padding:8px 0;min-height:52px;text-align:center;line-height:1.2"><span id="mgSigText"></span></div>'
     +'<div id="mgSigEditArea" style="display:none;margin-top:4px"><button type="button" id="mgSigEditBtn" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;color:#374151">다시 입력</button></div>'
     +'<div id="mgSigStatus" style="font-size:9.5px;color:#22c55e;margin-top:3px;min-height:12px"></div>'
     +'</td>'
@@ -3593,7 +3593,7 @@ function printReqPreview(){
     table{border-collapse:collapse;width:100%}
     td,th{border:1px solid #ccc;padding:6px 8px;font-size:10px}
     #reqSigInputArea,#reqSigEditArea,#mgSigInputArea,#mgSigEditArea,#reqSigStatus,#mgSigStatus{display:none!important}
-    #reqSigDisplay,#mgSigDisplay{display:block!important;font-family:'Caveat',cursive;font-size:28px;color:#111}
+    #reqSigDisplay,#mgSigDisplay{display:block!important;font-family:'Caveat',sans-serif;font-style:italic;font-size:28px;color:#111}
   `;
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>시험 의뢰서</title>'
     +'<style>'+css+'</style>'
