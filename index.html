@@ -287,7 +287,26 @@ button,input,select{font:inherit}
   padding-left: 7px !important;
 }
 
+/* ── QR 로그인 ── */
+.qr-divider{display:flex;align-items:center;gap:10px;margin:18px 0 12px}
+.qr-divider span{font-size:11px;color:#9ca3af;flex-shrink:0}
+.qr-divider::before,.qr-divider::after{content:'';flex:1;height:1px;background:#e5e7eb}
+.qr-toggle-btn{width:100%;padding:10px 14px;background:transparent;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;transition:all .15s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+.qr-toggle-btn:hover{background:#f9fafb;border-color:#d1d5db}
+.qr-panel{margin-top:12px;display:none}
+.qr-gen-btn{width:100%;padding:11px;background:#1f2937;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit;letter-spacing:.3px}
+.qr-gen-btn:hover{background:#111827}
+.qr-gen-btn:disabled{background:#9ca3af;cursor:not-allowed}
+.qr-box{margin:14px auto 4px;text-align:center;display:none}
+.qr-box canvas,.qr-box img{border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.qr-hint{font-size:11.5px;color:#6b7280;text-align:center;margin:8px 0 2px;line-height:1.6}
+.qr-copy-btn{display:block;width:100%;margin-top:8px;padding:8px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;font-size:12px;font-weight:600;color:#374151;cursor:pointer;font-family:inherit;transition:background .15s}
+.qr-copy-btn:hover{background:#e5e7eb}
+.qr-expire-bar-wrap{height:4px;background:#f3f4f6;border-radius:99px;margin:10px 0 4px;overflow:hidden}
+.qr-expire-bar{height:100%;background:var(--red);border-radius:99px;transition:width .5s linear}
+.qr-expire-txt{font-size:11px;color:#9ca3af;text-align:center}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <!-- 로고 이미지 저장소 -->
@@ -312,6 +331,20 @@ button,input,select{font:inherit}
       <label for="saveIdCheck" style="font-size:12px;color:#6b7280;cursor:pointer;font-weight:600">아이디 저장</label>
     </div>
     <button class="login-btn" id="loginBtn">로그인</button>
+
+    <!-- QR 로그인 -->
+    <div class="qr-divider"><span>또는</span></div>
+    <button class="qr-toggle-btn" id="qrToggleBtn">📱 QR코드로 로그인</button>
+    <div class="qr-panel" id="qrPanel">
+      <button class="qr-gen-btn" id="qrGenBtn">🔲 QR 생성</button>
+      <div class="qr-box" id="qrBox">
+        <div id="qrCanvas"></div>
+        <div class="qr-expire-bar-wrap"><div class="qr-expire-bar" id="qrExpireBar" style="width:100%"></div></div>
+        <div class="qr-expire-txt" id="qrExpireTxt">5:00 남음</div>
+        <p class="qr-hint">QR을 스캔하거나 아래 링크를 복사하세요<br>PC·모바일 모두 사용 가능합니다</p>
+        <button class="qr-copy-btn" id="qrCopyBtn">🔗 링크 복사 (PC에서 열기)</button>
+      </div>
+    </div>
   </div>
 </div>
 <!-- ══════════════════════════════════════════════════ -->
@@ -4300,6 +4333,158 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 
   if(logoutBtnEl) logoutBtnEl.onclick = doLogout;
+
+  // ── QR 로그인 ──────────────────────────────────────
+  var qrToggleBtn = document.getElementById('qrToggleBtn');
+  var qrPanel     = document.getElementById('qrPanel');
+  var qrGenBtn    = document.getElementById('qrGenBtn');
+  var qrBox       = document.getElementById('qrBox');
+  var qrCanvas    = document.getElementById('qrCanvas');
+  var qrCopyBtn   = document.getElementById('qrCopyBtn');
+  var qrExpireBar = document.getElementById('qrExpireBar');
+  var qrExpireTxt = document.getElementById('qrExpireTxt');
+  var _qrUrl      = '';
+  var _qrTimer    = null;
+  var _qrCountdown = null;
+
+  function showQRPanel(show){
+    qrPanel.style.display = show ? '' : 'none';
+    qrToggleBtn.innerHTML = show ? '✕ QR 닫기' : '📱 QR코드로 로그인';
+    if(!show){
+      clearInterval(_qrTimer);
+      clearInterval(_qrCountdown);
+      qrBox.style.display = 'none';
+      qrCanvas.innerHTML  = '';
+      _qrUrl = '';
+    }
+  }
+
+  if(qrToggleBtn) qrToggleBtn.onclick = function(){ showQRPanel(qrPanel.style.display === 'none'); };
+
+  // 초기 상태: 패널 숨김
+  if(qrPanel) qrPanel.style.display = 'none';
+
+  if(qrGenBtn) qrGenBtn.onclick = async function(){
+    var id = (loginIdEl && loginIdEl.value || '').trim();
+    var pw = (loginPwEl && loginPwEl.value || '').trim();
+    if(!id){ if(errEl) errEl.textContent='아이디를 입력해주세요.'; return; }
+    if(!pw){ if(errEl) errEl.textContent='비밀번호를 입력해주세요.'; return; }
+    if(errEl) errEl.textContent = '';
+
+    qrGenBtn.disabled = true; qrGenBtn.textContent = '생성 중...';
+    try {
+      // 계정 동기화 + 인증
+      var supaAccRows = await supaFetch('accounts','GET');
+      var accs = [];
+      if(supaAccRows && supaAccRows.length > 0){
+        accs = supaAccRows.map(function(r){ return r.data; });
+      }
+      var defaultAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
+      if(!accs.find(function(a){ return a.id==='jiyoung_kang'; })) accs.unshift(defaultAdmin);
+      var inputHash = await hashPassword(pw);
+      var matched = accs.find(function(a){
+        if(isHashed(a.pw)) return a.id===id && a.pw===inputHash;
+        return a.id===id && a.pw===pw;
+      });
+      if(!matched){ if(errEl) errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.'; return; }
+
+      // 토큰 생성 (랜덤 32자)
+      var token = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b=>b.toString(16).padStart(2,'0')).join('');
+      var expires = Date.now() + 5 * 60 * 1000;
+
+      // Supabase에 저장
+      await supaFetch('settings','POST',{
+        id: 'qr_'+token,
+        data: { userId: matched.id, expires: expires },
+        updated_at: new Date().toISOString()
+      });
+
+      // QR 코드 생성
+      qrCanvas.innerHTML = '';
+      var base = window.location.href.split('?')[0].split('#')[0];
+      _qrUrl = base + '?qr=' + token;
+      if(typeof QRCode !== 'undefined'){
+        new QRCode(qrCanvas, { text: _qrUrl, width:180, height:180, colorDark:'#1f2937', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+      }
+      qrBox.style.display = '';
+
+      // 카운트다운
+      clearInterval(_qrTimer); clearInterval(_qrCountdown);
+      var totalMs = 5 * 60 * 1000;
+      function updateBar(){
+        var left = Math.max(0, expires - Date.now());
+        var pct  = (left / totalMs * 100).toFixed(1);
+        if(qrExpireBar) qrExpireBar.style.width = pct + '%';
+        var sec  = Math.ceil(left/1000);
+        var m    = Math.floor(sec/60), s = sec%60;
+        if(qrExpireTxt) qrExpireTxt.textContent = m+':'+(s<10?'0':'')+s+' 남음';
+        if(left <= 0){
+          clearInterval(_qrCountdown);
+          if(qrExpireTxt) qrExpireTxt.textContent = '만료됨';
+          if(qrBox) qrBox.style.opacity = '.4';
+        }
+      }
+      updateBar();
+      _qrCountdown = setInterval(updateBar, 500);
+
+    } catch(e){
+      if(errEl) errEl.textContent='QR 생성 중 오류가 발생했습니다.';
+      console.error('QR 생성 오류:', e);
+    } finally {
+      qrGenBtn.disabled = false; qrGenBtn.textContent = '🔲 QR 재생성';
+    }
+  };
+
+  if(qrCopyBtn) qrCopyBtn.onclick = function(){
+    if(!_qrUrl){ return; }
+    navigator.clipboard.writeText(_qrUrl).then(function(){
+      qrCopyBtn.textContent = '✓ 복사됨!';
+      setTimeout(function(){ qrCopyBtn.textContent = '🔗 링크 복사 (PC에서 열기)'; }, 2000);
+    }).catch(function(){
+      window.prompt('링크를 복사하세요', _qrUrl);
+    });
+  };
+
+  // ── QR 토큰으로 자동 로그인 ──
+  var _urlQrToken = (new URLSearchParams(window.location.search)).get('qr');
+  if(_urlQrToken){
+    (async function(){
+      // URL에서 qr 파라미터 제거 (히스토리 정리)
+      var cleanUrl = window.location.pathname + (window.location.hash||'');
+      history.replaceState({}, '', cleanUrl);
+      try {
+        var settingRows = await supaFetch('settings','GET');
+        var tokenRow = (settingRows||[]).find(function(r){ return r.id === 'qr_'+_urlQrToken; });
+        if(!tokenRow || !tokenRow.data){
+          if(errEl) errEl.textContent = 'QR 코드가 유효하지 않습니다.';
+          return;
+        }
+        var td = tokenRow.data;
+        if(!td.expires || Date.now() > td.expires){
+          if(errEl) errEl.textContent = 'QR 코드가 만료되었습니다.';
+          return;
+        }
+        // 일회용 토큰 삭제
+        await fetch(SUPA_URL+'/rest/v1/settings?id=eq.'+ encodeURIComponent('qr_'+_urlQrToken), {
+          method:'DELETE',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+        }).catch(function(){});
+        // 계정 조회 후 로그인
+        var accRows = await supaFetch('accounts','GET');
+        var allAccs = accRows && accRows.length ? accRows.map(function(r){ return r.data; }) : [];
+        var defAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
+        if(!allAccs.find(function(a){ return a.id==='jiyoung_kang'; })) allAccs.unshift(defAdmin);
+        var user = allAccs.find(function(a){ return a.id===td.userId; });
+        if(!user){ if(errEl) errEl.textContent='계정을 찾을 수 없습니다.'; return; }
+        sessionStorage.setItem('iloom_auth','ok');
+        sessionStorage.setItem('iloom_user',JSON.stringify(user));
+        startApp(user);
+      } catch(e){
+        console.warn('QR 자동 로그인 실패:', e);
+        if(errEl) errEl.textContent='QR 로그인 중 오류가 발생했습니다.';
+      }
+    })();
+  }
 
   // 1시간 비활동 시 자동 로그아웃
   var _inactiveTimer = null;
