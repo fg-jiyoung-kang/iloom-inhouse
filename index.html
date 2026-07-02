@@ -3228,9 +3228,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
   var td = 'style="border:1px solid #bbb;padding:8px 11px;width:34%;font-size:12px"';
 
   preview.innerHTML =
-    '<div style="display:flex;flex-direction:column;min-height:257mm">'
-    +'<div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #e60012;padding-bottom:6px;margin-bottom:10px">'
+    '<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #e60012;padding-bottom:6px;margin-bottom:10px">'
     +'<img src="'+iloomSrc+'" style="height:26px">'
     +'<div style="text-align:right">'
     +'<div style="font-size:11px;color:#444;font-weight:700;letter-spacing:2px;margin-bottom:3px">IN HOUSE TEST REQUEST</div>'
@@ -3277,8 +3275,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<div style="font-weight:900;font-size:13px;color:#e60012;border-bottom:2px solid #e60012;padding-bottom:4px;margin-bottom:6px">■ 비고</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
     +'<tr><td style="border:1px solid #bbb;padding:14px 12px;height:120px;vertical-align:top;white-space:pre-wrap;font-size:12px">'+data.note+'</td></tr></table>'
-    +'</div>'
-    +'<div style="margin-top:auto">'
+    +'<div style="margin-top:14mm">'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px">'
     +'<tr><th style="background:#f4f5f7;border:1px solid #bbb;padding:7px;text-align:center;font-size:12px" colspan="2">확인 (서명)</th></tr>'
     +'<tr>'
@@ -3314,7 +3311,6 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<div>※ 용도가 KOLAS용이 아닌 경우 KS Q ISO/IEC 17025 및 KOLAS 인정과 무관함을 알려드립니다.</div>'
     +'<div>※ 본 신청서의 기입 내용을 허위로 작성하여 발생한 문제에 대해서는 의뢰자에게 책임이 있음을 알려드립니다.</div>'
     +'</div></div>'
-    +'</div>'
     +'</div>';
 
   window._currentReqData = data;
