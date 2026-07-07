@@ -1841,7 +1841,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .ss:last-child{border-right:none}
 .ss-lbl{color:#555;font-size:8.5px;margin-bottom:3px}
 .ss-nm{font-weight:700;font-size:11.5px;display:flex;flex-direction:column;align-items:center;gap:5px;width:100%}
-.stamp{padding:0 8px;background:#fff;display:flex;align-items:center;justify-content:center}
+.stamp{padding:0;background:#fff;display:flex;align-items:stretch;align-self:stretch;overflow:hidden}
 .cb{background:var(--red);color:#fff;text-align:center;padding:5px 8px;font-size:9.5px;margin:3px 0}
 .ab{display:flex;justify-content:space-between;font-size:9.5px;color:#333;margin-bottom:3px}
 .nb{font-size:8.5px;color:#444;line-height:1.7;border-top:1px solid #ddd;padding-top:4px;margin-top:2px}
@@ -1900,7 +1900,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="ss"><div class="ss-lbl">작 성 자</div><div class="ss-nm"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${e2(r.tester)}</span>${r.testerSign?`<img src="${r.testerSign}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:''}</div></div>
       <div class="ss"><div class="ss-lbl">기술책임자</div><div class="ss-nm"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${e2(r.techManager)}</span><img src="${JY_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
       <div class="ss" style="border-right:none"><div class="ss-lbl">품질책임자</div><div class="ss-nm"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${e2(r.qualityManager)}</span><img src="${SJ_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
-      <div class="stamp"><img src="${ILOOM_SIGN_DATA}" style="height:80px;width:80px;object-fit:contain;mix-blend-mode:multiply"></div>
+      <div class="stamp"><img src="${ILOOM_SIGN_DATA}" style="height:100%;width:auto;object-fit:contain;mix-blend-mode:multiply;display:block"></div>
     </div>
     <div class="cb">기술상담이나 의문사항은 담당자에게 문의하여 주시기 바랍니다.</div>
     <div class="ab"><span><b>${e2(r.companyName)}</b> &nbsp; ${e2(r.companyAddress)}</span><span>T ${e2(r.companyTel)} &nbsp; 기술책임자 010-9422-5518 &nbsp; ${e2(r.companyWeb)}</span></div>
@@ -2521,7 +2521,7 @@ function renderPreview(){
           <div class="p1f-signer"><div class="p1f-signer-label">작 성 자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.tester)}</span>${testerSignData?`<img src="${testerSignData}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:'<span class=\\"sign-slot\\" onclick=\\"document.getElementById(\'signFile_tester\').click()\\">서명 이미지 클릭</span>'}</div></div>
           <div class="p1f-signer"><div class="p1f-signer-label">기술책임자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.techManager)}</span><img src="${JY_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
           <div class="p1f-signer" style="border-right:none"><div class="p1f-signer-label">품질책임자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.qualityManager)}</span><img src="${SJ_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
-          <div style="padding:0 8px;background:#fff;display:flex;align-items:center;justify-content:center"><img src="${ILOOM_SIGN_DATA}" style="height:80px;width:80px;object-fit:contain;mix-blend-mode:multiply"></div>
+          <div style="padding:0;background:#fff;display:flex;align-self:stretch;overflow:hidden"><img src="${ILOOM_SIGN_DATA}" style="height:100%;width:auto;object-fit:contain;mix-blend-mode:multiply;display:block"></div>
         </div>
         <div class="p1f-contact-bar">기술상담이나 의문사항은 담당자에게 문의하여 주시기 바랍니다.</div>
         <div class="p1f-addr-row"><span><b>${esc(r.companyName)}</b> &nbsp; ${esc(r.companyAddress)}</span><span>T ${esc(r.companyTel)} &nbsp; 기술책임자 010-9422-5518 &nbsp; ${esc(r.companyWeb)}</span></div>
@@ -2540,7 +2540,7 @@ function renderPreview(){
           <div class="p1f-signer"><div class="p1f-signer-label">작 성 자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.tester)}</span>${testerSignData?`<img src="${testerSignData}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:'<span class=\\"sign-slot\\" onclick=\\"document.getElementById(\'signFile_tester\').click()\\">서명 이미지 클릭</span>'}</div></div>
           <div class="p1f-signer"><div class="p1f-signer-label">기술책임자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.techManager)}</span><img src="${JY_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
           <div class="p1f-signer" style="border-right:none"><div class="p1f-signer-label">품질책임자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.qualityManager)}</span><img src="${SJ_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
-          <div style="padding:0 8px;background:#fff;display:flex;align-items:center;justify-content:center"><img src="${ILOOM_SIGN_DATA}" style="height:80px;width:80px;object-fit:contain;mix-blend-mode:multiply"></div>
+          <div style="padding:0;background:#fff;display:flex;align-self:stretch;overflow:hidden"><img src="${ILOOM_SIGN_DATA}" style="height:100%;width:auto;object-fit:contain;mix-blend-mode:multiply;display:block"></div>
         </div>
         <h3 class="section-line-title" style="margin:4mm 0 4px;line-height:1.25">세부 시험 결과 데이터</h3>
       </div>
