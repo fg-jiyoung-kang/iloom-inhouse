@@ -3792,6 +3792,7 @@ async function loadReport(r){
   } catch(e){ console.warn('Supabase 불러오기 실패, 로컬 사용:', e); }
   currentId=r.id;
   fields.forEach(id=>setVal(id,r[id]||''));
+  setVal('companyName','일룸수면과학연구소');
   sampleImageData=r.image||'';
   techSignData=r.techSign||JY_SIGN_DATA; qualitySignData=r.qualitySign||SJ_SIGN_DATA;
   // 작성자 서명: 저장된 값 우선, 없으면 이름 기반 자동 매핑
