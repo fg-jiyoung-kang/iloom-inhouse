@@ -657,7 +657,7 @@ button,input,select{font:inherit}
               <label>기술책임자<input id="techManagerTel" value="010-9422-5518" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
               <input type="hidden" id="companyFax" value="">
               <label>홈페이지<input id="companyWeb" value="www.iloom.com" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
-              <label>보고서 제목<input id="reportTitle" value="In House Test Report" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
+              <label>보고서 제목<input id="reportTitle" value="IN HOUSE TEST REPORT" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
             </div>
           </div>
         </div>
@@ -1877,7 +1877,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
 <div class="p1">
-  <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'In House Test Report')}</div>${showKolas?`<img src="${ksrc}" style="height:48px;object-fit:contain">`:'<div></div>'}</div>
+  <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'IN HOUSE TEST REPORT')}</div>${showKolas?`<img src="${ksrc}" style="height:48px;object-fit:contain">`:'<div></div>'}</div>
   <table class="mt"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup>
     <tr><th>접수번호</th><td>${e2(r.receiptNo)}</td><th>용도</th><td>${e2(r.purpose)}</td></tr>
     <tr><th>접수일자</th><td>${f2(r.receivedDate)}</td><th>발급예정일</th><td>${f2(r.issuedDate)}</td></tr>
@@ -1974,7 +1974,7 @@ function newReport(){
   const companyFields=['companyName','companyAddress','companyTel','companyFax','companyWeb'];
   const savedCompany={};
   companyFields.forEach(id=>{ savedCompany[id]=val(id); });
-  const base={receiptNo:'',purpose:'내부 품질 관리용',receivedDate:'',issuedDate:'',requestDept:'',sampleName:'',colorInfo:'',brand:'',tester:'이용희',techManager:'강지영',qualityManager:'장성진',reportTitle:'In House Test Report',colorChange:'',staining:'',lengthBefore:'',lengthAfter:'',widthBefore:'',widthAfter:'',pillingResult:'',appearanceResult:'',remarkNote:''};
+  const base={receiptNo:'',purpose:'내부 품질 관리용',receivedDate:'',issuedDate:'',requestDept:'',sampleName:'',colorInfo:'',brand:'',tester:'이용희',techManager:'강지영',qualityManager:'장성진',reportTitle:'IN HOUSE TEST REPORT',colorChange:'',staining:'',lengthBefore:'',lengthAfter:'',widthBefore:'',widthAfter:'',pillingResult:'',appearanceResult:'',remarkNote:''};
   fields.forEach(id=>{
     if(companyFields.includes(id)) setVal(id, savedCompany[id]);
     else setVal(id, base[id]||'');
