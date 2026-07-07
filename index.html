@@ -1807,7 +1807,7 @@ function bindInputs(){
       } else if(nm.includes('수직하중')||nm.includes('하중')){
         const dc2=det['detail_crit_'+i]||crit||'';
         let rows='';
-        [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['480000회','480000']].forEach(function(cv){
+        [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['560000회','560000']].forEach(function(cv){
           rows+=`<tr><td class="left">${cv[0]}</td><td class="rv">D1: ${e2(det['load_'+cv[1]+'_d1_'+i]||'')} / D2: ${e2(det['load_'+cv[1]+'_d2_'+i]||'')}</td><td>D1 ≤ 45 mm<br>D2 ≥ 5 mm</td></tr>`;
         });
         const lJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
@@ -2348,7 +2348,7 @@ function renderDetailSection(externalData){
         var tbl3=document.createElement('table'); tbl3.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px';
         tbl3.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">D1 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">D2 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
         var tbody3=document.createElement('tbody');
-        [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['480000회','480000']].forEach(function(cv){
+        [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['560000회','560000']].forEach(function(cv){
           var tr3=document.createElement('tr');
           var ta3=document.createElement('td'); ta3.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta3.textContent=cv[0];
           var tbD1=document.createElement('td'); tbD1.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
@@ -2612,7 +2612,7 @@ function renderPreview(){
 
           // 수직하중시험
           } else if(name.includes('수직하중')||name.includes('하중')){
-            const cycles = [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['480000회','480000']];
+            const cycles = [['0회','0'],['200회','200'],['10000회','10000'],['80000회','80000'],['560000회','560000']];
             const critBox2 = crit ? '<div style="font-size:10px;color:#374151;white-space:pre-wrap;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>'+esc(crit)+'</div>' : '';
             let rows = '';
             cycles.forEach(function(c){
