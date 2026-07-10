@@ -898,6 +898,7 @@ const $ = (id) => document.getElementById(id);
 const storeKey = 'iloom_inhouse_reports_v1';
 const standardsKey = 'iloom_test_standards_v1';
 let currentId = null;
+let _reportIsIssued = false;
 let sampleImageData = '';
 let testerSignData = '';
 let techSignData = '';
@@ -1665,9 +1666,6 @@ async function init(){
       unlockReqNavBtn.style.display='flex';
       updateUnlockBadge();
     }
-    // 저장 버튼에 최종작성완료 버튼 표시 조건 연동
-    const finalizeBtn = document.getElementById('finalizeBtn');
-    if(finalizeBtn) finalizeBtn.style.display = 'none';
   }catch(e){}
 }
 function toggleSidebar(){
@@ -1716,18 +1714,25 @@ function updateTopbar(tab){
   // 항상 actions 표시
   actions.style.display = '';
 
+  const finalizeBtn = document.getElementById('finalizeBtn');
+  const requestUnlockBtn = document.getElementById('requestUnlockBtn');
   if(tab === 'write'){
     if(newBtn) newBtn.style.display = '';
     if(saveBtn) saveBtn.style.display = '';
     if(deleteBtn) deleteBtn.style.display = '';
     if(printBtn) printBtn.style.display = '';
     if(autoSaveStatus) autoSaveStatus.style.display = '';
+    // 발행완료 여부에 따라 버튼 전환
+    if(finalizeBtn) finalizeBtn.style.display = _reportIsIssued ? 'none' : '';
+    if(requestUnlockBtn) requestUnlockBtn.style.display = _reportIsIssued ? '' : 'none';
   } else if(tab === 'list'){
     if(newBtn) newBtn.style.display = 'none';
     if(saveBtn) saveBtn.style.display = 'none';
     if(deleteBtn) deleteBtn.style.display = 'none';
     if(printBtn) printBtn.style.display = '';
     if(autoSaveStatus) autoSaveStatus.style.display = 'none';
+    if(finalizeBtn) finalizeBtn.style.display = 'none';
+    if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
   } else {
     // request / standard / setting / accounts / admin
     if(newBtn) newBtn.style.display = 'none';
@@ -1735,6 +1740,8 @@ function updateTopbar(tab){
     if(deleteBtn) deleteBtn.style.display = 'none';
     if(printBtn) printBtn.style.display = 'none';
     if(autoSaveStatus) autoSaveStatus.style.display = 'none';
+    if(finalizeBtn) finalizeBtn.style.display = 'none';
+    if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
   }
 }
 function markUnsaved(){
@@ -2007,7 +2014,7 @@ window.addEventListener('load',function(){
   $('exportBtn').onclick=exportData; $('importFile').addEventListener('change',importData); $('clearAllBtn').onclick=clearAll;
 }
 function newReport(){
-  currentId = null; sampleImageData=''; testerSignData='';
+  currentId = null; _reportIsIssued = false; sampleImageData=''; testerSignData='';
   techSignData=JY_SIGN_DATA; qualitySignData=SJ_SIGN_DATA;
   (function(){[{k:'tech',d:JY_SIGN_DATA},{k:'quality',d:SJ_SIGN_DATA}].forEach(function(s){const prev=document.getElementById('signPreview_'+s.k);if(prev)prev.innerHTML='<img src="'+s.d+'" style="max-height:32px;max-width:80px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">';const box=document.getElementById('signUpload'+s.k.charAt(0).toUpperCase()+s.k.slice(1));if(box){box.style.borderColor='#6b7280';box.style.background='#fff';}});})();
   // 회사정보는 현재 입력값 유지
@@ -2028,8 +2035,6 @@ function newReport(){
   // 시험 항목은 의뢰서에서 불러오거나 직접 추가
   renderDetailSection(); renderImage(); renderPreview();
   setIssuedLockUI(false, null);
-  const finalizeBtn = document.getElementById('finalizeBtn');
-  if(finalizeBtn) finalizeBtn.style.display = 'none';
 }
 function addTest(item){
   const tbody=$('testTable').querySelector('tbody'); const tr=document.createElement('tr');
@@ -2849,6 +2854,7 @@ function toggleReportIssued(id, issued){
 
 // ── 최종작성완료 / 잠금 UI ──
 function setIssuedLockUI(issued, unlockRequest){
+  _reportIsIssued = !!issued;
   const banner = document.getElementById('issuedLockBanner');
   const finalizeBtn = document.getElementById('finalizeBtn');
   const requestUnlockBtn = document.getElementById('requestUnlockBtn');
@@ -2858,19 +2864,18 @@ function setIssuedLockUI(issued, unlockRequest){
   if(!banner) return;
   if(issued){
     banner.style.display = 'flex';
-    finalizeBtn.style.display = 'none';
-    requestUnlockBtn.style.display = '';
+    if(finalizeBtn) finalizeBtn.style.display = 'none';
+    if(requestUnlockBtn) requestUnlockBtn.style.display = '';
     saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; saveBtn.style.cursor = 'not-allowed';
     deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; deleteBtn.style.cursor = 'not-allowed';
     if(pendingLabel) pendingLabel.style.display = unlockRequest && unlockRequest.status==='pending' ? '' : 'none';
-    // 폼 필드 비활성화
     document.querySelectorAll('#tab-write input, #tab-write textarea, #tab-write select').forEach(el=>{
       el.disabled = true; el.style.background='#f9fafb'; el.style.cursor='not-allowed';
     });
   } else {
     banner.style.display = 'none';
-    finalizeBtn.style.display = currentId ? '' : 'none';
-    requestUnlockBtn.style.display = 'none';
+    if(finalizeBtn) finalizeBtn.style.display = '';
+    if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
     saveBtn.disabled = false; saveBtn.style.opacity = ''; saveBtn.style.cursor = '';
     deleteBtn.disabled = false; deleteBtn.style.opacity = ''; deleteBtn.style.cursor = '';
     document.querySelectorAll('#tab-write input, #tab-write textarea, #tab-write select').forEach(el=>{
