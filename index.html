@@ -1440,6 +1440,7 @@ function applyRoleTabControl(user){
     'reqview':  isAdminUser || isTester,         // 관리자 + 시험원
     'write':    isTester || isAdminUser,         // 시험원 + 관리자
     'list':     isTester || isAdminUser,         // 시험원 + 관리자
+    'pdfstore': isTester || isAdminUser,         // 시험원 + 관리자
     'standard': isOwner || isAdminUser,          // jiyoung_kang + 관리자
     'setting':  isOwner,                         // jiyoung_kang만
     'admin':    isOwner,                         // jiyoung_kang만
