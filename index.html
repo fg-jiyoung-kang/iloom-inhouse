@@ -681,6 +681,7 @@ button,input,select{font:inherit}
             <div class="actions small-actions">
               <select id="standardSelect"></select>
               <button class="btn" id="addStandardBtn">규격 추가</button>
+              <button class="btn" id="addAllStandardsBtn" style="background:#1f2937;color:#fff;border-color:#1f2937">전체 규격 추가</button>
               <button class="btn ghost" id="addCustomBtn">직접 추가</button>
             </div>
           </div>
@@ -913,10 +914,10 @@ let techSignData = '';
 let qualitySignData = '';
 
 const defaultStandards = [
-  {name:'염색견뢰도 (변퇴색 및 자체이염)', spec:'KS K ISO 105-A01:2010', result:'4 / 4-5 (급)', category:'물성시험'},
-  {name:'치수변화율 (세탁 반복 시험)', spec:'KS K ISO 5077:2007 준용 (*10회 세탁)', result:'자동 계산', category:'물성시험'},
-  {name:'필링(Pilling) 및 외관 평가', spec:'KS K ISO 12945-1:2000 준용', result:'4-5 (급)', category:'치수/외관'},
-  {name:'세탁 후 외관 상태 관찰', spec:'코팅/봉제/프린트/부자재 육안 검사', result:'육안상 변화없음', category:'치수/외관'}
+  {name:'염색견뢰도 (변퇴색 및 자체이염)', spec:'KS K ISO 105-A01:2010', crit:'4 / 4-5 (급)', category:'물성시험'},
+  {name:'치수변화율 (세탁 반복 시험)', spec:'KS K ISO 5077:2007 준용 (*10회 세탁)', crit:'자동 계산', category:'물성시험'},
+  {name:'필링(Pilling) 및 외관 평가', spec:'KS K ISO 12945-1:2000 준용', crit:'4-5 (급)', category:'치수/외관'},
+  {name:'세탁 후 외관 상태 관찰', spec:'코팅/봉제/프린트/부자재 육안 검사', crit:'육안상 변화없음', category:'치수/외관'}
 ];
 
 const fields = ['receiptNo','purpose','receivedDate','issuedDate','requestDept','sampleName','colorInfo','brand','sampleReturn','sampleQty','sampleMaterial','tester','techManager','qualityManager','companyName','companyAddress','companyTel','companyFax','companyWeb','reportTitle','colorChange','staining','lengthBefore','lengthAfter','widthBefore','widthAfter','pillingResult','appearanceResult','remarkNote'];
@@ -1842,6 +1843,11 @@ function bindInputs(){
     window._applyTesterSign=applyTesterSign;
   })();
   $('addStandardBtn').onclick=()=>addTest(getStandards()[$('standardSelect').value]);
+  $('addAllStandardsBtn').onclick=()=>{
+    const stds = getStandards();
+    if(!stds.length){ alert('등록된 시험 규격이 없습니다.'); return; }
+    stds.forEach(function(s){ addTest(s); });
+  };
   $('addCustomBtn').onclick=()=>addTest({name:'',spec:'',result:'',category:'물성시험'});
   $('newBtn').onclick=newReport; $('saveBtn').onclick=()=>saveReport(false); $('deleteBtn').onclick=deleteCurrent;
   $('printBtn').onclick=()=>{
@@ -2094,7 +2100,7 @@ function newReport(){
 function addTest(item){
   const tbody=$('testTable').querySelector('tbody'); const tr=document.createElement('tr');
   const detail = item.detail || {};
-  tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}"></td><td><input class="t-spec" value="${esc(item.spec)}"></td><td><textarea class="t-crit" rows="3" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:vertical;min-height:32px">${esc(item.crit||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
+  tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}"></td><td><input class="t-spec" value="${esc(item.spec)}"></td><td><textarea class="t-crit" rows="3" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:vertical;min-height:32px">${esc(item.crit||item.result||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
   tbody.appendChild(tr);
   tr.querySelector('.t-cat').value=item.category||'기타';
 
@@ -2146,6 +2152,8 @@ function addTest(item){
   iconBtn.onclick=()=>{
     var deletedName = (tr.querySelector('.t-name')||{}).value||'';
     tr.remove(); detailTr.remove(); renumber(); renderDetailSection(); renderPreview(); markUnsaved();
+    // 삭제 후 자동 저장 — 성적서 보기와 일치시킴
+    if(val('receiptNo') && val('receiptNo').trim()) saveReport(true);
     if(deletedName && window._currentReqData){
       var d = window._currentReqData;
       d.items = (d.items||[]).filter(function(it){
