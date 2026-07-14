@@ -671,6 +671,10 @@ button,input,select{font:inherit}
               <input type="hidden" id="companyFax" value="">
               <label>홈페이지<input id="companyWeb" value="www.iloom.com" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
               <label>보고서 제목<input id="reportTitle" value="IN HOUSE TEST REPORT" readonly style="background:#f5f5f5;color:#555;cursor:default;text-transform:uppercase"></label>
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:700;color:#374151;padding:8px 0">
+                <input type="checkbox" id="showLogoChk" style="width:18px;height:18px;accent-color:#D8755B;flex-shrink:0" onchange="renderPreview()">
+                <span>일룸 로고지 출력 <span style="font-size:11px;font-weight:400;color:#D8755B">— 체크 시 PDF에 일룸 워터마크 표시</span></span>
+              </label>
             </div>
           </div>
         </div>
@@ -1985,10 +1989,16 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .p2header{padding:16mm 10mm 4mm;border-bottom:2px solid var(--red);margin-bottom:4mm;box-sizing:border-box}
 .p2content{height:215mm;overflow:hidden;padding:0 10mm}
 .p2footer{position:absolute;right:10mm;bottom:5mm;text-align:right;font-size:7px;color:#999;background:#fff}
+.iloom-paper-line{position:absolute;top:0;left:0;right:0;height:3.5px;background:#D8755B;z-index:20}
+.iloom-brand-txt{position:absolute;top:7mm;left:10mm;color:#D8755B;font-size:14px;font-weight:800;font-style:italic;letter-spacing:-0.5px;z-index:20;font-family:'Pretendard Variable',Pretendard,'Noto Sans KR',sans-serif}
+.iloom-wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(216,117,91,0.11);font-size:128px;font-weight:900;font-style:italic;pointer-events:none;user-select:none;white-space:nowrap;z-index:0;letter-spacing:-5px;font-family:'Pretendard Variable',Pretendard,'Noto Sans KR',sans-serif}
 `;
 
+    const showLogo = !!r.showLogo;
+    const iloomPaperEl = showLogo ? '<div class="iloom-paper-line"></div><div class="iloom-brand-txt">iloom</div><div class="iloom-wm">iloom</div>' : '';
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
 <div class="p1">
+  ${iloomPaperEl}
   <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'IN HOUSE TEST REPORT')}</div>${showKolas?`<img src="${ksrc}" style="height:48px;object-fit:contain">`:'<div></div>'}</div>
   <table class="mt"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup>
     <tr><th>접수번호</th><td>${e2(r.receiptNo)}</td><th>용도</th><td>${e2(r.purpose)}</td></tr>
@@ -2225,6 +2235,7 @@ function collectReport(autoSaved){
   const me=document.getElementById('sampleMaterials');
   data.materials=me&&me.dataset.materials?JSON.parse(me.dataset.materials):[];
   data.chk_kolas=document.getElementById('req_chk_kolas')?.checked||false;
+  data.showLogo=document.getElementById('showLogoChk')?.checked||false;
   return data;
 }
 
@@ -2641,8 +2652,14 @@ function renderPreview(){
     const wpEl=$('widthPctDisplay'); if(wpEl) wpEl.textContent=widPct||'—';
     const logoSrc = document.getElementById('iloom-logo-src') ? document.getElementById('iloom-logo-src').src : '';
     const kolasSrc = document.getElementById('kolas-logo-src') ? document.getElementById('kolas-logo-src').src : '';
+    const _prevShowLogo = !!r.showLogo;
+    const _prevLogoEl = _prevShowLogo ? `
+      <div style="position:absolute;top:0;left:0;right:0;height:3.5px;background:#D8755B;z-index:20"></div>
+      <div style="position:absolute;top:7mm;left:12mm;color:#D8755B;font-size:14px;font-weight:800;font-style:italic;letter-spacing:-0.5px;z-index:20">iloom</div>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(216,117,91,0.11);font-size:128px;font-weight:900;font-style:italic;pointer-events:none;user-select:none;white-space:nowrap;z-index:0;letter-spacing:-5px">iloom</div>` : '';
     $('reportPreview').innerHTML=`
     <section class="page page-1">
+      ${_prevLogoEl}
       <div class="report-head"><div class="report-head-row"><div class="report-title">${esc(r.reportTitle)}</div><div class="logo-block"><img src="${kolasSrc}" alt="KOLAS ILAC" style="height:52px;object-fit:contain"></div></div></div>
       <table class="meta-table"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup><tr><th>접수번호</th><td>${esc(r.receiptNo)}</td><th>용도</th><td>${esc(r.purpose)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr>${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${esc(r.sampleReturn||'-')}</td><th>시료수량</th><td>${esc(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${esc(r.sampleMaterial||'-')}</td></tr>`:''}</table>
       <div class="red-title">■ 의뢰 시험 항목</div>
@@ -4151,6 +4168,8 @@ async function loadReport(r){
   currentId=r.id;
   fields.forEach(id=>setVal(id,r[id]||''));
   setVal('companyName','일룸수면과학연구소');
+  const _showLogoChk=document.getElementById('showLogoChk');
+  if(_showLogoChk) _showLogoChk.checked=!!r.showLogo;
   sampleImageData=r.image||'';
   techSignData=r.techSign||JY_SIGN_DATA; qualitySignData=r.qualitySign||SJ_SIGN_DATA;
   // 작성자 서명: 저장된 값 우선, 없으면 이름 기반 자동 매핑
