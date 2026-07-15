@@ -565,6 +565,7 @@ button,input,select{font:inherit}
               <select id="reqviewFilter" onchange="renderReqMgmt()" style="border:1px solid #d1d5db;border-radius:8px;padding:6px 10px;font-size:13px;color:#374151;outline:none">
                 <option value="">전체</option>
                 <option value="pending">처리중</option>
+                <option value="confirmed">제출 확인 완료</option>
                 <option value="writing">작성중</option>
                 <option value="issued">발행완료</option>
               </select>
@@ -4085,13 +4086,15 @@ function renderReqMgmt(){
   function getReqComputedStatus(r){
     var linked = reports.find(function(rep){ return (rep.receiptNo||'') === (r.no||''); });
     if(linked) return linked.issued ? 'issued' : 'writing';
+    if(r.status === 'processing') return 'confirmed';
     return 'pending';
   }
 
   var ST = {
-    pending: {label:'처리중',  color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
-    writing: {label:'작성중',  color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
-    issued:  {label:'발행완료', color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0'}
+    pending:   {label:'처리중',       color:'#d97706', bg:'#fffbeb', border:'#fde68a'},
+    confirmed: {label:'제출 확인 완료', color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0'},
+    writing:   {label:'작성중',       color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
+    issued:    {label:'발행완료',      color:'#16a34a', bg:'#dcfce7', border:'#bbf7d0'}
   };
 
   var filterEl = document.getElementById('reqviewFilter');
