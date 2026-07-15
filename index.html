@@ -2469,12 +2469,18 @@ function renderDetailSection(externalData){
         tbl2.appendChild(tbody2); fieldsWrap.appendChild(tbl2);
 
       } else if(name.includes('롤링')){
-        var rollCritDiv=document.createElement('div'); rollCritDiv.style.cssText='margin-bottom:10px;padding:10px 14px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;color:#374151;line-height:1.9;text-align:center';
-        rollCritDiv.innerHTML='<div style="font-weight:800;font-size:11px;color:#6b7280;margin-bottom:4px">기준</div>1. 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>2. 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>3. 용수철의 끊어짐, 빠짐 등이 없을 것.<br>4. 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
-        fieldsWrap.appendChild(rollCritDiv);
-        var row0=document.createElement('div'); row0.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-        row0.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
-        fieldsWrap.appendChild(row0);
+        var tblR=document.createElement('table'); tblR.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
+        tblR.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">판정</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
+        var tbodyR=document.createElement('tbody');
+        var trR=document.createElement('tr');
+        var taR=document.createElement('td'); taR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taR.textContent='외관';
+        var tbR=document.createElement('td'); tbR.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
+        var selR=document.createElement('select'); selR.dataset.key='judge_'+i; selR.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%';
+        ['','합격','불합격'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['judge_'+i]||'')===o) opt.selected=true; selR.appendChild(opt); });
+        selR.addEventListener('change',renderPreview); tbR.appendChild(selR);
+        var tcR=document.createElement('td'); tcR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7'; tcR.innerHTML='1. 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>2. 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>3. 용수철의 끊어짐, 빠짐 등이 없을 것.<br>4. 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
+        trR.appendChild(taR); trR.appendChild(tbR); trR.appendChild(tcR); tbodyR.appendChild(trR);
+        tblR.appendChild(tbodyR); fieldsWrap.appendChild(tblR);
 
       } else if(name.includes('내구성')){
         var hasD4=!!(saved['d4_'+i]);
