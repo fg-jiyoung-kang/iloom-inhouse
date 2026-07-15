@@ -1927,8 +1927,8 @@ function buildPrintHTML(r){
       } else if(nm.includes('내구성')){
         const dc=det['detail_crit_'+i]||crit||'';
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
-        const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
-        blocks+=`<div class="rb">${th}${dc?`<div class="dc"><b>기준</b><br>${e2(dc)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr><tr><td class="left">200회</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">10,000회</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">80,000회</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td>≤ 40 mm</td></tr>${d4Row_p}${dJudge}</table></div>`;
+        const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4 (560,000회)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
+        blocks+=`<div class="rb">${th}${dc?`<div class="dc"><b>기준</b><br>${e2(dc)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr><tr><td class="left">D1 (200회)</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">D2 (10,000회)</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">D3 (80,000회)</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td>≤ 40 mm</td></tr>${d4Row_p}${dJudge}</table></div>`;
       } else if(nm.includes('수직하중')||nm.includes('하중')){
         const dc2=det['detail_crit_'+i]||crit||'';
         const show560=!!det['load_show560_'+i];
@@ -2478,7 +2478,7 @@ function renderDetailSection(externalData){
         var tblD=document.createElement('table'); tblD.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
         tblD.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">측정값 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
         var tbodyD=document.createElement('tbody');
-        [['200회','d1'],['10,000회','d2'],['80,000회','d3']].forEach(function(cv){
+        [['D1 (200회)','d1'],['D2 (10,000회)','d2'],['D3 (80,000회)','d3']].forEach(function(cv){
           var tr=document.createElement('tr');
           var ta=document.createElement('td'); ta.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta.textContent=cv[0];
           var tb=document.createElement('td'); tb.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
@@ -2488,7 +2488,7 @@ function renderDetailSection(externalData){
         });
         // D4 행 (선택)
         var trD4=document.createElement('tr'); trD4.style.display=hasD4?'':'none';
-        var taD4=document.createElement('td'); taD4.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taD4.textContent='D4';
+        var taD4=document.createElement('td'); taD4.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taD4.textContent='D4 (560,000회)';
         var tbD4=document.createElement('td'); tbD4.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
         var inpD4=document.createElement('input'); inpD4.type='number'; inpD4.step='0.01'; inpD4.dataset.key='d4_'+i; inpD4.placeholder='0.00'; inpD4.value=saved['d4_'+i]||''; inpD4.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; inpD4.addEventListener('input',renderPreview); tbD4.appendChild(inpD4);
         var tcD4=document.createElement('td'); tcD4.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px'; tcD4.textContent='-';
@@ -2800,10 +2800,10 @@ function renderPreview(){
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +critBox1
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr>'
-              +'<tr><td class="left">200회</td><td class="result-val">'+esc(d1)+'</td><td>≤ 40 mm</td></tr>'
-              +'<tr><td class="left">10,000회</td><td class="result-val">'+esc(d2)+'</td><td>≤ 40 mm</td></tr>'
-              +'<tr><td class="left">80,000회</td><td class="result-val">'+esc(d3)+'</td><td>≤ 40 mm</td></tr>'
-              +(d4?'<tr><td class="left">D4</td><td class="result-val">'+esc(d4)+'</td><td>-</td></tr>':'')
+              +'<tr><td class="left">D1 (200회)</td><td class="result-val">'+esc(d1)+'</td><td>≤ 40 mm</td></tr>'
+              +'<tr><td class="left">D2 (10,000회)</td><td class="result-val">'+esc(d2)+'</td><td>≤ 40 mm</td></tr>'
+              +'<tr><td class="left">D3 (80,000회)</td><td class="result-val">'+esc(d3)+'</td><td>≤ 40 mm</td></tr>'
+              +(d4?'<tr><td class="left">D4 (560,000회)</td><td class="result-val">'+esc(d4)+'</td><td>-</td></tr>':'')
               +dJudge
               +'</table></div>';
 
