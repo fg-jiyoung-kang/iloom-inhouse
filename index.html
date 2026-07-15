@@ -1923,7 +1923,7 @@ function buildPrintHTML(r){
         blocks+=`<div class="rb">${th}${csCrit?`<div class="dc"><b>기준</b><br>${e2(csCrit)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr><tr><td class="left">시험 전 두께 (t₀)</td><td class="rv">${e2(t0)}</td><td>-</td></tr><tr><td class="left">시험 후 두께 (t₁)</td><td class="rv">${e2(t1)}</td><td>-</td></tr><tr><td class="left">영구압축 줄음률</td><td class="rv" style="color:#2563eb">${e2(pct)}</td><td style="text-align:center">1종 ≤ 10<br>2종 ≤ 13</td></tr>${csJudge}</table></div>`;
       } else if(nm.includes('롤링')){
         const rJudge = jg ? `<tr><td style="font-weight:800;text-align:center;padding:4px">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'};text-align:center">${e2(jg)}</td></tr>` : '';
-        blocks+=`<div class="rb">${th}${crit?`<div class="dc"><b>기준</b><br>${e2(crit)}</div>`:''}<table class="rt" style="width:100%"><tr><th style="width:50%;text-align:center">구분</th><th style="width:50%;text-align:center">시험 결과</th></tr>${rJudge}</table></div>`;
+        blocks+=`<div class="rb">${th}<div class="dc"><b>기준</b><br>외관에 이상이 없을 것</div><table class="rt" style="width:100%"><tr><th style="width:50%;text-align:center">구분</th><th style="width:50%;text-align:center">시험 결과</th></tr>${rJudge}</table></div>`;
       } else if(nm.includes('내구성')){
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4 (560,000회)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
@@ -2792,7 +2792,8 @@ function renderPreview(){
           // 롤링내구성 - 판정만
           } else if(name.includes('롤링')){
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +critBox+'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
+              +'<div style="font-size:10px;color:#374151;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>외관에 이상이 없을 것</div>'
+              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
               +judgeCell.replace('<td></td></tr>','</tr>')+'</table></div>';
 
           // 내구성시험
