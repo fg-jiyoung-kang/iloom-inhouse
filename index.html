@@ -1926,7 +1926,8 @@ function buildPrintHTML(r){
       } else if(nm.includes('내구성')){
         const dc=det['detail_crit_'+i]||crit||'';
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
-        blocks+=`<div class="rb">${th}${dc?`<div class="dc"><b>기준</b><br>${e2(dc)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr><tr><td class="left">d1 (mm)</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">d2 (mm)</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">d3 (mm)</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">d4 (mm)</td><td class="rv">${e2(det['d4_'+i]||'')}</td><td>-</td></tr>${dJudge}</table></div>`;
+        const d4Row_p=det['d4_'+i]?`<tr><td class="left">d4 (mm)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
+        blocks+=`<div class="rb">${th}${dc?`<div class="dc"><b>기준</b><br>${e2(dc)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr><tr><td class="left">d1 (mm)</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">d2 (mm)</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td>≤ 40 mm</td></tr><tr><td class="left">d3 (mm)</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td>≤ 40 mm</td></tr>${d4Row_p}${dJudge}</table></div>`;
       } else if(nm.includes('수직하중')||nm.includes('하중')){
         const dc2=det['detail_crit_'+i]||crit||'';
         const show560=!!det['load_show560_'+i];
@@ -2472,9 +2473,24 @@ function renderDetailSection(externalData){
         fieldsWrap.appendChild(row0);
 
       } else if(name.includes('내구성')){
-        var grid=document.createElement('div'); grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px';
-        ['d1','d2','d3','d4'].forEach(function(d){ grid.appendChild(_makeInput({label:d.toUpperCase()+' (mm)',key:d+'_'+i,type:'number',step:'0.01',ph:'0.00'},saved)); });
+        var hasD4 = !!(saved['d4_'+i]);
+        var grid=document.createElement('div'); grid.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px';
+        ['d1','d2','d3'].forEach(function(d){ grid.appendChild(_makeInput({label:d.toUpperCase()+' (mm)',key:d+'_'+i,type:'number',step:'0.01',ph:'0.00'},saved)); });
         fieldsWrap.appendChild(grid);
+        // D4 토글
+        var d4ToggleWrap=document.createElement('div'); d4ToggleWrap.style.cssText='margin-bottom:8px;display:flex;align-items:center;gap:6px';
+        var d4Chk=document.createElement('input'); d4Chk.type='checkbox'; d4Chk.checked=hasD4; d4Chk.id='d4chk_'+i;
+        d4Chk.style.cssText='cursor:pointer;accent-color:#e60012;width:14px;height:14px';
+        var d4Lbl=document.createElement('label'); d4Lbl.htmlFor='d4chk_'+i;
+        d4Lbl.style.cssText='font-size:12px;font-weight:600;color:#374151;cursor:pointer'; d4Lbl.textContent='D4 포함';
+        d4ToggleWrap.appendChild(d4Chk); d4ToggleWrap.appendChild(d4Lbl);
+        var d4Wrap=document.createElement('div'); d4Wrap.style.cssText='margin-bottom:10px;display:'+(hasD4?'block':'none');
+        d4Wrap.appendChild(_makeInput({label:'D4 (mm)',key:'d4_'+i,type:'number',step:'0.01',ph:'0.00'},saved));
+        d4Chk.addEventListener('change',function(){
+          d4Wrap.style.display=this.checked?'block':'none';
+          if(!this.checked){ var inp=d4Wrap.querySelector('input'); if(inp){inp.value='';inp.dispatchEvent(new Event('input'));} }
+        });
+        fieldsWrap.appendChild(d4ToggleWrap); fieldsWrap.appendChild(d4Wrap);
         var dcWrap=document.createElement('div'); dcWrap.style.cssText='margin-bottom:10px';
         var dcLbl=document.createElement('label'); dcLbl.style.cssText='display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:12px;color:#374151';
         dcLbl.textContent='상세 기준';
@@ -2776,7 +2792,7 @@ function renderPreview(){
               +'<tr><td class="left">d1 (mm)</td><td class="result-val">'+esc(d1)+'</td><td>≤ 40 mm</td></tr>'
               +'<tr><td class="left">d2 (mm)</td><td class="result-val">'+esc(d2)+'</td><td>≤ 40 mm</td></tr>'
               +'<tr><td class="left">d3 (mm)</td><td class="result-val">'+esc(d3)+'</td><td>≤ 40 mm</td></tr>'
-              +'<tr><td class="left">d4 (mm)</td><td class="result-val">'+esc(d4)+'</td><td>-</td></tr>'
+              +(d4?'<tr><td class="left">d4 (mm)</td><td class="result-val">'+esc(d4)+'</td><td>-</td></tr>':'')
               +dJudge
               +'</table></div>';
 
