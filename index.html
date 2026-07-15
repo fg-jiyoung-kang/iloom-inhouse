@@ -517,8 +517,9 @@ button,input,select{font:inherit}
             <span style="font-size:12px;background:#e60012;color:#fff;border-radius:6px;padding:3px 10px;font-weight:700">③ 제출하기</span>
             <span style="font-size:11px;color:#78350f;margin-left:4px">저장 후 미리보기에서 서명하고 제출하세요</span>
           </div>
-          <div style="display:flex;gap:10px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button onclick="saveRequest()" style="background:#e60012;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:14px;font-weight:800;cursor:pointer">① 저장</button>
+            <button onclick="showCopyFromPastModal()" style="background:#1f2937;color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer">📋 과거 의뢰서 복사</button>
             <button onclick="clearRequest()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:700;cursor:pointer">초기화</button>
           </div>
 
@@ -581,7 +582,7 @@ button,input,select{font:inherit}
         <div id="issuedLockBanner" style="display:none;background:#dcfce7;border:1.5px solid #16a34a;border-radius:12px;padding:14px 20px;margin-bottom:12px;align-items:center;gap:12px">
           <span style="font-size:22px">🔒</span>
           <div style="flex:1">
-            <div style="font-weight:800;font-size:14px;color:#15803d">발행완료된 성적서입니다</div>
+            <div style="font-weight:800;font-size:14px;color:#15803d">발행 처리된 성적서입니다</div>
             <div style="font-size:12px;color:#166534;margin-top:2px">수정이 잠겨 있습니다. 수정이 필요한 경우 <b>수정 작성 요청하기</b> 버튼을 눌러주세요.</div>
           </div>
           <span id="unlockPendingLabel" style="display:none;font-size:12px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;padding:4px 10px;font-weight:700">요청 검토 중...</span>
@@ -2972,6 +2973,7 @@ function toggleReportIssued(id, issued){
   const idx = reports.findIndex(r=>r.id===id);
   if(idx===-1) return;
   reports[idx].issued = issued;
+  reports[idx].reportStatus = issued ? (reports[idx].reportStatus==='submitted'||reports[idx].reportStatus==='completed' ? reports[idx].reportStatus : 'issued') : 'draft';
   if(!issued) reports[idx].unlockRequest = null;
   setReports(reports);
   supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
@@ -3021,6 +3023,7 @@ async function finalizeReport(){
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
   reports[idx].issued = true;
+  reports[idx].reportStatus = 'issued';
   reports[idx].unlockRequest = null;
   setReports(reports);
   await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
@@ -3037,7 +3040,10 @@ async function requestUnlock(){
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1) return;
-  reports[idx].unlockRequest = { by: u.name||u.id||'', at: new Date().toISOString(), note: note.trim(), status:'pending' };
+  const newReq = { by: u.name||u.id||'', at: new Date().toISOString(), note: note.trim(), status:'pending' };
+  if(!reports[idx].unlockHistory) reports[idx].unlockHistory = [];
+  reports[idx].unlockHistory.push(newReq);
+  reports[idx].unlockRequest = newReq;
   setReports(reports);
   await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
   renderUnlockRequests(); updateUnlockBadge();
@@ -3049,7 +3055,13 @@ async function approveUnlock(id){
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===id);
   if(idx===-1) return;
+  const admin = JSON.parse(sessionStorage.getItem('iloom_user')||'{}');
+  if(reports[idx].unlockHistory && reports[idx].unlockHistory.length){
+    const hist = reports[idx].unlockHistory;
+    for(let i=hist.length-1;i>=0;i--){ if(hist[i].status==='pending'){ hist[i].status='approved'; hist[i].resolvedAt=new Date().toISOString(); hist[i].resolvedBy=admin.name||admin.id||''; break; } }
+  }
   reports[idx].issued = false;
+  reports[idx].reportStatus = 'draft';
   reports[idx].unlockRequest = null;
   setReports(reports);
   await supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
@@ -3061,11 +3073,28 @@ async function rejectUnlock(id){
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===id);
   if(idx===-1) return;
+  const admin = JSON.parse(sessionStorage.getItem('iloom_user')||'{}');
+  if(reports[idx].unlockHistory && reports[idx].unlockHistory.length){
+    const hist = reports[idx].unlockHistory;
+    for(let i=hist.length-1;i>=0;i--){ if(hist[i].status==='pending'){ hist[i].status='rejected'; hist[i].resolvedAt=new Date().toISOString(); hist[i].resolvedBy=admin.name||admin.id||''; break; } }
+  }
   if(reports[idx].unlockRequest) reports[idx].unlockRequest.status = 'rejected';
   setReports(reports);
   await supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
   renderUnlockRequests(); updateUnlockBadge();
   showToast('수정 요청을 거부했습니다.');
+}
+
+async function updateReportStatus(id, status){
+  const reports = getReports();
+  const idx = reports.findIndex(r=>r.id===id);
+  if(idx===-1) return;
+  reports[idx].reportStatus = status;
+  setReports(reports);
+  await supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
+  renderList(); renderUnlockRequests();
+  const label = {issued:'발행됨', submitted:'제출중', completed:'발행완료'}[status]||status;
+  showToast('"'+label+'" 상태로 변경되었습니다.');
 }
 
 function updateUnlockBadge(){
@@ -3131,22 +3160,98 @@ async function printStoredReport(id){
 function renderUnlockRequests(){
   const box = document.getElementById('unlockReqList');
   if(!box) return;
-  const pending = getReports().filter(r=>r.unlockRequest && r.unlockRequest.status==='pending');
-  if(!pending.length){ box.innerHTML='<p style="color:#9ca3af;text-align:center;padding:24px 0">수정 요청이 없습니다.</p>'; return; }
-  box.innerHTML='';
-  pending.forEach(r=>{
-    const req = r.unlockRequest;
-    const d=document.createElement('div');
-    d.style.cssText='display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:10px;background:#fff';
-    d.innerHTML='<div style="flex:1">'
-      +'<div style="font-weight:800;font-size:14px">'+esc(r.receiptNo||'접수번호 없음')+'&nbsp;<span style="font-size:12px;color:#6b7280">'+esc(r.sampleName||'')+'</span></div>'
-      +'<div style="font-size:12px;color:#374151;margin-top:4px">요청자: <b>'+esc(req.by)+'</b> &nbsp; 사유: '+esc(req.note||'(없음)')+'</div>'
-      +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">'+new Date(req.at).toLocaleString('ko-KR')+'</div>'
-      +'</div>'
-      +'<button onclick="approveUnlock(\''+r.id+'\')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer">승인</button>'
-      +'<button onclick="rejectUnlock(\''+r.id+'\')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer">거부</button>';
-    box.appendChild(d);
-  });
+  const all = getReports();
+  const pending = all.filter(r=>r.unlockRequest && r.unlockRequest.status==='pending');
+  const issuedReports = all.filter(r=>r.issued);
+  const histItems = [];
+  all.forEach(r=>{ (r.unlockHistory||[]).forEach(h=>histItems.push({r,h})); });
+  histItems.sort((a,b)=>new Date(b.h.at)-new Date(a.h.at));
+
+  const statusColors = {
+    issued:    {label:'발행됨',   bg:'#fef9c3',color:'#854d0e',border:'#fde68a'},
+    submitted: {label:'제출중',   bg:'#eff6ff', color:'#1d4ed8',border:'#bfdbfe'},
+    completed: {label:'발행완료', bg:'#dcfce7', color:'#16a34a',border:'#bbf7d0'}
+  };
+  const histColors = {
+    pending:  {label:'대기중', bg:'#fef3c7',color:'#92400e',border:'#fde68a'},
+    approved: {label:'승인됨', bg:'#dcfce7', color:'#16a34a',border:'#bbf7d0'},
+    rejected: {label:'거부됨', bg:'#fee2e2', color:'#dc2626',border:'#fca5a5'}
+  };
+
+  let html = '';
+
+  // ── 섹션1: 승인 대기 ──
+  html += '<div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
+    +'🔔 승인 대기 중'
+    +'<span style="background:#dc2626;color:#fff;border-radius:20px;padding:1px 8px;font-size:11px">'+pending.length+'</span></div>';
+  if(!pending.length){
+    html += '<div style="color:#9ca3af;text-align:center;padding:16px;font-size:13px;border:1px dashed #e5e7eb;border-radius:10px;margin-bottom:20px">대기 중인 수정 요청이 없습니다.</div>';
+  } else {
+    pending.forEach(r=>{
+      const req=r.unlockRequest;
+      html += '<div style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:2px solid #fca5a5;border-radius:12px;margin-bottom:10px;background:#fff5f5">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:800;font-size:14px">'+esc(r.receiptNo||'접수번호 없음')+'&nbsp;<span style="font-size:12px;color:#6b7280;font-weight:400">'+esc(r.sampleName||'')+'</span></div>'
+        +'<div style="font-size:12px;color:#374151;margin-top:6px">요청자: <b>'+esc(req.by)+'</b></div>'
+        +'<div style="font-size:12px;color:#374151;margin-top:3px">사유: '+esc(req.note||'(없음)')+'</div>'
+        +'<div style="font-size:11px;color:#9ca3af;margin-top:3px">'+new Date(req.at).toLocaleString('ko-KR')+'</div>'
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
+        +'<button onclick="approveUnlock(\''+r.id+'\')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer">✔ 승인</button>'
+        +'<button onclick="rejectUnlock(\''+r.id+'\')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer">✗ 거부</button>'
+        +'</div></div>';
+    });
+  }
+
+  html += '<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">';
+
+  // ── 섹션2: 발행 성적서 상태 관리 ──
+  html += '<div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:10px">📋 발행 성적서 상태 관리</div>';
+  if(!issuedReports.length){
+    html += '<div style="color:#9ca3af;text-align:center;padding:16px;font-size:13px;border:1px dashed #e5e7eb;border-radius:10px;margin-bottom:20px">발행된 성적서가 없습니다.</div>';
+  } else {
+    issuedReports.forEach(r=>{
+      const s=r.reportStatus||'issued';
+      const sc=statusColors[s]||statusColors.issued;
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;background:#fff">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:13px">'+esc(r.receiptNo||'접수번호 없음')+'&nbsp;<span style="font-size:11px;color:#6b7280;font-weight:400">'+esc(r.sampleName||'')+'</span></div>'
+        +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">발행일: '+fmt(r.issuedDate||'')+'</div>'
+        +'</div>'
+        +'<span style="font-size:11px;background:'+sc.bg+';color:'+sc.color+';border:1px solid '+sc.border+';border-radius:5px;padding:2px 8px;font-weight:700;white-space:nowrap">'+sc.label+'</span>'
+        +'<select onchange="updateReportStatus(\''+r.id+'\',this.value)" style="font-size:12px;border:1px solid #d1d5db;border-radius:7px;padding:5px 8px;color:#374151;background:#fff;cursor:pointer">'
+        +'<option value="issued"'+(s==='issued'?' selected':'')+'">발행됨</option>'
+        +'<option value="submitted"'+(s==='submitted'?' selected':'')+'">제출중</option>'
+        +'<option value="completed"'+(s==='completed'?' selected':'')+'">발행완료</option>'
+        +'</select>'
+        +'</div>';
+    });
+  }
+
+  html += '<hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0">';
+
+  // ── 섹션3: 수정 요청 이력 ──
+  html += '<div style="font-size:13px;font-weight:800;color:#374151;margin-bottom:10px">📜 수정 요청 이력</div>';
+  if(!histItems.length){
+    html += '<div style="color:#9ca3af;text-align:center;padding:16px;font-size:13px;border:1px dashed #e5e7eb;border-radius:10px">수정 요청 이력이 없습니다.</div>';
+  } else {
+    histItems.forEach(({r,h})=>{
+      const hc=histColors[h.status]||histColors.pending;
+      html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;background:#fafafa">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-weight:700;font-size:13px">'+esc(r.receiptNo||'접수번호 없음')+'&nbsp;<span style="font-size:11px;color:#6b7280;font-weight:400">'+esc(r.sampleName||'')+'</span></div>'
+        +'<div style="font-size:12px;color:#374151;margin-top:4px">요청자: <b>'+esc(h.by)+'</b>&nbsp;·&nbsp;사유: '+esc(h.note||'(없음)')+'</div>'
+        +'<div style="font-size:11px;color:#9ca3af;margin-top:3px">요청: '+new Date(h.at).toLocaleString('ko-KR')
+          +(h.resolvedAt ? '&nbsp;·&nbsp;처리: '+new Date(h.resolvedAt).toLocaleString('ko-KR') : '')
+          +(h.resolvedBy ? '&nbsp;('+esc(h.resolvedBy)+')' : '')
+        +'</div>'
+        +'</div>'
+        +'<span style="font-size:11px;background:'+hc.bg+';color:'+hc.color+';border:1px solid '+hc.border+';border-radius:5px;padding:2px 8px;font-weight:700;white-space:nowrap;flex-shrink:0">'+hc.label+'</span>'
+        +'</div>';
+    });
+  }
+
+  box.innerHTML = html;
 }
 
 function renderList(page){
@@ -3180,9 +3285,9 @@ function renderList(page){
     const savedAt = r.savedAt || r.updated_at || '';
     const savedStr = fmtSaved(savedAt);
     const isAutoSave = r.autoSaved ? ' <span style="font-size:10px;background:#eff6ff;color:#2563eb;border-radius:4px;padding:1px 5px;font-weight:700">자동</span>' : '';
-    const statusBadge = isIssued
-      ? '<span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">✔ 발행완료</span>'
-      : '<span style="font-size:10px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">작성중</span>';
+    let statusBadge;
+    if(!isIssued){ statusBadge='<span style="font-size:10px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">작성중</span>'; }
+    else { const _rs=r.reportStatus||'issued'; if(_rs==='submitted') statusBadge='<span style="font-size:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">📤 제출중</span>'; else if(_rs==='completed') statusBadge='<span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">✔ 발행완료</span>'; else statusBadge='<span style="font-size:10px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">발행됨</span>'; }
     info.innerHTML='<div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px">'+esc(r.receiptNo||'접수번호 없음')+'&nbsp;'+statusBadge+'</div>'
       +'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+esc(r.sampleName||'')+' · '+fmt(r.issuedDate)+'</div>'
       +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">🕐 '+savedStr+isAutoSave+'</div>';
@@ -4110,6 +4215,110 @@ function clearRequest(){
   updateSubmitBtn();
   const preview=document.getElementById('reqPreview');
   if(preview) preview.innerHTML='<div style="text-align:center;color:#aaa;margin-top:60px;font-size:13px">입력 후 저장 &amp; 미리보기를 눌러주세요</div>';
+}
+
+async function showCopyFromPastModal(){
+  var reqList = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+  try {
+    var supaReqs = await getRequestsAsync();
+    supaReqs.forEach(function(r){ var fi=reqList.findIndex(function(x){return x.no===r.no;}); if(fi===-1) reqList.push(r); else reqList[fi]=r; });
+    localStorage.setItem('iloom_requests_v1', JSON.stringify(reqList));
+  } catch(e){}
+  if(!reqList.length){ alert('저장된 의뢰서가 없습니다.'); return; }
+  reqList.sort(function(a,b){ return new Date(b.savedAt||0)-new Date(a.savedAt||0); });
+  window._copyReqList = reqList;
+
+  var old = document.getElementById('copyReqModal'); if(old) old.remove();
+  var overlay = document.createElement('div');
+  overlay.id = 'copyReqModal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = '<div style="background:#f3f5f8;border-radius:16px;width:100%;max-width:580px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35)">'
+    +'<div style="background:#1f2937;color:#fff;padding:16px 20px;border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">'
+    +'<span style="font-weight:800;font-size:15px">📋 과거 의뢰서에서 복사</span>'
+    +'<button id="copyReqCloseBtn" style="background:transparent;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px;line-height:1">✕</button>'
+    +'</div>'
+    +'<div style="padding:12px 16px 8px;flex-shrink:0">'
+    +'<p style="font-size:12px;color:#6b7280;margin:0 0 10px">의뢰서를 클릭하면 현재 폼에 내용이 복사됩니다. (의뢰 번호는 새로 자동생성됩니다)</p>'
+    +'<input id="copyReqSearch" placeholder="번호 또는 시료명으로 검색..." style="width:100%;border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none;box-sizing:border-box">'
+    +'</div>'
+    +'<div id="copyReqListBody" style="overflow-y:auto;padding:0 16px 16px;flex:1"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+
+  function renderList(q){
+    var filtered = q ? reqList.filter(function(r){ var lq=q.toLowerCase(); return (r.no||'').toLowerCase().includes(lq)||(r.product||'').toLowerCase().includes(lq); }) : reqList;
+    var html = '';
+    filtered.forEach(function(r){
+      var itemLabels = (r.items||[]).map(function(it){ return typeof it==='object'?it.label:String(it).split(' - ')[0].trim(); }).join(' · ');
+      var idx = reqList.indexOf(r);
+      html += '<div data-idx="'+idx+'" class="copy-req-row" style="cursor:pointer;padding:13px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;background:#fff;transition:background .12s">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+        +'<span style="font-weight:900;font-size:13px;color:#e60012">'+esc(r.no||'번호없음')+'</span>'
+        +'<span style="font-size:13px;font-weight:700;color:#374151">'+esc(r.product||'시료명 없음')+'</span>'
+        +(r.savedAt?'<span style="font-size:10px;color:#9ca3af;margin-left:auto;white-space:nowrap">'+new Date(r.savedAt).toLocaleDateString('ko-KR')+'</span>':'')
+        +'</div>'
+        +'<div style="font-size:11px;color:#6b7280;line-height:1.6">'+esc(itemLabels||'시험 항목 없음')+'</div>'
+        +'</div>';
+    });
+    if(!filtered.length) html = '<div style="text-align:center;color:#9ca3af;padding:24px 0;font-size:13px">검색 결과가 없습니다.</div>';
+    document.getElementById('copyReqListBody').innerHTML = html;
+  }
+  renderList('');
+
+  document.getElementById('copyReqCloseBtn').onclick = function(){ overlay.remove(); };
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+  document.getElementById('copyReqSearch').oninput = function(){ renderList(this.value.trim()); };
+  document.getElementById('copyReqSearch').focus();
+  document.getElementById('copyReqListBody').addEventListener('mouseover', function(e){ var r=e.target.closest('.copy-req-row'); if(r) r.style.background='#fef5f5'; });
+  document.getElementById('copyReqListBody').addEventListener('mouseout',  function(e){ var r=e.target.closest('.copy-req-row'); if(r) r.style.background='#fff'; });
+  document.getElementById('copyReqListBody').addEventListener('click', function(e){
+    var row = e.target.closest('.copy-req-row');
+    if(!row) return;
+    var idx = parseInt(row.dataset.idx);
+    if(isNaN(idx)||!window._copyReqList[idx]) return;
+    applyPastReqToForm(window._copyReqList[idx]);
+    overlay.remove();
+  });
+}
+
+function applyPastReqToForm(r){
+  function sv(id, val){ var el=document.getElementById(id); if(el) el.value=(val==null?'':val); }
+  sv('req_company', r.company);
+  sv('req_person', r.person);
+  sv('req_hp', r.hp);
+  sv('req_email', r.email);
+  sv('req_product', r.product);
+  sv('req_brand', r.brand);
+  sv('req_color', r.color);
+  sv('req_return', r.return_type);
+  sv('req_qty', r.qty);
+  sv('req_material_desc', r.material_desc);
+  sv('req_note', r.note);
+  // 재질 체크박스
+  ['fabric','sponge','antibac','padding','mattress'].forEach(function(m){
+    var el=document.getElementById('req_mat_'+m); if(el) el.checked=(r.materials||[]).includes(m);
+  });
+  // 성적서 구분
+  var koEl=document.getElementById('req_chk_kolas'); if(koEl) koEl.checked=!!r.chk_kolas;
+  var inEl=document.getElementById('req_chk_internal'); if(inEl) inEl.checked=!!r.chk_internal;
+  // 시험 항목 — 기존 체크박스 초기화 후 매칭 체크, 없으면 커스텀 추가
+  document.querySelectorAll('.req-item-chk').forEach(function(c){ c.checked=false; });
+  document.querySelectorAll('.req-item-custom').forEach(function(el){ el.remove(); });
+  var srcItems = (r.items||[]).map(function(it){
+    return { label:(typeof it==='object'?it.label:String(it).split(' - ')[0]).trim(), spec:(typeof it==='object'?(it.spec||''):(String(it).split(' - ')[1]||'').trim()) };
+  });
+  var matched = new Set();
+  document.querySelectorAll('.req-item-chk').forEach(function(c){
+    var lbl=(c.dataset.label||'').trim();
+    if(srcItems.some(function(it){ return it.label===lbl; })){ c.checked=true; matched.add(lbl); }
+  });
+  srcItems.forEach(function(it){
+    if(!matched.has(it.label)){
+      var container=document.getElementById('req_items_checkboxes');
+      if(container){ var row=makeReqItemRow({label:it.label, spec:it.spec}, true); var chk=row.querySelector('.req-item-chk'); if(chk) chk.checked=true; container.appendChild(row); }
+    }
+  });
+  showToast('과거 의뢰서 내용이 복사되었습니다. 확인 후 ① 저장을 눌러주세요.');
 }
 
 function exportData(){
