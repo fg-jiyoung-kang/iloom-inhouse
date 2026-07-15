@@ -2525,7 +2525,7 @@ function renderDetailSection(externalData){
           var ta=document.createElement('td'); ta.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta.textContent=cv[0];
           var tb=document.createElement('td'); tb.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
           var inp=document.createElement('input'); inp.type='number'; inp.step='0.01'; inp.dataset.key=cv[1]+'_'+i; inp.placeholder='0.00'; inp.value=saved[cv[1]+'_'+i]||''; inp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; inp.addEventListener('input',renderPreview); tb.appendChild(inp);
-          var tc=document.createElement('td'); tc.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px'; tc.textContent='≤ 40 mm';
+          var tc=document.createElement('td'); tc.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#aaa;font-size:11px'; tc.textContent='-';
           tr.appendChild(ta); tr.appendChild(tb); tr.appendChild(tc); tbodyD.appendChild(tr);
         });
         // D4 행 (선택)
