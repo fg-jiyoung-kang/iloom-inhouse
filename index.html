@@ -1942,7 +1942,7 @@ function buildPrintHTML(r){
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4 (560,000회)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
         const appJudge_p=det['appearance_'+i]?`<tr><td class="left">외관</td><td class="rv" style="color:${det['appearance_'+i]==='합격'?'#008a3d':'#e60012'}">${e2(det['appearance_'+i])}</td><td style="font-size:9px;line-height:1.7;text-align:center">· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.</td></tr>`:'';
-        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr><tr><td class="left">D1 (200회)</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td>-</td></tr><tr><td class="left">D2 (10,000회)</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td>-</td></tr><tr><td class="left">D3 (80,000회)</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td>-</td></tr>${d4Row_p}${appJudge_p}${dJudge}</table></div>`;
+        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr><tr><td class="left">D1 (200회)</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr><tr><td class="left">D2 (10,000회)</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr><tr><td class="left">D3 (80,000회)</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr>${d4Row_p}${appJudge_p}${dJudge}</table></div>`;
       } else if(nm.includes('수직하중')||nm.includes('하중')){
         const dc2=det['detail_crit_'+i]||crit||'';
         const show560=!!det['load_show560_'+i];
@@ -2848,9 +2848,9 @@ function renderPreview(){
             const dJudge = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td>KS G 4300 기준 만족</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr>'
-              +'<tr><td class="left">D1 (200회)</td><td class="result-val">'+esc(d1)+'</td><td>-</td></tr>'
-              +'<tr><td class="left">D2 (10,000회)</td><td class="result-val">'+esc(d2)+'</td><td>-</td></tr>'
-              +'<tr><td class="left">D3 (80,000회)</td><td class="result-val">'+esc(d3)+'</td><td>-</td></tr>'
+              +'<tr><td class="left">D1 (200회)</td><td class="result-val">'+esc(d1)+'</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr>'
+              +'<tr><td class="left">D2 (10,000회)</td><td class="result-val">'+esc(d2)+'</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr>'
+              +'<tr><td class="left">D3 (80,000회)</td><td class="result-val">'+esc(d3)+'</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr>'
               +(d4?'<tr><td class="left">D4 (560,000회)</td><td class="result-val">'+esc(d4)+'</td><td>-</td></tr>':'')
               +(detail['appearance_'+i]?'<tr><td class="left">외관</td><td class="result-val" style="font-weight:900;color:'+(detail['appearance_'+i]==='합격'?'#008a3d':'#e60012')+'">'+esc(detail['appearance_'+i])+'</td><td style="font-size:9px;line-height:1.7;text-align:center">· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.</td></tr>':'')
               +dJudge
