@@ -2031,6 +2031,12 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     const showLogo = !!r.showLogo;
     const iloomLineEl = showLogo ? '<div class="iloom-wm">iloom</div>' : '';
     const iloomLogoEl = '';
+    // Overall Rating 계산
+    const _ovItems = tests.map((t,i)=>({name:t.name||'항목'+(i+1), judge:det['judge_'+i]||''}));
+    const _ovJudged = _ovItems.filter(x=>x.judge);
+    const _ovPass = _ovJudged.length>0 && _ovJudged.every(x=>x.judge==='합격'||x.judge==='PASS');
+    const _ovJudge = _ovJudged.length===0?'':(_ovPass?'합격':'불합격');
+    const _ovColor = _ovJudge==='합격'?'#008a3d':'#e60012';
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
 <div class="p1">
   ${iloomLineEl}
@@ -2044,13 +2050,14 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   </table>
   <div class="red-title">■ 의뢰 시험 항목</div>
   <table class="it">
-    <colgroup><col style="width:8%"><col style="width:37%"><col style="width:55%"></colgroup>
-    <thead><tr><th>No.</th><th>시험 항목 (Test Item)</th><th>시험 규격</th></tr></thead>
-    <tbody>${tests.length?tests.map((t,i)=>`<tr><td>${i+1}</td><td class="left bold">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
+    <colgroup><col style="width:7%"><col style="width:32%"><col style="width:46%"><col style="width:15%"></colgroup>
+    <thead><tr><th>No.</th><th>시험 항목 (Test Item)</th><th>시험 규격</th><th>판정</th></tr></thead>
+    <tbody>${tests.length?tests.map((t,i)=>{const _jg=det['judge_'+i]||'';const _jc=_jg==='합격'||_jg==='PASS'?'#008a3d':_jg?'#e60012':'#aaa';return`<tr><td>${i+1}</td><td class="left bold">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td style="font-weight:900;color:${_jc}">${_jg||'-'}</td></tr>`;}).join(''):'<tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
   </table>
-  <table class="it" style="margin-top:6mm;border-top:none">
+  ${_ovJudge?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4mm;padding:6px 14px;border:2px solid ${_ovColor};border-radius:6px;background:${_ovJudge==='합격'?'#f0fdf4':'#fff5f5'}"><span style="font-weight:800;font-size:12px;color:#374151">종합 판정 (Overall Rating)</span><span style="font-size:18px;font-weight:900;color:${_ovColor};letter-spacing:1px">${_ovJudge==='합격'?'합격 (PASS)':'불합격 (FAIL)'}</span></div>`:''}
+  <table class="it" style="margin-top:4mm;border-top:none">
     <tr><td style="width:80px;background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd">비고</td>
-    <td class="left" style="height:136px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${e2(r.remarkNote||'')}</td></tr>
+    <td class="left" style="height:80px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${e2(r.remarkNote||'')}</td></tr>
   </table>
   <div class="ft">
     <div class="sr">
