@@ -2524,7 +2524,9 @@ function renderDetailSection(externalData){
           var tr=document.createElement('tr');
           var ta=document.createElement('td'); ta.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta.textContent=cv[0];
           var tb=document.createElement('td'); tb.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-          var inp=document.createElement('input'); inp.type='number'; inp.step='0.01'; inp.dataset.key=cv[1]+'_'+i; inp.placeholder='0.00'; inp.value=saved[cv[1]+'_'+i]||''; inp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; inp.addEventListener('input',renderPreview); tb.appendChild(inp);
+          var inp=document.createElement('input'); inp.type='number'; inp.step='0.01'; inp.dataset.key=cv[1]+'_'+i; inp.placeholder='0.00'; inp.value=saved[cv[1]+'_'+i]||''; inp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
+          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v>40;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();renderPreview();});_chk();})(inp);
+          tb.appendChild(inp);
           var tc=document.createElement('td'); tc.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px'; tc.textContent='≤ 40 mm';
           tr.appendChild(ta); tr.appendChild(tb); tr.appendChild(tc); tbodyD.appendChild(tr);
         });
@@ -2566,9 +2568,13 @@ function renderDetailSection(externalData){
           var tr3=document.createElement('tr');
           var ta3=document.createElement('td'); ta3.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta3.textContent=cv[0];
           var tbD1=document.createElement('td'); tbD1.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-          var d1i=document.createElement('input'); d1i.type='number'; d1i.step='0.1'; d1i.dataset.key='load_'+cv[1]+'_d1_'+i; d1i.placeholder='0.0'; d1i.value=saved['load_'+cv[1]+'_d1_'+i]||''; d1i.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; d1i.addEventListener('input',renderPreview); tbD1.appendChild(d1i);
+          var d1i=document.createElement('input'); d1i.type='number'; d1i.step='0.1'; d1i.dataset.key='load_'+cv[1]+'_d1_'+i; d1i.placeholder='0.0'; d1i.value=saved['load_'+cv[1]+'_d1_'+i]||''; d1i.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
+          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v>45;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();renderPreview();});_chk();})(d1i);
+          tbD1.appendChild(d1i);
           var tbD2=document.createElement('td'); tbD2.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-          var d2i=document.createElement('input'); d2i.type='number'; d2i.step='0.1'; d2i.dataset.key='load_'+cv[1]+'_d2_'+i; d2i.placeholder='0.0'; d2i.value=saved['load_'+cv[1]+'_d2_'+i]||''; d2i.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; d2i.addEventListener('input',renderPreview); tbD2.appendChild(d2i);
+          var d2i=document.createElement('input'); d2i.type='number'; d2i.step='0.1'; d2i.dataset.key='load_'+cv[1]+'_d2_'+i; d2i.placeholder='0.0'; d2i.value=saved['load_'+cv[1]+'_d2_'+i]||''; d2i.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
+          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v<5;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();renderPreview();});_chk();})(d2i);
+          tbD2.appendChild(d2i);
           var tc3=document.createElement('td'); tc3.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px;line-height:1.7'; tc3.innerHTML='D1 ≤ 45 mm<br>D2 ≥ 5 mm';
           tr3.appendChild(ta3); tr3.appendChild(tbD1); tr3.appendChild(tbD2); tr3.appendChild(tc3); tbody3.appendChild(tr3);
         });
