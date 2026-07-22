@@ -1872,7 +1872,12 @@ function bindInputs(){
   $('addCustomBtn').onclick=()=>addTest({name:'',spec:'',result:'',category:'물성시험'});
   $('newBtn').onclick=newReport; $('saveBtn').onclick=()=>saveReport(false); $('deleteBtn').onclick=deleteCurrent;
   $('printBtn').onclick=async()=>{
-    const r=collectReport();
+    let r=collectReport();
+    // collectReport()는 form값만 수집 → 저장된 issued/verifyToken/issuedAt 병합
+    if(currentId){
+      const _stored=getReports().find(function(x){return x.id===currentId;});
+      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
+    }
     // 발행완료 성적서는 저장 없이 출력 가능, 그 외는 저장 필요
     if(!_reportIsIssued && (_hasUnsaved || !currentId)){
       alert('저장을 해주세요.\n저장 버튼을 누른 후 PDF 출력이 가능합니다.');
@@ -1885,7 +1890,6 @@ function bindInputs(){
     }
     // 발행 성적서에 verifyToken 없으면 출력 전 자동 생성
     if(r.issued && !r.verifyToken && r.receiptNo){
-      r = Object.assign({}, r);
       r.issuedAt = r.issuedAt || r.savedAt || new Date().toISOString();
       r.verifyToken = await generateVerifyToken(r);
       const _reps=getReports(); const _ri=_reps.findIndex(function(x){return x.id===r.id;});
