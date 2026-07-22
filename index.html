@@ -1871,7 +1871,7 @@ function bindInputs(){
   };
   $('addCustomBtn').onclick=()=>addTest({name:'',spec:'',result:'',category:'물성시험'});
   $('newBtn').onclick=newReport; $('saveBtn').onclick=()=>saveReport(false); $('deleteBtn').onclick=deleteCurrent;
-  $('printBtn').onclick=()=>{
+  $('printBtn').onclick=async()=>{
     const r=collectReport();
     // 발행완료 성적서는 저장 없이 출력 가능, 그 외는 저장 필요
     if(!_reportIsIssued && (_hasUnsaved || !currentId)){
