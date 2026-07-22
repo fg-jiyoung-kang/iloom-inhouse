@@ -1883,6 +1883,14 @@ function bindInputs(){
       alert('의뢰서 번호가 없습니다.\n의뢰서를 먼저 불러온 후 출력해주세요.');
       return;
     }
+    // 발행 성적서에 verifyToken 없으면 출력 전 자동 생성
+    if(r.issued && !r.verifyToken && r.receiptNo){
+      r = Object.assign({}, r);
+      r.issuedAt = r.issuedAt || r.savedAt || new Date().toISOString();
+      r.verifyToken = await generateVerifyToken(r);
+      const _reps=getReports(); const _ri=_reps.findIndex(function(x){return x.id===r.id;});
+      if(_ri>=0){ _reps[_ri].verifyToken=r.verifyToken; _reps[_ri].issuedAt=r.issuedAt; setReports(_reps); supaFetch('reports','POST',{id:r.id,data:_reps[_ri],updated_at:new Date().toISOString()}).catch(function(){}); }
+    }
     const pw=window.open('','_blank');
     if(!pw){ alert('팝업이 차단되었습니다.\n브라우저 주소창 우측의 팝업 허용 버튼을 클릭한 후 다시 시도해주세요.'); return; }
     try {
@@ -2061,13 +2069,9 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     <tbody>${tests.length?tests.map((t,i)=>{const _jg=det['judge_'+i]||'';const _jc=_jg==='합격'||_jg==='PASS'?'#008a3d':_jg?'#e60012':'#aaa';return`<tr><td>${i+1}</td><td class="left bold">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td style="font-weight:900;color:${_jc}">${_jg||'-'}</td></tr>`;}).join(''):'<tr><td colspan="4" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
   </table>
   ${_ovJudge?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:3mm;padding:4px 10px;border:1px solid ${_ovColor};border-radius:4px;background:${_ovJudge==='합격'?'#f0fdf4':'#fff5f5'}"><span style="font-weight:700;font-size:10px;color:#374151">종합 판정 (Overall Rating)</span><span style="font-size:12px;font-weight:900;color:${_ovColor};letter-spacing:0.5px">${_ovJudge==='합격'?'합격 (PASS)':'불합격 (FAIL)'}</span></div>`:''}
-  <table class="it" style="margin-top:4mm;border-top:none;table-layout:fixed;width:100%">
-    <colgroup><col style="width:56px"><col><col style="width:${_vUrl?'84px':'0px'}"></colgroup>
-    <tr>
-      <td style="background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd;vertical-align:middle">비고</td>
-      <td class="left" style="height:80px;border:1px solid #ddd;border-right:none;vertical-align:top;padding:6px 10px">${e2(r.remarkNote||'')}</td>
-      ${_vUrl?`<td style="border:1px solid #ddd;border-left:1px dashed #e5e7eb;text-align:center;vertical-align:middle;padding:5px 4px;background:#fafafa"><canvas id="qrCanvas" width="68" height="68" style="display:block;margin:0 auto 2px"></canvas><div style="font-size:6px;color:#e60012;font-weight:800;letter-spacing:0.2px">위변조방지 QR</div><div style="font-size:5.5px;color:#9ca3af;margin-top:1px">스캔하여 진위 확인</div></td>`:'<td style="border:none;padding:0"></td>'}
-    </tr>
+  <table class="it" style="margin-top:4mm;border-top:none">
+    <tr><td style="width:56px;background:#f7f8fa;font-weight:700;text-align:center;border:1px solid #ddd;vertical-align:middle">비고</td>
+    <td class="left" style="height:80px;border:1px solid #ddd;vertical-align:top;padding:6px 10px">${e2(r.remarkNote||'')}</td></tr>
   </table>
   <div class="ft">
     <div class="sr">
@@ -2078,11 +2082,15 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     </div>
     <div class="cb">기술상담이나 의문사항은 담당자에게 문의하여 주시기 바랍니다.</div>
     <div class="ab"><span><b>${e2(r.companyName)}</b> &nbsp; ${e2(r.companyAddress)}</span><span>T ${e2(r.companyTel)} &nbsp; 기술책임자 010-9422-5518 &nbsp; ${e2(r.companyWeb)}</span></div>
-    <div class="nb"><ul style="margin:0;padding:0">
-      <li>1. 본 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 평가 결과로서, 전체 제품에 대한 품질 및 성능을 보증하지 않습니다.</li>
-      <li>2. 본 성적서는 당 연구원의 사전 서면 동의 없이 광고, 선전 등 홍보 목적 및 소송용으로 사용할 수 없으며, 용도 외 사용을 금합니다.</li>
-      <li>3. * 표시 항목은 KOLAS 인정 범위에 포함되지 않는 시험입니다.</li>
-    </ul></div>
+    <div class="nb" style="display:flex;align-items:flex-start;gap:8px">
+      <ul style="margin:0;padding:0;flex:1">
+        <li>1. 본 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 평가 결과로서, 전체 제품에 대한 품질 및 성능을 보증하지 않습니다.</li>
+        <li>2. 본 성적서는 당 연구원의 사전 서면 동의 없이 광고, 선전 등 홍보 목적 및 소송용으로 사용할 수 없으며, 용도 외 사용을 금합니다.</li>
+        <li>3. * 표시 항목은 KOLAS 인정 범위에 포함되지 않는 시험입니다.</li>
+        <li>4. 발행된 성적서는 우측 QR 코드를 스캔하시면 위변조 여부를 확인할 수 있습니다.</li>
+      </ul>
+      ${_vUrl?`<div style="text-align:center;flex-shrink:0"><canvas id="qrCanvas" width="72" height="72" style="display:block;margin:0 auto 2px;border:0.5px solid #e5e7eb"></canvas><div style="font-size:6px;color:#e60012;font-weight:800;letter-spacing:0.2px">위변조방지 QR</div></div>`:''}
+    </div>
     <div style="text-align:right;font-size:7px;color:#333;font-weight:700;margin-top:2px" class="p1-pno">PAGE(S) : 1 / ?</div>
   </div>
 </div>
@@ -2134,7 +2142,7 @@ window.addEventListener('load',function(){
   };
   var qc=document.getElementById('qrCanvas');
   if(qc&&typeof QRCode!=='undefined'){
-    try{ QRCode.toCanvas(qc,'${_vUrl}',{width:64,margin:1,color:{dark:'#000000',light:'#ffffff'}},function(){ _doprint(); }); }
+    try{ QRCode.toCanvas(qc,'${_vUrl}',{width:72,margin:1,color:{dark:'#000000',light:'#ffffff'}},function(){ _doprint(); }); }
     catch(e){ _doprint(); }
   } else { setTimeout(_doprint, qc?200:0); }
 });
