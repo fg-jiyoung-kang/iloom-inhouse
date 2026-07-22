@@ -1904,6 +1904,9 @@ function bindInputs(){
 function buildPrintHTML(r){
     const e2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const f2=s=>s?String(s).replace(/-/g,'.') :'';
+    // 위변조방지 QR 검증 URL 생성
+    const _vBase=(function(){ try{ var h=window.location.href; return h.substring(0,h.lastIndexOf('/')+1)+'verify.html'; }catch(e){ return 'verify.html'; } })();
+    const _vUrl=(r.verifyToken&&r.receiptNo)?(_vBase+'?id='+encodeURIComponent(r.receiptNo)+'&t='+encodeURIComponent(r.verifyToken)):'';
     const tests=r.tests||[];
     const det=r.detailData||{};
     // 현재 규격에서 최신 crit/spec 병합
@@ -2040,7 +2043,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     const _ovPass = _ovJudged.length>0 && _ovJudged.every(x=>x.judge==='합격'||x.judge==='PASS');
     const _ovJudge = _ovJudged.length===0?'':(_ovPass?'합격':'불합격');
     const _ovColor = _ovJudge==='합격'?'#008a3d':'#e60012';
-    const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
+    const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style>${_vUrl?'<scr'+'ipt src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\\/script>':''}</head><body>
 <div class="p1">
   ${iloomLineEl}
   <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'IN HOUSE TEST REPORT')}</div>${showKolas?`<img src="${ksrc}" style="height:48px;object-fit:contain">`:'<div></div>'}</div>
@@ -2068,6 +2071,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="ss"><div class="ss-lbl">기술책임자</div><div class="ss-nm"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${e2(r.techManager)}</span><img src="${JY_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
       <div class="ss" style="border-right:none"><div class="ss-lbl">품질책임자</div><div class="ss-nm"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${e2(r.qualityManager)}</span><img src="${SJ_SIGN_DATA}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
       <div class="stamp"><img src="${ILOOM_SIGN_DATA}" style="height:72px;width:72px;object-fit:contain;mix-blend-mode:multiply"></div>
+      ${_vUrl?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px;min-width:78px;border-left:1px solid #eee"><canvas id="qrCanvas" width="64" height="64" style="display:block"></canvas><div style="font-size:6.5px;color:#e60012;font-weight:800;margin-top:2px;letter-spacing:0.2px">위변조 방지 QR</div><div style="font-size:6px;color:#888;text-align:center">스캔하여 진위 확인</div></div>`:''}
     </div>
     <div class="cb">기술상담이나 의문사항은 담당자에게 문의하여 주시기 바랍니다.</div>
     <div class="ab"><span><b>${e2(r.companyName)}</b> &nbsp; ${e2(r.companyAddress)}</span><span>T ${e2(r.companyTel)} &nbsp; 기술책임자 010-9422-5518 &nbsp; ${e2(r.companyWeb)}</span></div>
@@ -2121,11 +2125,15 @@ function _paginateForPrint(){
   });
 }
 window.addEventListener('load',function(){
-  try{ _paginateForPrint(); }catch(e){ console.error('p1 paginate err',e); }
-  setTimeout(function(){
-    try{ _paginateForPrint(); }catch(e){ console.error('p2 paginate err',e); }
-    window.print();
-  },600);
+  var _doprint=function(){
+    try{ _paginateForPrint(); }catch(e){}
+    setTimeout(function(){ try{ _paginateForPrint(); }catch(e){} window.print(); },500);
+  };
+  var qc=document.getElementById('qrCanvas');
+  if(qc&&typeof QRCode!=='undefined'){
+    try{ QRCode.toCanvas(qc,'${_vUrl}',{width:64,margin:1,color:{dark:'#000000',light:'#ffffff'}},function(){ _doprint(); }); }
+    catch(e){ _doprint(); }
+  } else { setTimeout(_doprint, qc?200:0); }
 });
 <\/script>
 </body></html>`;
@@ -3117,17 +3125,25 @@ function setIssuedLockUI(issued, unlockRequest){
   }
 }
 
+async function generateVerifyToken(r){
+  const str=[r.receiptNo||'',r.issuedDate||'',r.sampleName||'',r.tester||'',r.issuedAt||''].join('||');
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,24);
+}
 async function finalizeReport(){
   if(!currentId){ alert('저장된 성적서가 없습니다. 먼저 저장해주세요.'); return; }
   if(!confirm('최종작성완료 처리하면 더 이상 수정할 수 없습니다.\n계속하시겠습니까?')) return;
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
+  const issuedAt = new Date().toISOString();
   reports[idx].issued = true;
   reports[idx].reportStatus = 'issued';
+  reports[idx].issuedAt = issuedAt;
   reports[idx].unlockRequest = null;
+  reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
   setReports(reports);
-  await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
+  await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:issuedAt}).catch(e=>{});
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
   setIssuedLockUI(true, null);
   showToast('✔ 최종작성완료 처리되었습니다.');
@@ -4602,6 +4618,17 @@ async function loadReport(r){
   }, 50);
   // 잠금 상태 UI 적용
   setTimeout(()=>setIssuedLockUI(!!r.issued, r.unlockRequest||null), 150);
+  // 발행 성적서에 verifyToken 없으면 자동 생성 및 Supabase 저장
+  if(r.issued && !r.verifyToken && r.receiptNo){
+    generateVerifyToken(r).then(function(tok){
+      const reps=getReports(); const idx=reps.findIndex(x=>x.id===r.id);
+      if(idx===-1) return;
+      reps[idx].verifyToken=tok;
+      if(!reps[idx].issuedAt) reps[idx].issuedAt=reps[idx].savedAt||new Date().toISOString();
+      setReports(reps);
+      supaFetch('reports','POST',{id:r.id,data:reps[idx],updated_at:new Date().toISOString()}).catch(function(){});
+    });
+  }
   clearUnsaved();
   document.querySelector('[data-tab="write"]').click();
 }
