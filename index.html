@@ -4196,7 +4196,13 @@ function updateReqBadge(){
   var badge = document.getElementById('reqViewBadge');
   if(!badge) return;
   var list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
-  var count = list.filter(function(r){ return r.status === 'submitted'; }).length;
+  var reports = getReports();
+  // submitted 상태이지만 이미 성적서가 발행된 건은 제외
+  var count = list.filter(function(r){
+    if(r.status !== 'submitted') return false;
+    var linked = reports.find(function(rep){ return (rep.receiptNo||'') === (r.no||''); });
+    return !linked || !linked.issued;
+  }).length;
   if(count > 0){ badge.textContent = count > 99 ? '99+' : count; badge.style.display = 'inline-block'; }
   else { badge.style.display = 'none'; }
 }
@@ -5472,6 +5478,7 @@ async function syncAllFromServer(force){
     _syncFailCount = 0;
     if(dot) dot.style.background='#22c55e';
     if(lbl) lbl.textContent='동기화 완료 '+new Date().toLocaleTimeString();
+    updateReqBadge();
     console.log('✅ 전체 동기화 완료', new Date().toLocaleTimeString());
   } else {
     _syncFailCount++;
