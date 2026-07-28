@@ -1,0 +1,17 @@
+{
+  "name": "iloom-inhouse",
+  "version": "2.0.0",
+  "private": true,
+  "description": "일룸 수면과학연구소 시험성적서 시스템",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

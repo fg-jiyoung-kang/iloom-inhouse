@@ -1,0 +1,4 @@
+.fursys-deploy-hub/
+node_modules/
+.env
+.env.local

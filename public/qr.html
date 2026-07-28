@@ -61,10 +61,11 @@
     <div id="qrBox"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="vendor-qrcode.min.js"></script>
   <script>
+    // 지금 이 페이지가 열려 있는 주소를 그대로 쓴다(배포 주소가 바뀌어도 QR 이 항상 맞음)
     new QRCode(document.getElementById('qrBox'), {
-      text: 'https://iloom-inhouse.vercel.app/',
+      text: location.origin + '/',
       width: 200,
       height: 200,
       colorDark: '#1f2937',

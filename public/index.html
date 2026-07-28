@@ -813,7 +813,7 @@ button,input,select{font:inherit}
       <section class="tab-panel no-print" id="tab-admin">
         <div class="card">
           <h2>관리자 등록</h2>
-          <p style="font-size:13px;color:#6b7280;margin-bottom:20px">새 계정을 등록하고 관리합니다. 관리자(jiyoung_kang) 계정은 삭제할 수 없습니다.</p>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:20px">새 계정을 등록하고 관리합니다. 계정 추가·삭제는 관리자만 할 수 있고, 본인 계정은 삭제할 수 없습니다.</p>
 
           <!-- 등록 폼 -->
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:20px 22px;margin-bottom:24px">
@@ -867,7 +867,7 @@ button,input,select{font:inherit}
       <section class="tab-panel no-print" id="tab-accounts">
         <div class="card">
           <h2>계정 관리</h2>
-          <p style="font-size:13px;color:#6b7280;margin-bottom:16px">계정을 추가하거나 삭제할 수 있습니다. 관리자 계정(jiyoung_kang)은 삭제할 수 없습니다.</p>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:16px">계정을 추가하거나 삭제할 수 있습니다. 관리자만 가능하며, 본인 계정은 삭제할 수 없습니다.</p>
 
           <!-- 계정 추가 폼 -->
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px 18px;margin-bottom:20px">
@@ -1549,22 +1549,20 @@ async function changeMyPassword(){
   if(newPw.length < 4){ err.textContent='새 비밀번호는 4자 이상이어야 합니다.'; return; }
   if(newPw !== newPw2){ err.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
 
-  const accs = getAccounts();
-  const idx = accs.findIndex(function(a){ return a.id === u.id; });
-  if(idx === -1){ err.textContent='계정을 찾을 수 없습니다.'; return; }
+  // 현재 비밀번호 확인과 저장은 모두 서버에서 한다
+  const res = await fetch('/api/change-password', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ curPw: curPw, newPw: newPw })
+  });
+  if(!res.ok){
+    const msg = await res.json().catch(function(){ return {}; });
+    err.textContent = msg.message || '비밀번호를 변경하지 못했습니다.';
+    return;
+  }
 
-  // 현재 비밀번호 확인 (해시 또는 평문 모두 처리)
-  const curHash = await hashPassword(curPw);
-  const stored = accs[idx].pw;
-  const isMatch = isHashed(stored) ? stored === curHash : stored === curPw;
-  if(!isMatch){ err.textContent='현재 비밀번호가 올바르지 않습니다.'; return; }
-
-  // 새 비밀번호는 해시로 저장
-  const newHash = await hashPassword(newPw);
-  accs[idx].pw = newHash;
-  setAccounts(accs);
-
-  // 세션 정보도 업데이트 (pw는 세션에 저장 안 함)
+  // 세션 정보도 업데이트 (비밀번호는 저장하지 않음)
   const updated = Object.assign({}, u);
   delete updated.pw;
   sessionStorage.setItem('iloom_user', JSON.stringify(updated));
@@ -1576,11 +1574,7 @@ async function changeMyPassword(){
 // ── Supabase 공유 데이터 저장/로드 ──
 async function saveSharedToSupabase(){
   try {
-    // 계정 저장
-    const accs = getAccounts();
-    for(const a of accs){
-      await supaFetch('accounts', 'POST', {id:a.id, data:a});
-    }
+    // 계정은 서버가 정본이라 여기서 덮어쓰지 않는다(비밀번호 보존)
     // 규격 저장
     const stds = getStandards();
     await supaFetch('settings', 'POST', {id:'standards', data:stds, updated_at:new Date().toISOString()});
@@ -1593,19 +1587,13 @@ async function saveSharedToSupabase(){
 
 async function loadSharedFromSupabase(){
   try {
-    // 계정 불러오기 - Supabase가 정답! 완전히 덮어쓰기
+    // 계정 불러오기 - 서버가 정본(비밀번호는 내려오지 않는다)
     const accRows = await supaFetch('accounts', 'GET');
     if(accRows && accRows.length > 0){
       const remoteAccs = accRows.map(function(r){ return r.data; });
-      // 관리자 계정은 항상 포함
-      const defaultAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
-      if(!remoteAccs.find(function(a){ return a.id===ADMIN_ID; })){
-        remoteAccs.unshift(defaultAdmin);
-      }
-      // Supabase 데이터로 완전히 덮어쓰기 (병합 X)
       localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(remoteAccs));
       renderAccounts(); renderSideMemberList();
-      console.log('✅ 계정 동기화 (덮어쓰기):', remoteAccs.length+'개');
+      console.log('✅ 계정 동기화:', remoteAccs.length+'개');
     }
     // 규격 불러오기
     const settingRows = await supaFetch('settings', 'GET');
@@ -3928,14 +3916,11 @@ function initRequestTab(){
       // 로컬 삭제
       const list = JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]').filter(r=>!nos.includes(r.no));
       localStorage.setItem('iloom_requests_v1', JSON.stringify(list));
-      // Supabase 삭제
+      // 서버에서도 삭제
       for(const no of nos){
         try {
-          await fetch(SUPA_URL+'/rest/v1/requests?id=eq.'+encodeURIComponent(no), {
-            method:'DELETE',
-            headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
-          });
-        } catch(e){ console.warn('의뢰서 Supabase 삭제 실패:', no, e); }
+          await supaFetch('requests', 'DELETE', null, no);
+        } catch(e){ console.warn('의뢰서 서버 삭제 실패:', no, e); }
       }
       renderReqList();
     };
@@ -4829,48 +4814,30 @@ function requireOwner(){
 }
 
 
+// 화면 표시용 계정 목록(이름·권한). 비밀번호는 서버에만 있고 여기에 없다.
 function getAccounts(){
-  // 기본 관리자 — 비번은 해싱된 상태로만 존재 (초기엔 평문, 마이그레이션 후 해시)
-  const defaultAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
   try {
     const raw = localStorage.getItem(ACCOUNTS_KEY);
     if(raw){
       const list = JSON.parse(raw);
       if(!Array.isArray(list)) throw new Error('not array');
-      const adminIdx = list.findIndex(a=>a.id==='jiyoung_kang');
-      if(adminIdx === -1) list.unshift(defaultAdmin);
-      // ※ 비번 강제 고정 제거 — 해싱된 비번 그대로 사용
       return list;
     }
   } catch(e){
     console.warn('계정 데이터 오류 - 초기화:', e);
     localStorage.removeItem(ACCOUNTS_KEY);
   }
-  return [defaultAdmin];
+  return [];
 }
 
-// 평문 비밀번호가 남아있는 계정을 자동으로 해싱해서 저장 (마이그레이션)
-async function migratePasswordsIfNeeded(){
-  const list = getAccounts();
-  let changed = false;
-  for(const acc of list){
-    if(acc.pw && !isHashed(acc.pw)){
-      acc.pw = await hashPassword(acc.pw);
-      changed = true;
-    }
-  }
-  if(changed){
-    setAccounts(list);
-    console.log('✅ 비밀번호 해싱 마이그레이션 완료');
-  }
-}
+// 비밀번호 보관 방식은 서버가 관리한다(예전 형식은 로그인 성공 시 서버가 자동으로 올려준다)
+async function migratePasswordsIfNeeded(){ /* 서버에서 처리 */ }
+
+// 화면 표시용 캐시만 갱신한다(서버 저장은 setAccountsAsync 가 담당)
 function setAccounts(list){
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list));
-  // Supabase에 즉시 저장
-  list.forEach(function(a){
-    supaFetch('accounts', 'POST', {id:a.id, data:a})
-      .catch(function(e){ console.warn('계정 저장 실패:', e); });
-  });
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify((list||[]).map(function(a){
+    return {id:a.id, name:a.name, role:a.role, hasPassword:a.hasPassword};
+  })));
 }
 
 
@@ -4883,18 +4850,14 @@ function updateAdminDelBtn(){
 }
 
 async function deleteAccount(id){
-  if(id===ADMIN_ID){ alert('관리자 계정은 삭제할 수 없습니다.'); return; }
   if(!confirm('"'+id+'" 계정을 삭제할까요?')) return;
-  const list = getAccounts().filter(a=>a.id!==id);
-  setAccounts(list);
-  // Supabase에서도 삭제
   try {
-    await fetch(SUPA_URL+'/rest/v1/accounts?id=eq.'+encodeURIComponent(id), {
-      method:'DELETE',
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
-    });
-    console.log('계정 Supabase 삭제 완료:', id);
-  } catch(e){ console.warn('계정 Supabase 삭제 실패:', e); }
+    const ok = await supaFetch('accounts', 'DELETE', null, id);
+    if(!ok) throw new Error('삭제 실패');
+    setAccounts(getAccounts().filter(a=>a.id!==id));
+  } catch(e){
+    alert('계정을 삭제하지 못했습니다. 권한이 있는지 확인해주세요.');
+  }
   renderAccounts(); renderSideMemberList();
 }
 
@@ -5009,12 +4972,21 @@ function renderAccounts(){
             }
             var idx = list2.findIndex(function(x){ return x.id===origId; });
             if(idx > -1){
+              // 아이디를 바꾸면 비밀번호를 옮길 수 없으므로 새 비밀번호가 반드시 필요하다
+              if(newId !== origId && !newPwRaw){
+                alert('아이디를 바꿀 때는 새 비밀번호도 함께 정해야 합니다.');
+                return;
+              }
               list2[idx].id   = newId;
               list2[idx].name = newName;
               list2[idx].role = newRole;
-              if(newPwRaw) list2[idx].pw = await hashPassword(newPwRaw);
-              setAccounts(list2);
-              await setAccountsAsync(list2);
+              try {
+                await setAccountsAsync(list2);
+                if(newPwRaw) await setAccountPasswordAsync(newId, newPwRaw);
+                setAccounts(list2);
+              } catch(e){
+                alert('계정을 저장하지 못했습니다: '+e.message);
+              }
             }
             renderAccounts(); renderSideMemberList();
           };
@@ -5036,13 +5008,11 @@ function renderAccounts(){
         var newPw = prompt('"'+a.id+'" 계정의 새 비밀번호를 입력하세요 (4자 이상):', '');
         if(!newPw) return;
         if(newPw.length < 4){ alert('비밀번호는 4자 이상이어야 합니다.'); return; }
-        var list2 = getAccounts();
-        var idx = list2.findIndex(function(x){ return x.id===a.id; });
-        if(idx > -1){
-          list2[idx].pw = await hashPassword(newPw);
-          setAccounts(list2);
-          await setAccountsAsync(list2);
+        try {
+          await setAccountPasswordAsync(a.id, newPw);
           alert('"'+a.id+'" 비밀번호가 초기화되었습니다.');
+        } catch(e){
+          alert('비밀번호를 바꾸지 못했습니다: '+e.message);
         }
       };})(acc);
       tdAct.appendChild(resetBtn);
@@ -5094,14 +5064,20 @@ function initAdminRegTab(){
       var list = getAccounts();
       if(list.find(function(a){ return a.id===id; })){ err.textContent='이미 존재하는 아이디입니다.'; return; }
       var role = (document.getElementById('adminRegRole').value||'시험원');
-      var hashedPw = await hashPassword(pw);
-      var newAcc = {id:id, pw:hashedPw, name:name||id, role:role};
-      list.push(newAcc);
+      // 비밀번호는 서버로만 보내고, 서버가 해싱해 보관한다
+      var regRes = await fetch('/api/accounts', {
+        method:'POST',
+        credentials:'same-origin',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id:id, pw:pw, data:{id:id, name:name||id, role:role} })
+      });
+      if(!regRes.ok){
+        var regMsg = await regRes.json().catch(function(){ return {}; });
+        err.textContent = regMsg.message || '계정을 등록하지 못했습니다.';
+        return;
+      }
+      list.push({id:id, name:name||id, role:role, hasPassword:true});
       setAccounts(list);
-      // Supabase에 직접 저장
-      supaFetch('accounts', 'POST', {id:newAcc.id, data:newAcc})
-        .then(function(ok){ console.log('계정 Supabase 저장 완료:', newAcc.id, ok); })
-        .catch(function(e){ console.warn('계정 Supabase 저장 실패:', e); });
       err.textContent='';
       document.getElementById('adminRegId').value='';
       document.getElementById('adminRegPw').value='';
@@ -5127,8 +5103,16 @@ function initAdminRegTab(){
       var ids = [...document.querySelectorAll('.admin-acc-chk:checked')].map(function(c){ return c.dataset.id; });
       if(!ids.length) return;
       if(!confirm(ids.length+'개 계정을 삭제할까요?')) return;
-      setAccounts(getAccounts().filter(function(a){ return !ids.includes(a.id) || a.id===ADMIN_ID; }));
-      renderAccounts(); renderAccounts(); renderSideMemberList();
+      (async function(){
+        var remain = getAccounts().filter(function(a){ return !ids.includes(a.id); });
+        try {
+          await setAccountsAsync(remain);
+          setAccounts(remain);
+        } catch(e){
+          alert('계정을 삭제하지 못했습니다: '+e.message);
+        }
+        renderAccounts(); renderSideMemberList();
+      })();
     };
   }
 }
@@ -5190,40 +5174,47 @@ window.addEventListener('DOMContentLoaded', function(){
     if(!id){ if(errEl) errEl.textContent='아이디를 입력해주세요.'; if(loginIdEl) loginIdEl.focus(); return; }
     if(!pw){ if(errEl) errEl.textContent='비밀번호를 입력해주세요.'; if(loginPwEl) loginPwEl.focus(); return; }
 
-    // 로그인 전에 Supabase에서 최신 계정 목록 동기화 (새 컴퓨터에서도 정상 로그인)
+    // 아이디·비밀번호 확인은 서버에서만 한다 (브라우저에서 우회할 수 없음)
     if(loginBtnEl){ loginBtnEl.disabled = true; loginBtnEl.textContent = '확인 중...'; }
+    var result = null, status = 0;
     try {
-      var supaAccRows = await supaFetch('accounts', 'GET');
-      if(supaAccRows && supaAccRows.length > 0){
-        var remoteAccs = supaAccRows.map(function(r){ return r.data; });
-        var defaultAdmin = {id:'jiyoung_kang', pw:'1111', name:'강지영', role:'관리자'};
-        if(!remoteAccs.find(function(a){ return a.id==='jiyoung_kang'; })){
-          remoteAccs.unshift(defaultAdmin);
-        }
-        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(remoteAccs));
-      }
-    } catch(e){ console.warn('로그인 전 계정 동기화 실패, 로컬 사용:', e); }
-    finally {
+      var res = await fetch('/api/login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, pw: pw })
+      });
+      status = res.status;
+      result = await res.json().catch(function(){ return {}; });
+    } catch(e){
+      if(errEl) errEl.textContent='서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+      return;
+    } finally {
       if(loginBtnEl){ loginBtnEl.disabled = false; loginBtnEl.textContent = '로그인'; }
     }
 
-    var accs = getAccounts();
-    var inputHash = await hashPassword(pw);
-    var matched = accs.find(function(a){
-      // 저장값이 해시면 해시 비교, 평문이면 평문 비교 (마이그레이션 전 대비)
-      if(isHashed(a.pw)){
-        return a.id === id && a.pw === inputHash;
-      } else {
-        return a.id === id && a.pw === pw;
-      }
-    });
+    // 계정이 하나도 없는 최초 상태 — 첫 관리자 계정을 만든다
+    if(status === 409 && result && result.setup){
+      if(!confirm('등록된 계정이 없습니다.\n지금 입력한 아이디·비밀번호로 첫 관리자 계정을 만들까요?')) return;
+      var name = prompt('관리자 이름을 입력하세요:', id) || id;
+      var sres = await fetch('/api/setup-admin', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, pw: pw, name: name })
+      });
+      var sdata = await sres.json().catch(function(){ return {}; });
+      if(!sres.ok){ if(errEl) errEl.textContent = sdata.message || '관리자 계정을 만들지 못했습니다.'; return; }
+      result = sdata; status = 200;
+    }
 
-    if(!matched){
-      if(errEl) errEl.textContent='아이디 또는 비밀번호가 올바르지 않습니다.';
+    if(status !== 200 || !result || !result.user){
+      if(errEl) errEl.textContent = (result && result.message) || '아이디 또는 비밀번호가 올바르지 않습니다.';
       if(loginPwEl){ loginPwEl.value=''; loginPwEl.focus(); }
       return;
     }
 
+    var matched = result.user;   // 비밀번호는 포함되지 않는다
     sessionStorage.setItem('iloom_auth','ok');
     sessionStorage.setItem('iloom_user', JSON.stringify(matched));
 
@@ -5239,7 +5230,9 @@ window.addEventListener('DOMContentLoaded', function(){
   function doLogout(){
     sessionStorage.removeItem('iloom_auth');
     sessionStorage.removeItem('iloom_user');
-    location.reload();
+    fetch('/api/logout', { method:'POST', credentials:'same-origin' })
+      .catch(function(){})
+      .then(function(){ location.reload(); });
   }
 
   if(logoutBtnEl) logoutBtnEl.onclick = doLogout;
@@ -5261,59 +5254,44 @@ window.addEventListener('DOMContentLoaded', function(){
   });
   resetInactiveTimer();
 
-  // 세션 유지: script 전체 로딩 후 실행되므로 Supabase const 초기화 전 오류 방지
-  if(sessionStorage.getItem('iloom_auth') === 'ok'){
-    try {
-      var savedUser = JSON.parse(sessionStorage.getItem('iloom_user') || '{}');
-      startApp(savedUser);
-    } catch(e){
-      sessionStorage.removeItem('iloom_auth');
-      sessionStorage.removeItem('iloom_user');
-      showLogin();
-    }
-  } else {
-    showLogin();
-  }
+  // 세션 유지: 서버에 실제 로그인 상태를 물어본다 (브라우저 저장값만 믿지 않는다)
+  fetch('/api/session', { credentials: 'same-origin' })
+    .then(function(res){ return res.ok ? res.json() : null; })
+    .catch(function(){ return null; })
+    .then(function(data){
+      if(data && data.user){
+        sessionStorage.setItem('iloom_auth','ok');
+        sessionStorage.setItem('iloom_user', JSON.stringify(data.user));
+        startApp(data.user);
+      } else {
+        sessionStorage.removeItem('iloom_auth');
+        sessionStorage.removeItem('iloom_user');
+        showLogin();
+      }
+    });
 });
   
-// ══════════════════════════════════════════
-// 비밀번호 해싱 (SHA-256)
-// ══════════════════════════════════════════
-async function hashPassword(pw) {
-  const msgBuffer = new TextEncoder().encode(pw);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-function isHashed(pw) {
-  // SHA-256 해시는 항상 64자리 16진수
-  return typeof pw === 'string' && /^[0-9a-f]{64}$/.test(pw);
-}
+// 비밀번호는 브라우저에서 다루지 않는다 — 확인·보관 모두 서버가 처리한다.
 
 // ══════════════════════════════════════════
-// Supabase 연동
+// 서버 연동 (데이터베이스 접속정보는 서버에만 있고 브라우저로 내려오지 않는다)
 // ══════════════════════════════════════════
-const SUPA_URL = 'https://cfxjqjgvumdemeuzwhxg.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmeGpxamd2dW1kZW1ldXp3aHhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExOTY5MDIsImV4cCI6MjA5Njc3MjkwMn0.2GyUEaAEbphYmRvXurObtyV4AAQnsEut9dD90i1ws4Y';
-
 async function supaFetch(table, method, body, id) {
-  const url = SUPA_URL + '/rest/v1/' + table + (id ? '?id=eq.' + encodeURIComponent(id) : '');
-  const headers = {
-    'apikey': SUPA_KEY,
-    'Authorization': 'Bearer ' + SUPA_KEY,
-    'Content-Type': 'application/json'
-  };
-  if(method === 'POST') headers['Prefer'] = 'resolution=merge-duplicates';
+  const url = '/api/' + table + (id ? '?id=' + encodeURIComponent(id) : '');
   const res = await fetch(url, {
     method,
-    headers,
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined
   });
   if(!res.ok){
     const errText = await res.text().catch(()=>'');
-    console.error('Supabase 오류:', res.status, errText);
-    if(method === 'GET') throw new Error('Supabase GET 실패: '+res.status);
+    console.error('서버 오류:', res.status, errText);
+    if(res.status === 401){
+      sessionStorage.removeItem('iloom_auth');
+      sessionStorage.removeItem('iloom_user');
+    }
+    if(method === 'GET') throw new Error('서버 조회 실패: '+res.status);
     return false;
   }
   if(method === 'GET') return res.json();
@@ -5330,10 +5308,7 @@ async function setReportAsync(r) {
 }
 async function deleteReportsAsync(ids) {
   for(const id of ids) {
-    await fetch(SUPA_URL + '/rest/v1/reports?id=eq.' + encodeURIComponent(id), {
-      method: 'DELETE',
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
-    });
+    await supaFetch('reports', 'DELETE', null, id);
   }
 }
 
@@ -5352,14 +5327,34 @@ async function getAccountsAsync() {
   if(!rows || !rows.length) return null;
   return (rows||[]).map(r => r.data);
 }
+// 계정 목록(이름·권한) 전체를 서버에 맞춘다. 비밀번호는 서버가 그대로 보존한다.
 async function setAccountsAsync(list) {
-  await fetch(SUPA_URL + '/rest/v1/accounts', {
-    method: 'DELETE',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' },
+  const res = await fetch('/api/accounts', {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ list: (list||[]).map(function(a){ return {id:a.id, name:a.name, role:a.role}; }) })
   });
-  for(const a of list) {
-    await supaFetch('accounts', 'POST', {id: a.id, data: a});
+  if(!res.ok){
+    const msg = await res.json().catch(function(){ return {}; });
+    throw new Error(msg.message || '계정 저장 실패');
   }
+  return true;
+}
+
+// 비밀번호 지정(관리자) — 값은 서버에서만 해싱해 보관한다
+async function setAccountPasswordAsync(id, newPw) {
+  const res = await fetch('/api/accounts/set-password', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id, newPw: newPw })
+  });
+  if(!res.ok){
+    const msg = await res.json().catch(function(){ return {}; });
+    throw new Error(msg.message || '비밀번호 변경 실패');
+  }
+  return true;
 }
 
 // ── localStorage 캐시 래퍼 ──
@@ -5402,12 +5397,12 @@ async function runSupaDiag(){
 
   // 1. 연결 확인
   try {
-    const res = await fetch(SUPA_URL + '/rest/v1/', {
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
-    });
-    add('[성공] Supabase 서버 연결: HTTP ' + res.status);
+    const res = await fetch('/api/health', { credentials: 'same-origin' });
+    const info = await res.json().catch(function(){ return {}; });
+    add('[성공] 서버 연결: HTTP ' + res.status + (info.db ? ' (데이터베이스 연결됨)' : ' (데이터베이스 미설정)'));
+    if(!info.db){ add('[오류] 데이터베이스 접속 정보가 설정되지 않았습니다. 관리자에게 문의해주세요.'); return; }
   } catch(e) {
-    add('[실패] Supabase 서버 연결 실패: ' + e.message);
+    add('[실패] 서버 연결 실패: ' + e.message);
     return;
   }
 
@@ -5438,12 +5433,9 @@ async function runSupaDiag(){
     if(ok) {
       add('[성공] 저장(POST) 테스트: 성공');
       // 테스트 데이터 삭제
-      await fetch(SUPA_URL + '/rest/v1/reports?id=eq.' + testId, {
-        method: 'DELETE',
-        headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
-      });
+      await supaFetch('reports', 'DELETE', null, testId);
     } else {
-      add('[실패] 저장(POST) 테스트: 실패 — RLS 정책이나 테이블 설정 확인 필요');
+      add('[실패] 저장(POST) 테스트: 실패 — 로그인 상태나 서버 설정 확인 필요');
     }
   } catch(e) { add('[오류] 저장 테스트 오류: ' + e.message); }
 
