@@ -1,5 +1,6 @@
 -- 표가 없으면 만든다(이미 있으면 아무것도 하지 않음).
--- 기존 Supabase 프로젝트의 표와 같은 구조라, 접속 문자열만 넣으면 기존 데이터를 그대로 이어 쓴다.
+-- 회사 Supabase 전용 스키마(app_260723_tbx7) 사용
+SET search_path TO app_260723_tbx7, public;
 
 CREATE TABLE IF NOT EXISTS reports (
   id         text PRIMARY KEY,
