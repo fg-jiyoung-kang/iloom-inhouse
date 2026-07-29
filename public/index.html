@@ -915,6 +915,7 @@ const storeKey = 'iloom_inhouse_reports_v1';
 const standardsKey = 'iloom_test_standards_v1';
 let currentId = null;
 let _reportIsIssued = false;
+let _reportIsSubReport = false;
 let sampleImageData = '';
 let testerSignData = '';
 let techSignData = '';
@@ -2141,7 +2142,7 @@ window.addEventListener('load',function(){
     return HTML;
 }
 function newReport(){
-  currentId = null; _reportIsIssued = false; sampleImageData=''; testerSignData='';
+  currentId = null; _reportIsIssued = false; _reportIsSubReport = false; sampleImageData=''; testerSignData='';
   const _logoChk=document.getElementById('showLogoChk'); if(_logoChk) _logoChk.checked=false;
   techSignData=JY_SIGN_DATA; qualitySignData=SJ_SIGN_DATA;
   (function(){[{k:'tech',d:JY_SIGN_DATA},{k:'quality',d:SJ_SIGN_DATA}].forEach(function(s){const prev=document.getElementById('signPreview_'+s.k);if(prev)prev.innerHTML='<img src="'+s.d+'" style="max-height:32px;max-width:80px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">';const box=document.getElementById('signUpload'+s.k.charAt(0).toUpperCase()+s.k.slice(1));if(box){box.style.borderColor='#6b7280';box.style.background='#fff';}});})();
@@ -3108,11 +3109,7 @@ function setIssuedLockUI(issued, unlockRequest){
     if(finalizeBtn) finalizeBtn.style.display = 'none';
     if(requestUnlockBtn) requestUnlockBtn.style.display = '';
     if(printBtn2){ printBtn2.style.display = 'none'; }
-    // 분리발행 버튼: 발행된 성적서에서도 보임 (단, 서브레포트 아닐 때만)
-    if(splitBtn){
-      var _curR = currentId ? getReports().find(function(x){return x.id===currentId;}) : null;
-      splitBtn.style.display = (_curR && !_curR.isSubReport) ? '' : 'none';
-    }
+    if(splitBtn) splitBtn.style.display = (currentId && !_reportIsSubReport) ? '' : 'none';
     saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; saveBtn.style.cursor = 'not-allowed';
     deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; deleteBtn.style.cursor = 'not-allowed';
     if(pendingLabel) pendingLabel.style.display = unlockRequest && unlockRequest.status==='pending' ? '' : 'none';
@@ -3126,11 +3123,7 @@ function setIssuedLockUI(issued, unlockRequest){
     if(finalizeBtn) finalizeBtn.style.display = '';
     if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
     if(printBtn2){ printBtn2.style.display = ''; }
-    // 분리발행 버튼: 작성 중에도 표시 (서브레포트 아닐 때만)
-    if(splitBtn){
-      var _curR2 = currentId ? getReports().find(function(x){return x.id===currentId;}) : null;
-      splitBtn.style.display = (currentId && _curR2 && !_curR2.isSubReport) ? '' : 'none';
-    }
+    if(splitBtn) splitBtn.style.display = (currentId && !_reportIsSubReport) ? '' : 'none';
     saveBtn.disabled = false; saveBtn.style.opacity = ''; saveBtn.style.cursor = '';
     deleteBtn.disabled = false; deleteBtn.style.opacity = ''; deleteBtn.style.cursor = '';
     document.querySelectorAll('#tab-write input, #tab-write textarea, #tab-write select').forEach(el=>{
@@ -4626,6 +4619,7 @@ async function loadReport(r){
     if(!r.image && fallbackImage) r = Object.assign({}, r, {image: fallbackImage});
   }
   currentId=r.id;
+  _reportIsSubReport = !!r.isSubReport;
   fields.forEach(id=>setVal(id,r[id]||''));
   setVal('companyName','일룸수면과학연구소');
   const _showLogoChk=document.getElementById('showLogoChk');
