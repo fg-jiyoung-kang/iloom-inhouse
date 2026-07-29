@@ -389,6 +389,7 @@ button,input,select{font:inherit}
           <button class="btn primary" id="printBtn" style="background:var(--red);border-color:var(--red);font-size:14px;padding:10px 20px">PDF 출력</button>
           <button id="finalizeBtn" style="display:none;background:#16a34a;border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer" onclick="finalizeReport()">✔ 최종작성완료</button>
           <button id="requestUnlockBtn" style="display:none;background:#f59e0b;border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer" onclick="requestUnlock()">✏ 수정 작성 요청하기</button>
+          <button id="splitIssueBtn" style="display:none;background:#7c3aed;border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer" onclick="openSplitModal(null)">✂ 분리발행</button>
         </div>
       </section>
 
@@ -3101,11 +3102,17 @@ function setIssuedLockUI(issued, unlockRequest){
   const pendingLabel = document.getElementById('unlockPendingLabel');
   if(!banner) return;
   const printBtn2 = document.getElementById('printBtn');
+  const splitBtn = document.getElementById('splitIssueBtn');
   if(issued){
     banner.style.display = 'flex';
     if(finalizeBtn) finalizeBtn.style.display = 'none';
     if(requestUnlockBtn) requestUnlockBtn.style.display = '';
     if(printBtn2){ printBtn2.style.display = 'none'; }
+    // 분리발행 버튼: 발행된 성적서에서도 보임 (단, 서브레포트 아닐 때만)
+    if(splitBtn){
+      var _curR = currentId ? getReports().find(function(x){return x.id===currentId;}) : null;
+      splitBtn.style.display = (_curR && !_curR.isSubReport) ? '' : 'none';
+    }
     saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; saveBtn.style.cursor = 'not-allowed';
     deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; deleteBtn.style.cursor = 'not-allowed';
     if(pendingLabel) pendingLabel.style.display = unlockRequest && unlockRequest.status==='pending' ? '' : 'none';
@@ -3119,6 +3126,11 @@ function setIssuedLockUI(issued, unlockRequest){
     if(finalizeBtn) finalizeBtn.style.display = '';
     if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
     if(printBtn2){ printBtn2.style.display = ''; }
+    // 분리발행 버튼: 작성 중에도 표시 (서브레포트 아닐 때만)
+    if(splitBtn){
+      var _curR2 = currentId ? getReports().find(function(x){return x.id===currentId;}) : null;
+      splitBtn.style.display = (currentId && _curR2 && !_curR2.isSubReport) ? '' : 'none';
+    }
     saveBtn.disabled = false; saveBtn.style.opacity = ''; saveBtn.style.cursor = '';
     deleteBtn.disabled = false; deleteBtn.style.opacity = ''; deleteBtn.style.cursor = '';
     document.querySelectorAll('#tab-write input, #tab-write textarea, #tab-write select').forEach(el=>{
@@ -3252,11 +3264,27 @@ function renderPdfStore(){
       +'<div style="font-size:12px;color:#374151;margin-top:3px">'+esc(r.sampleName||'')+(r.sampleName&&r.issuedDate?' · ':'')+esc(r.issuedDate?r.issuedDate.replace(/-/g,'.'):'')+'</div>'
       +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">🕐 발행완료: '+fmtD(r.savedAt||r.updated_at||'')+'</div>'
       +'</div>';
+    const btnWrap=document.createElement('div');
+    btnWrap.style.cssText='display:flex;gap:6px;flex-shrink:0;flex-direction:column;align-items:flex-end';
     const btn=document.createElement('button');
     btn.textContent='🖨 PDF 출력';
-    btn.style.cssText='background:#e60012;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0;white-space:nowrap';
+    btn.style.cssText='background:#e60012;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap';
     btn.onclick=()=>printStoredReport(r.id);
-    d.appendChild(btn);
+    btnWrap.appendChild(btn);
+    // 분리발행 버튼 (서브레포트가 아닌 경우만)
+    if(!r.isSubReport){
+      const splitBtn2=document.createElement('button');
+      splitBtn2.textContent='✂ 분리발행';
+      splitBtn2.style.cssText='background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap';
+      splitBtn2.onclick=()=>openSplitModal(r.id);
+      btnWrap.appendChild(splitBtn2);
+    } else {
+      const subTag=document.createElement('span');
+      subTag.textContent='분리발행본';
+      subTag.style.cssText='font-size:10px;background:#f5f3ff;color:#7c3aed;border:1px solid #c4b5fd;border-radius:5px;padding:2px 8px;font-weight:700;text-align:center';
+      btnWrap.appendChild(subTag);
+    }
+    d.appendChild(btnWrap);
     box.appendChild(d);
   });
 }
@@ -5589,6 +5617,153 @@ function setReports(list) {
   }
 }
 
+
+// ── 분리발행 ──
+var _splitSourceReport = null;
+
+function openSplitModal(reportId){
+  var r;
+  if(reportId){
+    r = getReports().find(function(x){ return x.id===reportId; });
+  } else {
+    // 현재 편집 중인 성적서
+    if(!currentId){ alert('먼저 저장된 성적서를 불러오세요.'); return; }
+    r = getReports().find(function(x){ return x.id===currentId; });
+    if(!r){ r = collectReport(); }
+  }
+  if(!r){ alert('성적서를 찾을 수 없습니다.'); return; }
+  if(!r.tests || !r.tests.length){ alert('시험 항목이 없습니다.'); return; }
+  if(!r.receiptNo){ alert('의뢰번호가 없어 분리발행할 수 없습니다.'); return; }
+  if(r.isSubReport){ alert('분리발행본은 다시 분리발행할 수 없습니다.'); return; }
+  _splitSourceReport = r;
+
+  // 다음 서브번호 계산
+  var allR = getReports();
+  var subs = allR.filter(function(x){ return x.parentReceiptNo === r.receiptNo; });
+  var nextIdx = subs.length + 1;
+  var newNo = r.receiptNo + String(nextIdx).padStart(2,'0');
+  // 중복 회피
+  while(allR.find(function(x){ return x.receiptNo === newNo; })){ nextIdx++; newNo = r.receiptNo + String(nextIdx).padStart(2,'0'); }
+
+  var det = r.detailData || {};
+  var tests = r.tests || [];
+
+  var html = '<div style="font-size:13px;color:#374151;margin-bottom:12px">발행할 항목을 선택하세요. 선택된 항목만 별도 성적서로 발행됩니다.</div>';
+  html += '<div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;padding:10px 14px;margin-bottom:14px">'
+       +  '<span style="font-size:12px;color:#6b7280">분리발행 번호 : </span>'
+       +  '<b id="splitNewNo" style="color:#7c3aed;font-size:15px">'+esc(newNo)+'</b>'
+       + '</div>';
+  html += '<div style="display:flex;gap:6px;margin-bottom:12px">'
+       +  '<button onclick="splitFilter(\'all\')" style="background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">전체 선택</button>'
+       +  '<button onclick="splitFilter(\'pass\')" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:#16a34a">PASS만</button>'
+       +  '<button onclick="splitFilter(\'fail\')" style="background:#fff5f5;border:1px solid #fca5a5;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:#e60012">FAIL만</button>'
+       +  '<button onclick="splitFilter(\'none\')" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;color:#6b7280">전체 해제</button>'
+       + '</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+  tests.forEach(function(t,i){
+    var judge = det['judge_'+i]||'';
+    var isPass = judge==='합격'||judge==='PASS';
+    var isFail = judge==='불합격'||judge==='FAIL';
+    var jColor = isPass?'#16a34a':isFail?'#e60012':'#9ca3af';
+    var jBg    = isPass?'#f0fdf4':isFail?'#fff5f5':'#f9fafb';
+    html += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;cursor:pointer;background:#fff">'
+          + '<input type="checkbox" class="split-chk" data-idx="'+i+'" data-judge="'+esc(judge)+'" style="width:16px;height:16px;cursor:pointer" checked>'
+          + '<span style="flex:1;font-size:13px;font-weight:700">'+esc(t.name||'항목 '+(i+1))+'</span>'
+          + (t.spec?'<span style="font-size:11px;color:#9ca3af">'+esc(t.spec)+'</span>':'')
+          + '<span style="font-size:12px;font-weight:900;color:'+jColor+';background:'+jBg+';border-radius:6px;padding:2px 10px;min-width:44px;text-align:center">'+esc(judge||'-')+'</span>'
+          + '</label>';
+  });
+  html += '</div>';
+  document.getElementById('splitModalBody').innerHTML = html;
+  document.getElementById('splitIssueModal').style.display = 'flex';
+}
+
+function closeSplitModal(){
+  document.getElementById('splitIssueModal').style.display = 'none';
+  _splitSourceReport = null;
+}
+
+function splitFilter(type){
+  document.querySelectorAll('.split-chk').forEach(function(chk){
+    var j = chk.dataset.judge||'';
+    var isPass = j==='합격'||j==='PASS';
+    var isFail = j==='불합격'||j==='FAIL';
+    if(type==='all') chk.checked=true;
+    else if(type==='none') chk.checked=false;
+    else if(type==='pass') chk.checked=isPass;
+    else if(type==='fail') chk.checked=isFail;
+  });
+}
+
+async function confirmSplitIssue(){
+  var r = _splitSourceReport;
+  if(!r) return;
+  var chks = [...document.querySelectorAll('.split-chk')];
+  var selIdx = chks.filter(function(c){return c.checked;}).map(function(c){return parseInt(c.dataset.idx);});
+  if(!selIdx.length){ alert('최소 1개 항목을 선택해주세요.'); return; }
+
+  var allR = getReports();
+  var subs = allR.filter(function(x){ return x.parentReceiptNo === r.receiptNo; });
+  var nextIdx = subs.length + 1;
+  var newNo = r.receiptNo + String(nextIdx).padStart(2,'0');
+  while(allR.find(function(x){ return x.receiptNo === newNo; })){ nextIdx++; newNo = r.receiptNo + String(nextIdx).padStart(2,'0'); }
+
+  var det = r.detailData || {};
+  var tests = r.tests || [];
+  var selTests = selIdx.map(function(origI, newI){
+    return Object.assign({}, tests[origI], {no: newI+1});
+  });
+  var newDet = {};
+  // 비-judge 필드 복사
+  Object.keys(det).forEach(function(k){ if(!/^judge_\d+$/.test(k)) newDet[k]=det[k]; });
+  // judge 재매핑
+  selIdx.forEach(function(origI, newI){ if(det['judge_'+origI]!==undefined) newDet['judge_'+newI]=det['judge_'+origI]; });
+
+  var issuedAt = new Date().toISOString();
+  var subReport = Object.assign({}, r, {
+    id: newNo,
+    receiptNo: newNo,
+    parentReceiptNo: r.receiptNo,
+    isSubReport: true,
+    tests: selTests,
+    detailData: newDet,
+    issued: true,
+    reportStatus: 'issued',
+    issuedAt: issuedAt,
+    savedAt: issuedAt,
+    verifyToken: null,
+    unlockRequest: null,
+    unlockHistory: []
+  });
+  subReport.verifyToken = await generateVerifyToken(subReport);
+
+  var reps = getReports();
+  reps.push(subReport);
+  setReports(reps);
+  await supaFetch('reports','POST',{id:newNo, data:subReport, updated_at:issuedAt}).catch(function(){});
+
+  closeSplitModal();
+  renderList();
+  renderPdfStore();
+  showToast('✔ '+newNo+' 분리발행 완료!');
+}
+
 </script>
+
+<!-- 분리발행 모달 -->
+<div id="splitIssueModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:20px;padding:28px;width:560px;max-height:82vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);margin:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h2 style="margin:0;font-size:18px;font-weight:900">✂ 분리발행</h2>
+      <button onclick="closeSplitModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6b7280;line-height:1">✕</button>
+    </div>
+    <div id="splitModalBody"></div>
+    <div style="display:flex;gap:8px;margin-top:20px;justify-content:flex-end">
+      <button onclick="closeSplitModal()" style="background:#f3f4f6;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer">취소</button>
+      <button onclick="confirmSplitIssue()" style="background:#7c3aed;border:none;color:#fff;border-radius:10px;padding:10px 24px;font-size:13px;font-weight:800;cursor:pointer">✔ 분리발행</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
