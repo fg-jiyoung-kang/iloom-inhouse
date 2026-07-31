@@ -2013,7 +2013,7 @@ function buildPrintHTML(r){
       }
     });
     const imgSrc = r.image || sampleImageData || '';
-    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="pc">${imgSrc?`<img src="${imgSrc}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div><div class="re" style="margin-top:10px">- 시험결과 기록 완료 -</div></div>`;
+    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="pc">${imgSrc?`<img src="${imgSrc}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div></div>`;
 
     const CSS=`
 :root{--red:#e60012}
@@ -2068,7 +2068,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .pn{position:absolute;right:10mm;bottom:5mm;text-align:right;font-size:7px;color:#999;margin-top:0;background:#fff;padding-top:2px}
 .p2page{width:210mm;height:297mm;padding:0 0 12mm 0;box-sizing:border-box;page-break-after:always;break-after:page;position:relative;background:#fff;overflow:hidden}
 .p2header{padding:16mm 10mm 4mm;border-bottom:1px solid #e5e7eb;margin-bottom:4mm;box-sizing:border-box}
-.p2content{height:215mm;overflow:hidden;padding:0 10mm}
+.p2content{height:215mm;overflow:visible;padding:0 10mm}
 .p2footer{position:absolute;right:10mm;bottom:5mm;text-align:right;font-size:7px;color:#999;background:#fff}
 .iloom-paper-line{position:absolute;top:0;left:0;right:0;height:3.5px;background:#D8755B;z-index:20}
 .iloom-brand-img{display:block;height:18px;object-fit:contain;margin-bottom:3mm}
@@ -2131,6 +2131,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 <div id="p2Source" style="display:none">
   <div class="slt">세부 시험 결과 데이터</div>
   ${blocks}
+  <div class="re">- 시험결과 기록 완료 -</div>
 </div>
 <div id="p2Pages"></div>
 <script>
@@ -2150,8 +2151,10 @@ function _paginateForPrint(){
   target.appendChild(page);
   var body=page.querySelector('.p2content');
   nodes.forEach(function(node){
+    var isClosingLine = node.classList && node.classList.contains('re');
     body.appendChild(node);
-    if(body.scrollHeight > body.clientHeight && body.children.length>1){
+    // 종료 문구("- 시험결과 기록 완료 -")는 새 페이지를 만들지 않고 마지막 페이지에 그대로 붙인다
+    if(!isClosingLine && body.scrollHeight > body.clientHeight && body.children.length>1){
       body.removeChild(node);
       page=_makeP2Page();
       target.appendChild(page);
