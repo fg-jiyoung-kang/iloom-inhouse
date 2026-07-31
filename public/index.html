@@ -2009,7 +2009,7 @@ function buildPrintHTML(r){
       }
     });
     const imgSrc = r.image || sampleImageData || '';
-    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="pc">${imgSrc?`<img src="${imgSrc}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div></div>`;
+    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="pc">${imgSrc?`<img src="${imgSrc}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div><div class="re" style="margin-top:10px">- 시험결과 기록 완료 -</div></div>`;
 
     const CSS=`
 :root{--red:#e60012}
@@ -2127,7 +2127,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 <div id="p2Source" style="display:none">
   <div class="slt">세부 시험 결과 데이터</div>
   ${blocks}
-  <div class="re">- 시험결과 기록 완료 -</div>
 </div>
 <div id="p2Pages"></div>
 <script>
@@ -3062,11 +3061,11 @@ function renderPreview(){
           +'<div class="photo-box" style="margin-top:20px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">'
           +'<div class="photo-card">'+(sampleImageData ? '<img src="'+sampleImageData+'">' : '[ '+esc(r.sampleName||'시료')+' ]<br><br>시험 후 시료 촬영 이미지<br>첨부 구역')+'</div>'
           +'<div class="caption" style="margin-top:6px">'+esc(r.receiptNo)+(r.receiptNo&&r.sampleName?'_':'')+esc(r.sampleName)+'</div>'
-          +'</div></div></div>';
+          +'</div></div>'
+          +'<div class="result-end" style="margin-top:10px">- 시험결과 기록 완료 -</div></div>';
 
         return blocks;
       })()}
-      <div class="result-end">- 시험결과 기록 완료 -</div>
       <div class="page-no" id="lastPageNo">PAGE(S) : 2 / 2</div>
       </div>
     </section>`;
