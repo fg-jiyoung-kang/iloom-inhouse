@@ -998,32 +998,52 @@ const PENDING_REQ_LABELS = new Set([
 ]);
 
 function getReqItemList(){
-  try {
-    const saved = localStorage.getItem(REQ_ITEM_LIST_KEY);
-    if(saved) return JSON.parse(saved);
-  } catch(e){}
-  return DEFAULT_REQ_ITEMS.map(function(i){ return Object.assign({}, i); });
+  // 시험 규격 관리(getStandards)를 그대로 사용 — 별도 목록을 두지 않는다
+  return getStandards().map(function(s){ return {label: s.name, spec: s.spec||''}; });
+}
+
+function snapshotCheckedReqLabels(){
+  const s = [];
+  document.querySelectorAll('.req-item-chk:checked').forEach(function(chk){ s.push(chk.dataset.label); });
+  return s;
+}
+function restoreCheckedReqLabels(labels){
+  const set = new Set(labels);
+  document.querySelectorAll('.req-item-chk').forEach(function(chk){ if(set.has(chk.dataset.label)) chk.checked = true; });
 }
 
 function saveReqItemList(){
-  // 현재 화면에 보이는 항목 전부 수집해서 저장
-  const items = [];
+  // 화면에 보이는 항목(직접추가 등 아직 규격 목록에 없는 것)을 시험 규격(standards)에 반영한다
+  const checked = snapshotCheckedReqLabels();
+  const list = getStandards();
+  const existingNames = new Set(list.map(function(s){ return s.name; }));
   document.querySelectorAll('#req_items_checkboxes .req-item-chk').forEach(function(chk){
-    items.push({label: chk.dataset.label||'', spec: chk.dataset.spec||''});
+    const label = (chk.dataset.label||'').trim();
+    if(!label || existingNames.has(label)) return;
+    list.push({name:label, spec:chk.dataset.spec||'', crit:'', category:'물성시험', defaultJudge:'PASS'});
+    existingNames.add(label);
   });
-  localStorage.setItem(REQ_ITEM_LIST_KEY, JSON.stringify(items));
-  supaFetch('settings','POST',{id:'req_items',data:JSON.parse(localStorage.getItem(REQ_ITEM_LIST_KEY)||'[]'),updated_at:new Date().toISOString()}).catch(function(e){});
+  setStandards(list);
+  renderReqItemCheckboxes(); renderStandards(); renderStandardSelect();
+  restoreCheckedReqLabels(checked);
   // 저장 메시지 표시
   const msg = document.getElementById('reqItemSaveMsg');
   if(msg){ msg.style.display='block'; setTimeout(function(){ msg.style.display='none'; }, 2500); }
 }
 
 function resetReqItemList(){
-  if(!confirm('기본 항목 목록으로 복원할까요?\n현재 저장된 목록이 초기화됩니다.')) return;
-  localStorage.setItem(REQ_ITEM_LIST_KEY, JSON.stringify(DEFAULT_REQ_ITEMS));
-  // Supabase에도 저장
-  supaFetch('settings','POST',{id:'req_items',data:DEFAULT_REQ_ITEMS,updated_at:new Date().toISOString()}).catch(function(e){});
-  renderReqItemCheckboxes();
+  if(!confirm('기본 항목 중 목록에 없는 것만 추가할까요?\n(기존 항목은 지워지지 않습니다)')) return;
+  const checked = snapshotCheckedReqLabels();
+  const list = getStandards();
+  const existingNames = new Set(list.map(function(s){ return s.name; }));
+  DEFAULT_REQ_ITEMS.forEach(function(i){
+    if(existingNames.has(i.label)) return;
+    list.push({name:i.label, spec:i.spec||'', crit:'', category:'물성시험', defaultJudge:'PASS'});
+    existingNames.add(i.label);
+  });
+  setStandards(list);
+  renderReqItemCheckboxes(); renderStandards(); renderStandardSelect();
+  restoreCheckedReqLabels(checked);
 }
 
 function makeReqItemRow(item, isCustom){
@@ -1102,21 +1122,23 @@ function makeReqItemRow(item, isCustom){
       const newLabel = nameInp.value.trim();
       const newSpec  = specInp.value.trim();
       if(!newLabel){ alert('항목명을 입력해주세요.'); return; }
-      chk.dataset.label = newLabel;
-      chk.dataset.spec  = newSpec;
-      chk.checked = wasChecked;
-      // 행 원래대로 복원
-      row.innerHTML = '';
-      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;transition:background .15s;font-size:12px;color:#374151;cursor:default'
-        + (isCustom ? ';grid-column:1/-1;background:#fff9f9;border:1px dashed #fca5a5;margin-top:4px' : '');
-      txt.innerHTML = (isCustom ? '<span style="font-weight:700;color:#e60012;font-size:11px">+</span> ' : '')
-        + '<span style="font-weight:700;color:#1f2937">'+newLabel+'</span>'
-        + (newSpec ? '<span style="color:#9ca3af;font-size:10px;margin-left:2px">'+newSpec+'</span>' : '');
-      lbl.innerHTML=''; lbl.appendChild(chk); lbl.appendChild(txt);
-      row.appendChild(lbl); row.appendChild(editBtn); row.appendChild(delBtn);
-      // 목록 저장 → 성적서 작성 탭 규격 선택 드롭다운도 갱신
-      saveReqItemList();
-      renderStandardSelect();
+      // 시험 규격(standards)에 그대로 반영 — 의뢰서/성적서/규격관리가 전부 같은 목록을 본다
+      const oldLabel = chk.dataset.label||'';
+      const list = getStandards();
+      const idx = list.findIndex(function(s){ return s.name===oldLabel; });
+      if(idx>=0){
+        const newStd = Object.assign({}, list[idx], {name:newLabel, spec:newSpec});
+        list[idx] = newStd;
+        setStandards(list);
+        propagateStandardChange(oldLabel, newStd);
+      } else {
+        list.push({name:newLabel, spec:newSpec, crit:'', category:'물성시험', defaultJudge:'PASS'});
+        setStandards(list);
+      }
+      const checked = snapshotCheckedReqLabels();
+      if(wasChecked) checked.push(newLabel);
+      renderReqItemCheckboxes(); renderStandards(); renderStandardSelect();
+      restoreCheckedReqLabels(checked);
     };
     cancelBtn2.onclick = function(){
       row.innerHTML = '';
@@ -1135,7 +1157,16 @@ function makeReqItemRow(item, isCustom){
   if(!(JSON.parse(sessionStorage.getItem('iloom_user')||'{}').id===ADMIN_ID)) delBtn.style.display='none';
   delBtn.onmouseover = function(){ this.style.background='#fecaca'; };
   delBtn.onmouseout  = function(){ this.style.background='#fee2e2'; };
-  delBtn.onclick = function(e){ e.stopPropagation(); row.remove(); saveReqItemList(); };
+  delBtn.onclick = function(e){
+    e.stopPropagation();
+    const label = chk.dataset.label||'';
+    if(!confirm('"'+label+'" 항목을 삭제할까요?\n시험 규격 관리에서도 함께 삭제됩니다.')) return;
+    const list = getStandards().filter(function(s){ return s.name!==label; });
+    setStandards(list);
+    const checked = snapshotCheckedReqLabels().filter(function(l){ return l!==label; });
+    renderReqItemCheckboxes(); renderStandards(); renderStandardSelect();
+    restoreCheckedReqLabels(checked);
+  };
 
   row.appendChild(lbl);
   row.appendChild(editBtn);
@@ -1158,10 +1189,14 @@ function addCustomReqItem(){
   const name = (nameEl?.value||'').trim();
   const spec = (specEl?.value||'').trim();
   if(!name){ alert('항목명을 입력해주세요.'); nameEl?.focus(); return; }
-  const container = document.getElementById('req_items_checkboxes');
-  if(!container) return;
-  const row = makeReqItemRow({label:name, spec:spec}, true);
-  container.appendChild(row);
+  const list = getStandards();
+  if(list.find(function(s){ return s.name===name; })){ alert('이미 존재하는 시험 항목입니다.'); return; }
+  list.push({name:name, spec:spec, crit:'', category:'물성시험', defaultJudge:'PASS'});
+  setStandards(list);
+  const checked = snapshotCheckedReqLabels();
+  checked.push(name);
+  renderReqItemCheckboxes(); renderStandards(); renderStandardSelect();
+  restoreCheckedReqLabels(checked);
   nameEl.value = '';
   specEl.value = '';
   nameEl.focus();
@@ -1898,7 +1933,7 @@ function bindInputs(){
     }
   };
   window.buildPrintHTML = buildPrintHTML;
-  $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();}};
+  $('saveStandardBtn').onclick=saveStandard; $('resetStandardsBtn').onclick=()=>{if(confirm('모든 규격을 삭제할까요?')){setStandards([]);renderStandardSelect();renderStandards();renderReqItemCheckboxes();}};
   $('searchReport').addEventListener('input',renderList);
   $('exportBtn').onclick=exportData; $('importFile').addEventListener('change',importData); $('clearAllBtn').onclick=clearAll;
 }
@@ -1943,9 +1978,6 @@ function buildPrintHTML(r){
         const csJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const csCrit = crit || '1종 ≤ 10\n2종 ≤ 13';
         blocks+=`<div class="rb">${th}${csCrit?`<div class="dc"><b>기준</b><br>${e2(csCrit)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr><tr><td class="left">시험 전 두께 (t₀)</td><td class="rv">${e2(t0)}</td><td>-</td></tr><tr><td class="left">시험 후 두께 (t₁)</td><td class="rv">${e2(t1)}</td><td>-</td></tr><tr><td class="left">영구압축 줄음률</td><td class="rv" style="color:#2563eb">${e2(pct)}</td><td style="text-align:center">1종 ≤ 10<br>2종 ≤ 13</td></tr>${csJudge}</table></div>`;
-      } else if(nm.includes('롤링')){
-        const rJudge = jg ? `<tr><td style="font-weight:800;text-align:center;padding:4px">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'};text-align:center">${e2(jg)}</td></tr>` : '';
-        blocks+=`<div class="rb">${th}<div class="dc"><b>기준</b><br>· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.</div><table class="rt" style="width:100%"><tr><th style="width:50%;text-align:center">구분</th><th style="width:50%;text-align:center">시험 결과</th></tr>${rJudge}</table></div>`;
       } else if(nm.includes('내구성')){
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4 (560,000회)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
@@ -2526,19 +2558,6 @@ function renderDetailSection(externalData){
         tbody2.appendChild(_makeRow('판정',jsSel,'KS G 4300 기준 만족'));
         tbl2.appendChild(tbody2); fieldsWrap.appendChild(tbl2);
 
-      } else if(name.includes('롤링')){
-        var tblR=document.createElement('table'); tblR.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
-        tblR.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:35%">판정</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
-        var tbodyR=document.createElement('tbody');
-        var trR=document.createElement('tr');
-        var tbR=document.createElement('td'); tbR.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center;vertical-align:middle';
-        var selR=document.createElement('select'); selR.dataset.key='judge_'+i; selR.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center;text-align-last:center';
-        ['','합격','불합격'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['judge_'+i]||'')===o) opt.selected=true; selR.appendChild(opt); });
-        selR.addEventListener('change',renderPreview); tbR.appendChild(selR);
-        var tcR=document.createElement('td'); tcR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7;vertical-align:middle'; tcR.innerHTML='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
-        trR.appendChild(tbR); trR.appendChild(tcR); tbodyR.appendChild(trR);
-        tblR.appendChild(tbodyR); fieldsWrap.appendChild(tblR);
-
       } else if(name.includes('내구성')){
         var hasD4=!!(saved['d4_'+i]);
         var tblD=document.createElement('table'); tblD.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
@@ -2864,14 +2883,7 @@ function renderPreview(){
               +csJudgeRow
               +'</table></div>';
 
-          // 롤링내구성 - 판정만
-          } else if(name.includes('롤링')){
-            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<div style="font-size:10px;color:#374151;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.</div>'
-              +'<table class="result-table"><tr><th style="width:35%">구분</th><th>시험 결과</th></tr>'
-              +judgeCell.replace('<td></td></tr>','</tr>')+'</table></div>';
-
-          // 내구성시험
+          // 내구성시험 (롤링내구성시험도 동일한 판정기준을 쓰므로 같은 템플릿 사용)
           } else if(name.includes('내구성')){
             const d1=detail['d1_'+i]||''; const d2=detail['d2_'+i]||'';
             const d3=detail['d3_'+i]||''; const d4=detail['d4_'+i]||'';
@@ -3591,6 +3603,50 @@ function renderStandardSelect(){
   getStandards().forEach((s,i)=>{const o=document.createElement('option');o.value=i;o.textContent=s.name;sel.appendChild(o);});
 }
 
+function propagateStandardChange(oldName, newStd){
+  // 모든 성적서에 전파
+  const allReports = getReports();
+  let repChanged = false;
+  allReports.forEach(function(r){
+    if(!r.tests) return;
+    r.tests.forEach(function(t){
+      if(t.name===oldName || t.name===newStd.name){
+        t.name=newStd.name; t.spec=newStd.spec; t.crit=newStd.crit; repChanged=true;
+      }
+    });
+    // detailData의 crit_edit도 초기화 (수동 편집값 덮어쓰기)
+    if(r.detailData) Object.keys(r.detailData).forEach(function(k){ if(k.startsWith('crit_edit_')) delete r.detailData[k]; });
+  });
+  if(repChanged){
+    setReports(allReports);
+    allReports.forEach(function(r){ supaFetch('reports','POST',{id:r.id,data:r,updated_at:new Date().toISOString()}).catch(function(){}); });
+  }
+  // 의뢰서에도 전파
+  try{
+    var reqs=JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
+    reqs.forEach(function(req){
+      if(!req.items) return;
+      req.items.forEach(function(item){
+        if(typeof item==='object' && (item.name===oldName || item.name===newStd.name)){
+          item.name=newStd.name; item.spec=newStd.spec; item.crit=newStd.crit;
+        }
+      });
+    });
+    localStorage.setItem('iloom_requests_v1',JSON.stringify(reqs));
+  }catch(e){}
+  // 현재 열려있는 성적서 테이블 행도 즉시 업데이트
+  document.querySelectorAll('#testTable tbody tr:not(.t-detail-row)').forEach(function(tr){
+    const ni=tr.querySelector('.t-name'); if(!ni) return;
+    if(ni.value===oldName || ni.value===newStd.name){
+      ni.value=newStd.name;
+      const si=tr.querySelector('.t-spec'); if(si) si.value=newStd.spec||'';
+      const ci=tr.querySelector('.t-crit'); if(ci) ci.value=newStd.crit||'';
+    }
+  });
+  if(typeof renderDetailSection==='function') renderDetailSection();
+  if(typeof renderPreview==='function') renderPreview();
+}
+
 function renderStandards(){
   const box=$('standardList'); if(!box) return; box.innerHTML='';
   const list = getStandards();
@@ -3625,7 +3681,7 @@ function renderStandards(){
     if(!isAdmin()) delBtn.style.display='none';
     delBtn.onclick=function(){
       if(!confirm('"'+s.name+'" 규격을 삭제할까요?')) return;
-      const l=getStandards(); l.splice(i,1); setStandards(l); renderStandards(); renderStandardSelect();
+      const l=getStandards(); l.splice(i,1); setStandards(l); renderStandards(); renderStandardSelect(); renderReqItemCheckboxes();
     };
 
     actDiv.appendChild(editBtn); actDiv.appendChild(delBtn);
@@ -3663,49 +3719,9 @@ function renderStandards(){
         l[i].defaultJudge = document.getElementById('edit_judge_'+i).value;
         l[i].category = document.getElementById('edit_cat_'+i).value;
         setStandards(l);
-        // 모든 성적서에 전파
         const newStd = l[i];
-        const allReports = getReports();
-        let repChanged = false;
-        allReports.forEach(function(r){
-          if(!r.tests) return;
-          r.tests.forEach(function(t){
-            if(t.name===oldName || t.name===newStd.name){
-              t.name=newStd.name; t.spec=newStd.spec; t.crit=newStd.crit; repChanged=true;
-            }
-          });
-          // detailData의 crit_edit도 초기화 (수동 편집값 덮어쓰기)
-          if(r.detailData) Object.keys(r.detailData).forEach(function(k){ if(k.startsWith('crit_edit_')) delete r.detailData[k]; });
-        });
-        if(repChanged){
-          setReports(allReports);
-          allReports.forEach(function(r){ supaFetch('reports','POST',{id:r.id,data:r,updated_at:new Date().toISOString()}).catch(function(){}); });
-        }
-        // 의뢰서에도 전파
-        try{
-          var reqs=JSON.parse(localStorage.getItem('iloom_requests_v1')||'[]');
-          reqs.forEach(function(req){
-            if(!req.items) return;
-            req.items.forEach(function(item){
-              if(typeof item==='object' && (item.name===oldName || item.name===newStd.name)){
-                item.name=newStd.name; item.spec=newStd.spec; item.crit=newStd.crit;
-              }
-            });
-          });
-          localStorage.setItem('iloom_requests_v1',JSON.stringify(reqs));
-        }catch(e){}
-        // 현재 열려있는 성적서 테이블 행도 즉시 업데이트
-        document.querySelectorAll('#testTable tbody tr:not(.t-detail-row)').forEach(function(tr){
-          const ni=tr.querySelector('.t-name'); if(!ni) return;
-          if(ni.value===oldName || ni.value===newStd.name){
-            ni.value=newStd.name;
-            const si=tr.querySelector('.t-spec'); if(si) si.value=newStd.spec||'';
-            const ci=tr.querySelector('.t-crit'); if(ci) ci.value=newStd.crit||'';
-          }
-        });
-        if(typeof renderDetailSection==='function') renderDetailSection();
-        if(typeof renderPreview==='function') renderPreview();
-        renderStandards(); renderStandardSelect();
+        propagateStandardChange(oldName, newStd);
+        renderStandards(); renderStandardSelect(); renderReqItemCheckboxes();
         showToast('규격이 저장되었습니다. 모든 성적서/의뢰서에 반영되었습니다.');
       };
     };
@@ -4558,7 +4574,7 @@ function exportData(){
 function importData(e){
   const file=e.target.files[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.reports)setReports(d.reports);if(d.standards)setStandards(d.standards);renderList();renderStandards();renderStandardSelect();alert('복원 완료');}catch(ex){alert('파일 오류');}};
+  reader.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.reports)setReports(d.reports);if(d.standards)setStandards(d.standards);renderList();renderStandards();renderStandardSelect();renderReqItemCheckboxes();alert('복원 완료');}catch(ex){alert('파일 오류');}};
   reader.readAsText(file);
 }
 
@@ -4585,13 +4601,14 @@ function saveStandard(){
   if(!spec){ alert('시험 규격을 입력해주세요.'); return; }
   const list = getStandards();
   if(list.find(s=>s.name===name)){ alert('이미 존재하는 시험 항목입니다.'); return; }
-  list.push({name, spec, crit, category});
+  list.push({name, spec, crit, category, defaultJudge:'PASS'});
   setStandards(list);
   $('stdName').value='';
   $('stdSpec').value='';
   if($('stdCrit')) $('stdCrit').value='';
   renderStandards();
   renderStandardSelect();
+  renderReqItemCheckboxes();
   alert('"'+name+'" 규격이 저장되었습니다.');
 }
 
