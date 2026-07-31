@@ -1978,6 +1978,10 @@ function buildPrintHTML(r){
         const csJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const csCrit = crit || '1종 ≤ 10\n2종 ≤ 13';
         blocks+=`<div class="rb">${th}${csCrit?`<div class="dc"><b>기준</b><br>${e2(csCrit)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr><tr><td class="left">시험 전 두께 (t₀)</td><td class="rv">${e2(t0)}</td><td>-</td></tr><tr><td class="left">시험 후 두께 (t₁)</td><td class="rv">${e2(t1)}</td><td>-</td></tr><tr><td class="left">영구압축 줄음률</td><td class="rv" style="color:#2563eb">${e2(pct)}</td><td style="text-align:center">1종 ≤ 10<br>2종 ≤ 13</td></tr>${csJudge}</table></div>`;
+      } else if(nm.includes('롤링')){
+        const rCrit='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
+        const rJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td style="font-size:9px;line-height:1.7;text-align:center">${rCrit}</td></tr>` : '';
+        blocks+=`<div class="rb">${th}<table class="rt" style="width:100%"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr>${rJudge}</table></div>`;
       } else if(nm.includes('내구성')){
         const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4 (560,000회)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
@@ -2558,6 +2562,20 @@ function renderDetailSection(externalData){
         tbody2.appendChild(_makeRow('판정',jsSel,'KS G 4300 기준 만족'));
         tbl2.appendChild(tbody2); fieldsWrap.appendChild(tbl2);
 
+      } else if(name.includes('롤링')){
+        var tblR=document.createElement('table'); tblR.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
+        tblR.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:30%">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:30%">시험 결과</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
+        var tbodyR=document.createElement('tbody');
+        var trR=document.createElement('tr');
+        var taR=document.createElement('td'); taR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taR.textContent='판정';
+        var tbR=document.createElement('td'); tbR.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center;vertical-align:middle';
+        var selR=document.createElement('select'); selR.dataset.key='judge_'+i; selR.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center;text-align-last:center';
+        ['','합격','불합격'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['judge_'+i]||'')===o) opt.selected=true; selR.appendChild(opt); });
+        selR.addEventListener('change',renderPreview); tbR.appendChild(selR);
+        var tcR=document.createElement('td'); tcR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7;vertical-align:middle'; tcR.innerHTML='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
+        trR.appendChild(taR); trR.appendChild(tbR); trR.appendChild(tcR); tbodyR.appendChild(trR);
+        tblR.appendChild(tbodyR); fieldsWrap.appendChild(tblR);
+
       } else if(name.includes('내구성')){
         var hasD4=!!(saved['d4_'+i]);
         var tblD=document.createElement('table'); tblD.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
@@ -2883,7 +2901,16 @@ function renderPreview(){
               +csJudgeRow
               +'</table></div>';
 
-          // 내구성시험 (롤링내구성시험도 동일한 판정기준을 쓰므로 같은 템플릿 사용)
+          // 롤링내구성시험 - 기준을 판정과 같은 행(3번째 칸)에 표시
+          } else if(name.includes('롤링')){
+            const rCrit2='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
+            const rJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td style="font-size:9px;line-height:1.7;text-align:center">'+rCrit2+'</td></tr>' : '';
+            blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
+              +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr>'
+              +rJudgeRow
+              +'</table></div>';
+
+          // 내구성시험
           } else if(name.includes('내구성')){
             const d1=detail['d1_'+i]||''; const d2=detail['d2_'+i]||'';
             const d3=detail['d3_'+i]||''; const d4=detail['d4_'+i]||'';
