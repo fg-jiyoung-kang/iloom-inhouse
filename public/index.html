@@ -1178,7 +1178,11 @@ function renderReqItemCheckboxes(){
   const container = document.getElementById('req_items_checkboxes');
   if(!container) return;
   container.innerHTML = '';
-  getReqItemList().forEach(function(item){
+  const items = getReqItemList();
+  // 활성 항목을 앞으로, 준비중 항목을 뒤로 모아서 표시 (규격 저장 순서 자체는 건드리지 않음)
+  const active = items.filter(function(it){ return !PENDING_REQ_LABELS.has(it.label); });
+  const pending = items.filter(function(it){ return PENDING_REQ_LABELS.has(it.label); });
+  active.concat(pending).forEach(function(item){
     container.appendChild(makeReqItemRow(item, false));
   });
 }
