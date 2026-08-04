@@ -3286,7 +3286,9 @@ function updateUnlockBadge(){
 function renderPdfStore(){
   const box = document.getElementById('pdfStoreList');
   if(!box) return;
-  const issued = getReports().filter(r=>r.issued);
+  const issued = getReports().filter(r=>r.issued).slice().sort(function(a,b){
+    return (a.receiptNo||'').localeCompare(b.receiptNo||'', undefined, {numeric:true, sensitivity:'base'});
+  });
   if(!issued.length){
     box.innerHTML='<p style="color:#9ca3af;text-align:center;padding:24px 0">발행완료된 성적서가 없습니다.</p>';
     return;
