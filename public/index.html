@@ -3457,7 +3457,9 @@ function renderList(page){
   if(page) _listPage = page;
   const q=($('searchReport')?.value||'').toLowerCase();
   const box=$('reportList'); if(!box) return;
-  const all=getReports().filter(r=>[r.receiptNo,r.sampleName,r.requestDept].join(' ').toLowerCase().includes(q));
+  const all=getReports().filter(r=>[r.receiptNo,r.sampleName,r.requestDept].join(' ').toLowerCase().includes(q)).sort(function(a,b){
+    return (a.receiptNo||'').localeCompare(b.receiptNo||'', undefined, {numeric:true, sensitivity:'base'});
+  });
   const totalPages = Math.max(1, Math.ceil(all.length / LIST_PAGE_SIZE));
   if(_listPage > totalPages) _listPage = totalPages;
   const list = all.slice((_listPage-1)*LIST_PAGE_SIZE, _listPage*LIST_PAGE_SIZE);
