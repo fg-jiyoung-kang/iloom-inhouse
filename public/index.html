@@ -2275,19 +2275,21 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-table th,.kp-table td{border:1px solid #999;padding:6px 7px;text-align:center}
 .kp-table th{background:#f2f2f2;font-weight:700}
 .kp-table td.left{text-align:left}
-.kp-note{font-size:9px;color:#444;line-height:1.7;margin-top:3mm;border-top:1px solid #ccc;padding-top:2.5mm}
+.kp-note{font-size:9.5px;color:#444;line-height:1.8;margin-top:6mm;border-top:1px solid #ccc;padding-top:3.5mm}
 .kp-confirm-table{width:100%;border-collapse:collapse;margin-top:4.5mm;font-size:11px}
 .kp-confirm-table th,.kp-confirm-table td{border:1px solid #999;padding:6px 10px;text-align:center}
 .kp-confirm-table th{background:#f2f2f2;font-weight:900}
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
 .kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:4.5mm;gap:12px}
-.kp-acc{font-size:9px;line-height:1.7;color:#333;flex:1}
+.kp-acc{font-size:10.5px;line-height:1.8;color:#333;flex:1}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
 .kp-footer{text-align:center;margin-top:5mm}
-.kp-date{font-size:12px;font-weight:700;margin-bottom:4px}
-.kp-stamp{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:900}
+.kp-date{font-size:13px;font-weight:700;margin-bottom:4px}
+.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:900}
+.kp-seal-wrap{position:relative;display:inline-block;padding:0 6mm 0 2px}
+.kp-seal-img{position:absolute;top:50%;left:58%;transform:translate(-50%,-50%);height:44px;width:44px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92}
 .kp-original-stamp{position:absolute;top:8mm;right:10mm;width:24mm;height:24mm;border-radius:50%;border:1.5px solid #c81e2c;box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 3.6px #c81e2c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c81e2c;transform:rotate(-10deg);opacity:0.88}
 .kp-original-stamp .os-title{font-family:'Noto Serif KR',serif;font-size:12px;font-weight:900;letter-spacing:3px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:14mm;height:1px;background:#c81e2c;margin-bottom:2px}
@@ -2347,7 +2349,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 
   <div class="kp-footer">
     <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
-    <div class="kp-stamp">한국인정기구 인정 &nbsp;${e2(r.companyName||'일룸수면과학연구소')} 원장<img src="${ILOOM_SIGN_DATA}" style="height:56px;width:56px;object-fit:contain;mix-blend-mode:multiply"></div>
+    <div class="kp-stamp">한국인정기구 인정 &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
   </div>
 </div>
 <script>window.addEventListener('load',function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>
