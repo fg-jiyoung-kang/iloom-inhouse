@@ -2268,7 +2268,9 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6mm}
 .kp-org{font-size:13px;font-weight:900}
 .kp-org small{display:block;font-size:10px;font-weight:400;color:#555;margin-top:3px}
+.kp-mark{display:flex;flex-direction:column;align-items:center;gap:2px}
 .kp-mark img{height:95px;object-fit:contain}
+.kp-mark .acc-no{font-size:10px;font-weight:900;letter-spacing:0.5px;color:#111}
 .kp-title{text-align:center;font-size:22px;font-weight:900;letter-spacing:6px;margin:2mm 0 6mm;border-bottom:2px solid #111;padding-bottom:6mm}
 .kp-no{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:5mm}
 .kp-sec{margin-bottom:4.5mm}
@@ -2294,7 +2296,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 <div class="kp">
   <div class="kp-head">
     <div class="kp-org">${e2(r.companyName||'일룸수면과학연구소')}<small>${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</small></div>
-    <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
+    <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}<div class="acc-no">KOLAS ACC. NO. KT1333</div></div>
   </div>
   <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-no"><span>접수번호(성적서번호) : ${e2(r.receiptNo)}</span><span>페이지 : (1/1)</span></div>
