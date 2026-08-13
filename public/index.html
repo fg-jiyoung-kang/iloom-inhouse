@@ -2259,16 +2259,15 @@ function buildKolasPrintHTML(r){
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
 .kp{width:210mm;min-height:297mm;padding:12mm 14mm;position:relative;background:#fff}
 .kp-title{text-align:center;font-size:20px;font-weight:900;letter-spacing:6px;margin:0 0 4mm}
-.kp-head{display:flex;flex-direction:column;gap:2.5mm;border-top:2px solid #111;border-bottom:2px solid #111;padding:3mm 0;margin-bottom:4.5mm}
-.kp-head-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.kp-head-left{display:flex;flex-direction:column;gap:2mm}
-.kp-org-logo{height:30px;object-fit:contain}
-.kp-org{font-size:12.5px;font-weight:900}
-.kp-address{font-size:10px;color:#555;font-weight:400;white-space:nowrap}
-.kp-head-mid{font-size:10px;color:#333;line-height:1.8}
+.kp-head{display:flex;align-items:stretch;border:1.4px solid #111;margin-bottom:4.5mm}
+.kp-head-left{flex:1;display:flex;flex-direction:column;justify-content:center;gap:2mm;padding:3mm 5mm;border-right:1px solid #111}
+.kp-org-logo{height:26px;object-fit:contain}
+.kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px}
+.kp-address{font-size:9.5px;color:#555;font-weight:400;white-space:nowrap}
+.kp-head-mid{width:34mm;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;font-size:10px;color:#333;line-height:1.7;padding:3mm;border-right:1px solid #111}
 .kp-head-mid b{font-weight:900}
-.kp-mark{display:flex;flex-direction:column;align-items:center;gap:1px}
-.kp-mark img{height:88px;object-fit:contain}
+.kp-mark{width:32mm;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:2mm}
+.kp-mark img{height:74px;object-fit:contain}
 .kp-sec{margin-bottom:3.2mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
 .kp-sec-body{padding-left:16px;font-size:11.5px;line-height:1.8}
@@ -2300,15 +2299,15 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   <div class="kp-original-stamp"><div class="os-title">원&nbsp;본</div><div class="os-line"></div><div class="os-date">${_printedDate}<br>${_printedTime}</div></div>
   <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-head">
-    <div class="kp-head-top">
-      <div class="kp-head-left">
+    <div class="kp-head-left">
+      <div style="display:flex;align-items:center;gap:8px">
         ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
         <div class="kp-org">${e2(r.companyName||'일룸수면과학연구소')}</div>
       </div>
-      <div class="kp-head-mid">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</div>
-      <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
+      <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
     </div>
-    <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
+    <div class="kp-head-mid">성적서 번호<br><b>${e2(r.receiptNo)}</b><br>페이지 (1) / (총 1)</div>
+    <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
   </div>
 
   <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기&nbsp;관&nbsp;명 : ${e2(r.requestDept||'-')}</div></div>
