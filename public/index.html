@@ -2330,8 +2330,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-address{grid-column:1;grid-row:3;font-size:9.5px;color:#555;font-weight:400}
 .kp-phone{grid-column:1;grid-row:4;font-size:9.5px;color:#555;font-weight:400}
 .kp-head-mid{grid-column:2;font-size:10.5px;color:#333;white-space:nowrap;padding:0 6mm}
-.kp-head-mid.row2{grid-row:2}
 .kp-head-mid.row3{grid-row:3}
+.kp-head-mid.row4{grid-row:4}
 .kp-row{display:flex;gap:2px}
 .kp-row-lbl{width:15mm;flex-shrink:0}
 .kp-head-mid b{font-weight:900}
@@ -2376,8 +2376,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     <div class="kp-org">수면과학연구소</div>
     <div class="kp-address">${e2(r.companyAddress||'')}</div>
     <div class="kp-phone">${r.companyTel?'Tel '+e2(r.companyTel):''}</div>
-    <div class="kp-head-mid row2"><div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div></div>
-    <div class="kp-head-mid row3"><div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div></div>
+    <div class="kp-head-mid row3"><div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div></div>
+    <div class="kp-head-mid row4"><div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div></div>
     <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
   </div>
 
