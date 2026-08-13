@@ -388,6 +388,7 @@ button,input,select{font:inherit}
           <button class="btn danger" id="deleteBtn">삭제</button>
           <button class="btn primary" id="printBtn" style="font-size:13px">PDF 출력</button>
           <button class="btn" id="kolasPrintBtn" style="font-size:13px;background:#fff;color:#4c51bf;border-color:#c7d2fe">KOLAS 성적서 출력</button>
+          <button class="btn" id="kolasWordBtn" style="font-size:13px;background:#fff;color:#1d4ed8;border-color:#bfdbfe">KOLAS 워드파일 저장</button>
           <button class="btn" id="finalizeBtn" style="display:none;font-size:13px;background:#fff;color:#16a34a;border-color:#bbf7d0" onclick="finalizeReport()">최종작성완료</button>
           <button class="btn" id="requestUnlockBtn" style="display:none;font-size:13px;background:#fff;color:#b45309;border-color:#fde68a" onclick="requestUnlock()">수정 작성 요청하기</button>
           <button class="btn" id="splitIssueBtn" style="display:none;font-size:13px;background:#fff;color:#7c3aed;border-color:#ddd6fe" onclick="openSplitModal(null)">분리발행</button>
@@ -1799,6 +1800,7 @@ function updateTopbar(tab){
   const deleteBtn = document.getElementById('deleteBtn');
   const printBtn  = document.getElementById('printBtn');
   const kolasPrintBtn = document.getElementById('kolasPrintBtn');
+  const kolasWordBtn = document.getElementById('kolasWordBtn');
   const autoSaveStatus = document.getElementById('autoSaveStatus');
 
   // 탭별 제목
@@ -1816,6 +1818,7 @@ function updateTopbar(tab){
     if(deleteBtn) deleteBtn.style.display = '';
     if(printBtn) printBtn.style.display = '';
     if(kolasPrintBtn) kolasPrintBtn.style.display = '';
+    if(kolasWordBtn) kolasWordBtn.style.display = '';
     if(autoSaveStatus) autoSaveStatus.style.display = '';
     // 발행완료 여부에 따라 버튼 전환
     if(finalizeBtn) finalizeBtn.style.display = _reportIsIssued ? 'none' : '';
@@ -1826,6 +1829,7 @@ function updateTopbar(tab){
     if(deleteBtn) deleteBtn.style.display = 'none';
     if(printBtn) printBtn.style.display = 'none';
     if(kolasPrintBtn) kolasPrintBtn.style.display = 'none';
+    if(kolasWordBtn) kolasWordBtn.style.display = 'none';
     if(autoSaveStatus) autoSaveStatus.style.display = 'none';
     if(finalizeBtn) finalizeBtn.style.display = 'none';
     if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
@@ -1835,6 +1839,7 @@ function updateTopbar(tab){
     if(deleteBtn) deleteBtn.style.display = 'none';
     if(printBtn) printBtn.style.display = 'none';
     if(kolasPrintBtn) kolasPrintBtn.style.display = 'none';
+    if(kolasWordBtn) kolasWordBtn.style.display = 'none';
     if(autoSaveStatus) autoSaveStatus.style.display = 'none';
     if(finalizeBtn) finalizeBtn.style.display = 'none';
     if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
@@ -1845,6 +1850,7 @@ function updateTopbar(tab){
     if(deleteBtn) deleteBtn.style.display = 'none';
     if(printBtn) printBtn.style.display = 'none';
     if(kolasPrintBtn) kolasPrintBtn.style.display = 'none';
+    if(kolasWordBtn) kolasWordBtn.style.display = 'none';
     if(autoSaveStatus) autoSaveStatus.style.display = 'none';
     if(finalizeBtn) finalizeBtn.style.display = 'none';
     if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
@@ -1981,6 +1987,37 @@ function bindInputs(){
       pw2.close();
       alert('출력 오류가 발생했습니다:\n' + err.message);
       console.error('buildKolasPrintHTML error:', err);
+    }
+  };
+  $('kolasWordBtn').onclick=async()=>{
+    if(!document.getElementById('kolasFormatChk')?.checked){
+      alert('"🔖 KOLAS 전용 성적서" 체크박스를 먼저 켜고, 시험기간·시험장소·시험방법을 입력해주세요.');
+      return;
+    }
+    let r=collectReport();
+    if(currentId){
+      const _stored=getReports().find(function(x){return x.id===currentId;});
+      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
+    }
+    if(!_reportIsIssued && (_hasUnsaved || !currentId)){
+      alert('저장을 해주세요.\n저장 버튼을 누른 후 워드파일 저장이 가능합니다.');
+      return;
+    }
+    if(!r.receiptNo || !r.receiptNo.trim()){
+      alert('의뢰서 번호가 없습니다.\n의뢰서를 먼저 불러온 후 출력해주세요.');
+      return;
+    }
+    try {
+      const wordHtml = buildKolasWordHTML(r);
+      const blob = new Blob(['﻿', wordHtml], { type: 'application/msword' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (r.receiptNo||'kolas_report') + '_시험성적서.doc';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch(err) {
+      alert('워드파일 생성 중 오류가 발생했습니다:\n' + err.message);
+      console.error('buildKolasWordHTML error:', err);
     }
   };
   window.buildPrintHTML = buildPrintHTML;
@@ -2259,15 +2296,15 @@ function buildKolasPrintHTML(r){
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
 .kp{width:210mm;min-height:297mm;padding:12mm 14mm;position:relative;background:#fff}
 .kp-title{text-align:center;font-size:20px;font-weight:900;letter-spacing:6px;margin:0 0 4mm}
-.kp-head{display:flex;align-items:stretch;border:1.4px solid #111;margin-bottom:4.5mm}
-.kp-head-left{flex:1;display:flex;flex-direction:column;justify-content:center;gap:2mm;padding:3mm 5mm;border-right:1px solid #111}
-.kp-org-logo{height:26px;object-fit:contain}
-.kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px}
-.kp-address{font-size:9.5px;color:#555;font-weight:400;white-space:nowrap}
-.kp-head-mid{width:34mm;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;font-size:10px;color:#333;line-height:1.7;padding:3mm;border-right:1px solid #111}
+.kp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid #111;padding-bottom:4mm;margin-bottom:4.5mm}
+.kp-head-left{display:flex;flex-direction:column;gap:1.5mm}
+.kp-org-logo{height:30px;object-fit:contain}
+.kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px;margin-top:1mm}
+.kp-address{font-size:9.5px;color:#555;font-weight:400;margin-bottom:5mm}
+.kp-head-mid{flex-shrink:0;font-size:10.5px;color:#333;line-height:1.9;white-space:nowrap;padding:0 6mm}
 .kp-head-mid b{font-weight:900}
-.kp-mark{width:32mm;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:2mm}
-.kp-mark img{height:74px;object-fit:contain}
+.kp-mark{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.kp-mark img{height:85px;object-fit:contain}
 .kp-sec{margin-bottom:3.2mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
 .kp-sec-body{padding-left:16px;font-size:11.5px;line-height:1.8}
@@ -2276,12 +2313,12 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-table th{background:#f2f2f2;font-weight:700}
 .kp-table td.left{text-align:left}
 .kp-note{font-size:9.5px;color:#444;line-height:1.8;margin-top:6mm;border-top:1px solid #ccc;padding-top:3.5mm}
-.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:4.5mm;font-size:11px}
+.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:7mm;font-size:11px}
 .kp-confirm-table th,.kp-confirm-table td{border:1px solid #999;padding:6px 10px;text-align:center}
 .kp-confirm-table th{background:#f2f2f2;font-weight:900}
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
-.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:4.5mm;gap:12px}
+.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:6mm;gap:12px}
 .kp-acc{font-size:10.5px;line-height:1.8;color:#333;flex:1}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
@@ -2302,15 +2339,13 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-head">
     <div class="kp-head-left">
-      <div style="display:flex;align-items:center;gap:8px">
-        ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
-        <div class="kp-org">${e2(r.companyName||'일룸수면과학연구소')}</div>
-      </div>
-      <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
+      ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
+      <div class="kp-org">수면과학연구소</div>
     </div>
-    <div class="kp-head-mid">성적서 번호<br><b>${e2(r.receiptNo)}</b><br>페이지 (1) / (총 1)</div>
+    <div class="kp-head-mid">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</div>
     <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
   </div>
+  <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
 
   <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기&nbsp;관&nbsp;명 : ${e2(r.requestDept||'-')}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">2. 시험대상품목</div><div class="kp-sec-body">제&nbsp;품&nbsp;명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재&nbsp;&nbsp;&nbsp;&nbsp;질 : '+e2(r.sampleMaterial):''}</div></div>
@@ -2355,6 +2390,72 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 </body></html>`;
 
     return HTML;
+}
+function buildKolasWordHTML(r){
+    const e2=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const f2=s=>s?String(s).replace(/-/g,'.'):'';
+    const ksrc=document.getElementById('kolas-logo-src')?.src||'';
+    const iloomLogoSrc=document.getElementById('iloom-logo-src')?.src||'';
+    const tests=r.tests||[];
+    const det=r.detailData||{};
+
+    const rows = tests.length ? tests.map(function(t,i){
+      const judge = det['judge_'+i] || '';
+      const unit = (t.detail && t.detail.unit) || '';
+      const resultValue = (t.detail && t.detail.resultValue) || '';
+      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td></td></tr>`;
+    }).join('') : '<tr><td colspan="7" align="center">시험 항목 없음</td></tr>';
+
+    return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${e2(r.receiptNo)} 시험성적서</title>
+<style>
+body{font-family:'맑은 고딕',sans-serif;font-size:11pt;color:#111}
+table{border-collapse:collapse}
+table.bordered{width:100%;margin:6px 0}
+table.bordered td,table.bordered th{border:1px solid #999;padding:6px 8px;font-size:10pt}
+table.bordered th{background:#f2f2f2}
+.title{text-align:center;font-size:22pt;font-weight:bold;letter-spacing:6px;margin-bottom:14px}
+.secnum{font-weight:bold;font-size:11pt;margin:12px 0 4px}
+.secbody{margin:0 0 0 16px;font-size:11pt}
+.note{font-size:9pt;color:#444;margin-top:10px}
+</style></head>
+<body>
+<div class="title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
+<table style="width:100%"><tr>
+  <td style="width:55%;vertical-align:middle">
+    ${iloomLogoSrc?`<img src="${iloomLogoSrc}" height="28"><br>`:''}
+    <b>수면과학연구소</b><br>
+    <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</span>
+  </td>
+  <td style="width:25%;vertical-align:middle;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</td>
+  <td style="width:20%;text-align:center;vertical-align:middle">${ksrc?`<img src="${ksrc}" height="70">`:''}</td>
+</tr></table>
+<hr>
+<div class="secnum">1. 의뢰자</div><div class="secbody">기관명 : ${e2(r.requestDept||'-')}</div>
+<div class="secnum">2. 시험대상품목</div><div class="secbody">제품명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재질 : '+e2(r.sampleMaterial):''}</div>
+<div class="secnum">3. 시험기간</div><div class="secbody">${f2(r.testPeriodStart)||'-'} ~ ${f2(r.testPeriodEnd)||'-'}</div>
+<div class="secnum">4. 시험장소</div><div class="secbody">${e2(r.testLocation||'-')}</div>
+<div class="secnum">5. 시험방법</div><div class="secbody">${e2(r.testMethod||'-')}</div>
+<div class="secnum">6. 시험결과</div>
+<table class="bordered">
+  <tr><th>No.</th><th>시험 항목</th><th>규격</th><th>단위</th><th>시험 결과</th><th>판정</th><th>비고</th></tr>
+  ${rows}
+</table>
+<div class="note">
+  ※ 이 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 결과로서 전체 제품에 대한 품질을 보증하지는 않습니다.<br>
+  ※ 이 성적서는 홍보,선전, 광고 및 소송용으로 사용될 수 없으며, 용도 이외의 사용을 금합니다.
+</div>
+<table class="bordered">
+  <tr><th rowspan="2" style="width:8%">확 인</th><th>작성자</th><th>기술책임자</th></tr>
+  <tr><td align="center">성명 : ${e2(r.tester)}</td><td align="center">성명 : ${e2(r.techManager)}</td></tr>
+</table>
+<p style="font-size:9pt;line-height:1.7;margin-top:10px">
+  위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에
+  서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
+</p>
+<p style="text-align:center;font-weight:bold;margin-top:16px">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</p>
+<p style="text-align:center;font-weight:bold">한국인정기구 인정 &nbsp;수면과학연구소 (인)</p>
+</body></html>`;
 }
 function newReport(){
   currentId = null; _reportIsIssued = false; _reportIsSubReport = false; sampleImageData=''; testerSignData='';
