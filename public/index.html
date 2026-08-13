@@ -2356,7 +2356,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
 .kp-footer{text-align:center;margin-top:8mm}
 .kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
-.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
+.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
+.kp-stamp-small{font-size:13px;font-weight:700}
 .kp-seal-wrap{position:relative;display:inline-block;padding:0 6mm 0 2px}
 .kp-seal-img{position:absolute;top:50%;left:58%;transform:translate(-50%,-50%);height:44px;width:44px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92}
 .kp-original-stamp{position:absolute;top:58mm;right:16mm;width:22mm;height:22mm;border-radius:50%;border:2px solid #c81e2c;box-shadow:inset 0 0 0 2.5px #fff,inset 0 0 0 3px #c81e2c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c81e2c;opacity:0.85;transform:rotate(-9deg)}
@@ -2395,11 +2396,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     </table>
   </div>
 
-  <div class="kp-note">
-    ※ 이 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 결과로서 전체 제품에 대한 품질을 보증하지는 않습니다.<br>
-    ※ 이 성적서는 홍보,선전, 광고 및 소송용으로 사용될 수 없으며, 용도 이외의 사용을 금합니다.
-  </div>
-
   <table class="kp-confirm-table">
     <tr><th class="confirm-label" rowspan="2">확 인</th><th>작성자</th><th>기술책임자</th></tr>
     <tr>
@@ -2407,6 +2403,11 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <td><div class="name-cell">성명 : ${e2(r.techManager)}<img src="${JY_SIGN_DATA}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></td>
     </tr>
   </table>
+
+  <div class="kp-note">
+    ※ 이 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 결과로서 전체 제품에 대한 품질을 보증하지는 않습니다.<br>
+    ※ 이 성적서는 홍보,선전, 광고 및 소송용으로 사용될 수 없으며, 용도 이외의 사용을 금합니다.
+  </div>
 
   <div class="kp-bottom">
     <div class="kp-acc">
@@ -2417,7 +2418,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 
   <div class="kp-footer">
     <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
-    <div class="kp-stamp">한국인정기구 인정 &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
+    <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
   </div>
 </div>
 <script>window.addEventListener('load',function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>
