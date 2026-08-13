@@ -2330,7 +2330,10 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-org-logo{height:30px;object-fit:contain}
 .kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px;margin-top:1mm}
 .kp-address{font-size:9.5px;color:#555;font-weight:400}
-.kp-head-mid{flex-shrink:0;font-size:10.5px;color:#333;line-height:1.9;white-space:nowrap;padding:0 6mm}
+.kp-head-mid{flex-shrink:0;font-size:10.5px;color:#333;white-space:nowrap;padding:0 6mm}
+.kp-row{display:flex;gap:2px;margin-bottom:3px}
+.kp-row:last-child{margin-bottom:0}
+.kp-row-lbl{width:15mm;flex-shrink:0}
 .kp-head-mid b{font-weight:900}
 .kp-mark{flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .kp-mark img{height:95px;object-fit:contain}
@@ -2347,7 +2350,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-confirm-table th{background:#f2f2f2;font-weight:900}
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
-.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:5mm;gap:12px}
+.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:3mm;gap:12px}
 .kp-acc{font-size:10.5px;line-height:1.4;color:#333;flex:1}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
@@ -2372,7 +2375,10 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="kp-org">수면과학연구소</div>
       <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
     </div>
-    <div class="kp-head-mid">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</div>
+    <div class="kp-head-mid">
+      <div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div>
+      <div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div>
+    </div>
     <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
   </div>
 
