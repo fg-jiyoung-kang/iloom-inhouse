@@ -149,17 +149,15 @@ async function verify(){
   // 상세 정보 표시
   var infoSection=document.getElementById('infoSection');
   infoSection.style.display='';
-  var isKolas=(report.purpose||'').includes('KOLAS용');
-  addInfo('시험성적서 번호', '<b>'+esc(report.receiptNo||'-')+'</b>');
-  addInfo('시험의뢰번호', esc(report.receiptNo||'-'));
-  addInfo('발행일', esc(report.issuedDate||'-'));
-  addInfo('발행기관', '일룸 수면과학연구소'+(isKolas?' &nbsp;<span class="tag kolas">KOLAS 공인시험기관</span>':'<span class="tag internal"> &nbsp;내부시험</span>'));
-  addInfo('시료명', esc(report.sampleName||'-'));
+  var isKolas=!!report.kolasFormat;
+  addInfo('성적서 번호', '<b>'+esc(report.receiptNo||'-')+'</b>');
   addInfo('의뢰자', esc(report.requestDept||'-'));
-  addInfo('KOLAS 인정 여부', isKolas?'✔ KOLAS 인정 시험':'내부 시험');
-  addInfo('발행 시각 (KST)', fmtKST(report.issuedAt||''));
-  addInfo('전자문서 상태', isIssued?'정상':'미발행');
-  addInfo('재발행 여부', report.reissued?'재발행 이력 있음':'없음');
+  addInfo('발행기관', '일룸 수면과학연구소');
+  addInfo('발행일', esc(report.issuedDate||'-'));
+  addInfo('시험항목', esc(report.testItems||'-'));
+  if(isKolas) addInfo('KOLAS', '<span class="tag kolas">공인시험 (인정범위 내)</span>');
+  addInfo('문서상태', isIssued?'정상':'미발행');
+  addInfo('재발행', report.reissued?'재발행 이력 있음':'없음');
 
   addCheck(isIssued, '정상 발행');
   addCheck(true, '위변조 없음');

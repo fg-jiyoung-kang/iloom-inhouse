@@ -386,11 +386,11 @@ button,input,select{font:inherit}
           <button class="btn" id="saveBtn">저장</button>
           <span id="autoSaveStatus" style="font-size:11px;color:#e60012;font-weight:700;align-self:center;margin-left:4px;display:none">● 미저장 변경사항 있음</span>
           <button class="btn danger" id="deleteBtn">삭제</button>
-          <button class="btn primary" id="printBtn" style="background:var(--red);border-color:var(--red);font-size:14px;padding:10px 20px">PDF 출력</button>
-          <button class="btn" id="kolasPrintBtn" style="background:#4c51bf;border-color:#4c51bf;color:#fff;font-size:14px;padding:10px 20px">🔖 KOLAS 성적서 출력</button>
-          <button id="finalizeBtn" style="display:none;background:#16a34a;border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer" onclick="finalizeReport()">✔ 최종작성완료</button>
-          <button id="requestUnlockBtn" style="display:none;background:#f59e0b;border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer" onclick="requestUnlock()">✏ 수정 작성 요청하기</button>
-          <button id="splitIssueBtn" style="display:none;background:#7c3aed;border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer" onclick="openSplitModal(null)">✂ 분리발행</button>
+          <button class="btn primary" id="printBtn" style="font-size:13px">PDF 출력</button>
+          <button class="btn" id="kolasPrintBtn" style="font-size:13px;background:#fff;color:#4c51bf;border-color:#c7d2fe">KOLAS 성적서 출력</button>
+          <button class="btn" id="finalizeBtn" style="display:none;font-size:13px;background:#fff;color:#16a34a;border-color:#bbf7d0" onclick="finalizeReport()">최종작성완료</button>
+          <button class="btn" id="requestUnlockBtn" style="display:none;font-size:13px;background:#fff;color:#b45309;border-color:#fde68a" onclick="requestUnlock()">수정 작성 요청하기</button>
+          <button class="btn" id="splitIssueBtn" style="display:none;font-size:13px;background:#fff;color:#7c3aed;border-color:#ddd6fe" onclick="openSplitModal(null)">분리발행</button>
         </div>
       </section>
 
@@ -410,17 +410,6 @@ button,input,select{font:inherit}
             <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
               신청일
               <input id="req_date" type="date" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none">
-            </label>
-            <label style="display:flex;flex-direction:column;gap:8px;font-size:13px;font-weight:700;color:#374151">
-              성적서 구분
-              <div style="display:flex;gap:20px;align-items:center;padding:10px 0">
-                <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;cursor:pointer">
-                  <input type="checkbox" id="req_chk_kolas" style="width:16px;height:16px;accent-color:#e60012"> KOLAS 성적서
-                </label>
-                <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;cursor:pointer">
-                  <input type="checkbox" id="req_chk_internal" style="width:16px;height:16px;accent-color:#e60012"> 내부 품질용
-                </label>
-              </div>
             </label>
             <div style="grid-column:1/-1;background:#f1f5f9;border-left:3px solid #e60012;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;color:#374151;margin-top:4px;letter-spacing:0.3px">신청자 정보</div>
             <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
@@ -599,12 +588,6 @@ button,input,select{font:inherit}
                   <input id="receiptNo" placeholder="의뢰서 불러오기로 자동 입력됩니다" style="flex:1;background:#f5f5f5;color:#555;cursor:default" readonly>
                   <button type="button" onclick="importFromRequest()" style="background:#e60012;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap">의뢰서 불러오기</button>
                 </div>
-              </label>
-              <label>용도
-                <select id="purpose" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer">
-                  <option value="내부 품질 관리용">내부 품질 관리용</option>
-                  <option value="KOLAS용 (KT1333)">KOLAS용 (KT1333)</option>
-                </select>
               </label>
               <label>접수일자<input id="receivedDate" type="date"></label>
               <label>발급예정일<input id="issuedDate" type="date"></label>
@@ -2155,7 +2138,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   ${iloomLineEl}
   <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'IN HOUSE TEST REPORT')}</div><div></div></div>
   <table class="mt"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup>
-    <tr><th>접수번호</th><td>${e2(r.receiptNo)}</td><th>용도</th><td>${(r.purpose||'').includes('KOLAS용')?'KOLAS ACC.NO KT1333':e2(r.purpose)}</td></tr>
+    <tr><th>접수번호</th><td colspan="3">${e2(r.receiptNo)}</td></tr>
     <tr><th>접수일자</th><td>${f2(r.receivedDate)}</td><th>발급예정일</th><td>${f2(r.issuedDate)}</td></tr>
     <tr><th>의뢰자</th><td>${e2(r.requestDept)}</td><th>색상</th><td>${e2(r.colorInfo)}</td></tr>
     <tr><th>시료명</th><td>${e2(r.sampleName)}${mt}</td><th>브랜드</th><td>${e2(r.brand||'')}</td></tr>
@@ -3020,7 +3003,7 @@ function renderPreview(){
     <section class="page page-1" style="">
       ${_prevLogoEl}
       <div class="report-head"><div class="report-head-row"><div class="report-title">${esc(r.reportTitle)}</div><div class="logo-block"></div></div></div>
-      <table class="meta-table"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup><tr><th>접수번호</th><td>${esc(r.receiptNo)}</td><th>용도</th><td>${(r.purpose||'').includes('KOLAS용')?'KOLAS ACC.NO KT1333':esc(r.purpose)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr>${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${esc(r.sampleReturn||'-')}</td><th>시료수량</th><td>${esc(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${esc(r.sampleMaterial||'-')}</td></tr>`:''}</table>
+      <table class="meta-table"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup><tr><th>접수번호</th><td colspan="3">${esc(r.receiptNo)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr>${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${esc(r.sampleReturn||'-')}</td><th>시료수량</th><td>${esc(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${esc(r.sampleMaterial||'-')}</td></tr>`:''}</table>
       <div class="red-title">■ 의뢰 시험 항목</div>
       <table class="report-table"><thead><tr><th style="width:8%">No.</th><th style="width:37%">시험 항목 (Test Item)</th><th>시험 규격</th></tr></thead>
         <tbody>${tests.length ? tests.map((t,i)=>'<tr><td>'+(i+1)+'</td><td class="left bold">'+esc(t.name||'')+'</td><td class="left">'+esc(t.spec||'')+'</td></tr>').join('') : '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
@@ -4262,15 +4245,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<div style="font-size:22px;font-weight:900;color:#e60012;letter-spacing:3px">시험 의뢰서</div>'
     +'</div>'
     +'</div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-    +'<div style="display:flex;gap:16px;align-items:center">'
-    +'<span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">'
-    +'<span style="display:inline-flex;width:14px;height:14px;border:1.5px solid '+(data.chk_kolas?'#e60012':'#aaa')+';border-radius:2px;background:'+(data.chk_kolas?'#e60012':'#fff')+';align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:#fff;font-weight:900">'+(data.chk_kolas?'✓':'')+'</span> KOLAS 성적서'
-    +'</span>'
-    +'<span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">'
-    +'<span style="display:inline-flex;width:14px;height:14px;border:1.5px solid '+(data.chk_internal?'#e60012':'#aaa')+';border-radius:2px;background:'+(data.chk_internal?'#e60012':'#fff')+';align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:#fff;font-weight:900">'+(data.chk_internal?'✓':'')+'</span> 내부 품질용'
-    +'</span>'
-    +'</div>'
+    +'<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px">'
     +'<div style="font-size:14px;color:#111;font-weight:900;letter-spacing:0.3px">신청일: '+data.date+' &nbsp;&nbsp; 의뢰번호: '+data.no+'</div>'
     +'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
@@ -4463,7 +4438,6 @@ async function saveRequest(){
   var checkedItems = getCheckedReqItems();
 
   var missing = [];
-  if(!chk_kolas && !chk_internal) missing.push('성적서 구분 (KOLAS 또는 내부 품질용)');
   if(!v('req_company').trim()) missing.push('회사명');
   if(!v('req_person').trim()) missing.push('의뢰자');
   if(!v('req_hp').trim()) missing.push('핸드폰번호');

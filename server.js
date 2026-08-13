@@ -555,6 +555,8 @@ app.get('/api/verify', async (req, res) => {
         purpose: data.purpose || '',
         issuedAt: data.issuedAt || data.savedAt || '',
         reissued: !!(data.unlockHistory && data.unlockHistory.length > 0),
+        kolasFormat: !!data.kolasFormat,
+        testItems: (data.tests || []).map((t) => t.name).filter(Boolean).join(', '),
       },
     });
   } catch (e) {
