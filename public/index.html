@@ -2324,9 +2324,9 @@ function buildKolasPrintHTML(r){
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
 .kp{width:210mm;min-height:297mm;padding:12mm 14mm;position:relative;background:#fff}
-.kp-title{text-align:center;font-size:20px;font-weight:900;letter-spacing:6px;margin:0 0 4mm}
+.kp-title{text-align:center;font-size:25px;font-weight:900;letter-spacing:6px;margin:0 0 4mm}
 .kp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:2px solid #111;padding-bottom:4mm;margin-bottom:4.5mm}
-.kp-head-left{display:flex;flex-direction:column;gap:1.5mm}
+.kp-head-left{display:flex;flex-direction:column;align-items:flex-start;gap:1.5mm}
 .kp-org-logo{height:30px;object-fit:contain}
 .kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px;margin-top:1mm}
 .kp-address{font-size:9.5px;color:#555;font-weight:400}
@@ -2348,12 +2348,12 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
 .kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:9mm;gap:12px}
-.kp-acc{font-size:10.5px;line-height:1.8;color:#333;flex:1}
+.kp-acc{font-size:10.5px;line-height:1.4;color:#333;flex:1}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
 .kp-footer{text-align:center;margin-top:8mm}
-.kp-date{font-size:15px;font-weight:700;margin-bottom:6px}
-.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900}
+.kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
+.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
 .kp-seal-wrap{position:relative;display:inline-block;padding:0 6mm 0 2px}
 .kp-seal-img{position:absolute;top:50%;left:58%;transform:translate(-50%,-50%);height:44px;width:44px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92}
 .kp-original-stamp{position:absolute;top:46mm;right:16mm;width:22mm;height:22mm;border-radius:50%;border:2px solid #c81e2c;box-shadow:inset 0 0 0 2.5px #fff,inset 0 0 0 3px #c81e2c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c81e2c;opacity:0.85;transform:rotate(-9deg)}
