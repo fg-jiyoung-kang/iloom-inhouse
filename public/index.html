@@ -2252,6 +2252,7 @@ function buildKolasPrintHTML(r){
     const e2=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const f2=s=>s?String(s).replace(/-/g,'.'):'';
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
+    const iloomLogoSrc=document.getElementById('iloom-logo-src')?.src||'';
     const tests=r.tests||[];
     const det=r.detailData||{};
     const _vBase=(function(){ try{ var h=window.location.href; return h.substring(0,h.lastIndexOf('/')+1)+'verify.html'; }catch(e){ return 'verify.html'; } })();
@@ -2270,14 +2271,17 @@ function buildKolasPrintHTML(r){
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
 .kp{width:210mm;min-height:297mm;padding:14mm 14mm 16mm;position:relative;background:#fff}
-.kp-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6mm}
-.kp-org{font-size:13px;font-weight:900}
-.kp-org small{display:block;font-size:10px;font-weight:400;color:#555;margin-top:3px}
+.kp-title{text-align:center;font-size:22px;font-weight:900;letter-spacing:6px;margin:0 0 5mm}
+.kp-head{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:2px solid #111;border-bottom:2px solid #111;padding:4mm 0;margin-bottom:6mm}
+.kp-head-left{display:flex;align-items:center;gap:10px}
+.kp-org-logo{height:42px;object-fit:contain}
+.kp-org{font-size:12.5px;font-weight:900}
+.kp-org small{display:block;font-size:9.5px;font-weight:400;color:#555;margin-top:3px}
+.kp-head-mid{font-size:10.5px;color:#333;line-height:1.9}
+.kp-head-mid b{font-weight:900}
 .kp-mark{display:flex;flex-direction:column;align-items:center;gap:2px}
-.kp-mark img{height:95px;object-fit:contain}
+.kp-mark img{height:130px;object-fit:contain}
 .kp-mark .acc-no{font-size:10px;font-weight:400;letter-spacing:0.5px;color:#111}
-.kp-title{text-align:center;font-size:22px;font-weight:900;letter-spacing:6px;margin:2mm 0 6mm;border-bottom:2px solid #111;padding-bottom:6mm}
-.kp-no{display:flex;justify-content:space-between;font-size:10px;color:#555;margin-bottom:5mm}
 .kp-sec{margin-bottom:4.5mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
 .kp-sec-body{padding-left:16px;font-size:11.5px;line-height:1.8}
@@ -2286,25 +2290,31 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-table th{background:#f2f2f2;font-weight:700}
 .kp-table td.left{text-align:left}
 .kp-note{font-size:9.5px;color:#444;line-height:1.8;margin-top:4mm;border-top:1px solid #ccc;padding-top:3mm}
-.kp-confirm{display:flex;margin-top:8mm;border:1px solid #999}
-.kp-confirm>div{flex:1;padding:8px 10px;border-left:1px solid #999}
-.kp-confirm>div:first-child{border-left:none}
-.kp-confirm .role{font-size:10px;color:#555;font-weight:700}
-.kp-confirm .name{font-size:12px;font-weight:800;margin-top:5px;display:flex;align-items:center;gap:6px}
-.kp-acc{margin-top:7mm;font-size:10px;line-height:1.8;text-align:center;color:#333}
-.kp-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:9mm}
-.kp-date{font-size:12px;font-weight:700}
-.kp-stamp{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:900}
+.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:7mm;font-size:11px}
+.kp-confirm-table th,.kp-confirm-table td{border:1px solid #999;padding:8px 10px;text-align:center}
+.kp-confirm-table th{background:#f2f2f2;font-weight:900}
+.kp-confirm-table .confirm-label{width:8%}
+.kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
+.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:6mm;gap:12px}
+.kp-acc{font-size:9.5px;line-height:1.8;color:#333;flex:1}
+.kp-qr{text-align:center;flex-shrink:0}
+.kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
+.kp-footer{text-align:center;margin-top:9mm}
+.kp-date{font-size:12px;font-weight:700;margin-bottom:4px}
+.kp-stamp{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;font-weight:900}
 `;
 
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
 <div class="kp">
+  <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-head">
-    <div class="kp-org">${e2(r.companyName||'일룸수면과학연구소')}<small>${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</small></div>
+    <div class="kp-head-left">
+      ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
+      <div class="kp-org">${e2(r.companyName||'일룸수면과학연구소')}<small>${e2(r.companyAddress||'')}${r.companyTel?'<br>Tel '+e2(r.companyTel):''}</small></div>
+    </div>
+    <div class="kp-head-mid">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</div>
     <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}<div class="acc-no">KOLAS ACC. NO. KT1333</div></div>
   </div>
-  <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
-  <div class="kp-no"><span>접수번호(성적서번호) : ${e2(r.receiptNo)}</span><span>페이지 : (1/1)</span></div>
 
   <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기&nbsp;관&nbsp;명 : ${e2(r.requestDept||'-')}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">2. 시험대상품목</div><div class="kp-sec-body">제&nbsp;품&nbsp;명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재&nbsp;&nbsp;&nbsp;&nbsp;질 : '+e2(r.sampleMaterial):''}</div></div>
@@ -2326,32 +2336,26 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     3. 이 성적서의 진위여부는 기업신뢰플러스(www.g4b.go.kr)에서 성적서번호로 확인 가능합니다.
   </div>
 
-  <div class="kp-confirm">
-    <div>
-      <div class="role">작성자</div>
-      <div class="name">성&nbsp;명 : ${e2(r.tester)}${r.testerSign?`<img src="${r.testerSign}" style="height:30px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:''}</div>
-    </div>
-    <div>
-      <div class="role">기술책임자</div>
-      <div class="name">성&nbsp;명 : ${e2(r.techManager)}<img src="${JY_SIGN_DATA}" style="height:30px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div>
-    </div>
-    <div>
-      <div class="role">품질책임자(승인)</div>
-      <div class="name">성&nbsp;명 : ${e2(r.qualityManager)}<img src="${SJ_SIGN_DATA}" style="height:30px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div>
-    </div>
-  </div>
+  <table class="kp-confirm-table">
+    <tr><th class="confirm-label" rowspan="2">확 인</th><th>작성자</th><th>기술책임자</th></tr>
+    <tr>
+      <td><div class="name-cell">성명 : ${e2(r.tester)}${r.testerSign?`<img src="${r.testerSign}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:''}</div></td>
+      <td><div class="name-cell">성명 : ${e2(r.techManager)}<img src="${JY_SIGN_DATA}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></td>
+    </tr>
+  </table>
 
-  <div class="kp-acc">
-    위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에<br>
-    서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
+  <div class="kp-bottom">
+    <div class="kp-acc">
+      위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에<br>
+      서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
+    </div>
+    ${_vUrl?`<div class="kp-qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(_vUrl)}" width="64" height="64" style="display:block;border:0.5px solid #e5e7eb"><div class="lbl">위변조방지 QR</div></div>`:''}
   </div>
 
   <div class="kp-footer">
     <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
-    <div class="kp-stamp">${e2(r.companyName||'일룸수면과학연구소')} 원장<img src="${ILOOM_SIGN_DATA}" style="height:56px;width:56px;object-fit:contain;mix-blend-mode:multiply"></div>
+    <div class="kp-stamp">한국인정기구 인정 &nbsp;${e2(r.companyName||'일룸수면과학연구소')} 원장<img src="${ILOOM_SIGN_DATA}" style="height:56px;width:56px;object-fit:contain;mix-blend-mode:multiply"></div>
   </div>
-
-  ${_vUrl?`<div style="position:absolute;right:14mm;bottom:14mm;text-align:center"><img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(_vUrl)}" width="64" height="64" style="display:block;border:0.5px solid #e5e7eb"><div style="font-size:6px;color:#e60012;font-weight:800;margin-top:2px">위변조방지 QR</div></div>`:''}
 </div>
 <script>window.addEventListener('load',function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>
 </body></html>`;
