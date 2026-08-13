@@ -3624,22 +3624,22 @@ function renderPdfStore(){
     const btnWrap=document.createElement('div');
     btnWrap.style.cssText='display:flex;gap:6px;flex-shrink:0;flex-direction:column;align-items:flex-end';
     const btn=document.createElement('button');
-    btn.textContent='🖨 PDF 출력';
-    btn.style.cssText='background:#e60012;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap';
+    btn.textContent='PDF 출력';
+    btn.style.cssText='background:#fff;color:#e60012;border:1px solid #ffc9c9;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap';
     btn.onclick=()=>printStoredReport(r.id);
     btnWrap.appendChild(btn);
     if(r.kolasFormat){
       const kolasBtn=document.createElement('button');
-      kolasBtn.textContent='🔖 KOLAS 성적서 출력';
-      kolasBtn.style.cssText='background:#4c51bf;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap';
+      kolasBtn.textContent='KOLAS 성적서 출력';
+      kolasBtn.style.cssText='background:#fff;color:#4c51bf;border:1px solid #c7d2fe;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap';
       kolasBtn.onclick=()=>printStoredKolasReport(r.id);
       btnWrap.appendChild(kolasBtn);
     }
     // 분리발행 버튼 (서브레포트가 아닌 경우만)
     if(!r.isSubReport){
       const splitBtn2=document.createElement('button');
-      splitBtn2.textContent='✂ 분리발행';
-      splitBtn2.style.cssText='background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap';
+      splitBtn2.textContent='분리발행';
+      splitBtn2.style.cssText='background:#fff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap';
       splitBtn2.onclick=()=>openSplitModal(r.id);
       btnWrap.appendChild(splitBtn2);
     } else {
