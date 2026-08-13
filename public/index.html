@@ -2328,13 +2328,14 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-org-logo{grid-column:1;grid-row:1;height:30px;object-fit:contain}
 .kp-org{grid-column:1;grid-row:2;font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px}
 .kp-address{grid-column:1;grid-row:3;font-size:9.5px;color:#555;font-weight:400}
+.kp-phone{grid-column:1;grid-row:4;font-size:9.5px;color:#555;font-weight:400}
 .kp-head-mid{grid-column:2;font-size:10.5px;color:#333;white-space:nowrap;padding:0 6mm}
 .kp-head-mid.row2{grid-row:2}
 .kp-head-mid.row3{grid-row:3}
 .kp-row{display:flex;gap:2px}
 .kp-row-lbl{width:15mm;flex-shrink:0}
 .kp-head-mid b{font-weight:900}
-.kp-mark{grid-column:3;grid-row:1/4;display:flex;align-items:center;justify-content:center}
+.kp-mark{grid-column:3;grid-row:1/5;display:flex;align-items:center;justify-content:center}
 .kp-mark img{height:95px;object-fit:contain}
 .kp-sec{margin-bottom:3.2mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
@@ -2373,7 +2374,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   <div class="kp-head">
     ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
     <div class="kp-org">수면과학연구소</div>
-    <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
+    <div class="kp-address">${e2(r.companyAddress||'')}</div>
+    <div class="kp-phone">${r.companyTel?'Tel '+e2(r.companyTel):''}</div>
     <div class="kp-head-mid row2"><div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div></div>
     <div class="kp-head-mid row3"><div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div></div>
     <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
