@@ -2268,6 +2268,34 @@ window.addEventListener('load',function(){
 
     return HTML;
 }
+function deriveKolasResult(t, i, det){
+  const nm = (t.name||'').toLowerCase();
+  if(nm.includes('내구성')){
+    const d1=det['d1_'+i]||'', d2=det['d2_'+i]||'', d3=det['d3_'+i]||'';
+    return { unit:'mm', value: [d1&&('D1:'+d1),d2&&('D2:'+d2),d3&&('D3:'+d3)].filter(Boolean).join(' ') };
+  }
+  if(nm.includes('압축줄음률')||nm.includes('줄음률')){
+    return { unit:'%', value: det['cs_pct_'+i]||'' };
+  }
+  if(nm.includes('필링')){
+    return { unit:'급', value: det['pilling_'+i]||'' };
+  }
+  if(nm.includes('수직하중')||nm.includes('하중')){
+    const d1=det['load_0_d1_'+i]||'', d2=det['load_0_d2_'+i]||'';
+    return { unit:'mm', value: [d1&&('D1:'+d1),d2&&('D2:'+d2)].filter(Boolean).join(' ') };
+  }
+  if(nm.includes('치수의 측정')||nm.includes('치수의측정')){
+    for(let di=0; di<10; di++){
+      const lv=det['dim_l_'+i+'_'+di], wv=det['dim_w_'+i+'_'+di];
+      if(lv||wv) return { unit:'mm', value: 'L='+(lv||'-')+' W='+(wv||'-') };
+    }
+    return { unit:'mm', value:'' };
+  }
+  if(nm.includes('견뢰도')){
+    return { unit:'급', value: det['genResult_'+i]||det['appearance_'+i]||'' };
+  }
+  return null;
+}
 function buildKolasPrintHTML(r){
     const e2=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const f2=s=>s?String(s).replace(/-/g,'.'):'';
@@ -2284,8 +2312,9 @@ function buildKolasPrintHTML(r){
 
     const rows = tests.length ? tests.map(function(t,i){
       const judge = det['judge_'+i] || '';
-      const unit = (t.detail && t.detail.unit) || '';
-      const resultValue = (t.detail && t.detail.resultValue) || '';
+      const auto = deriveKolasResult(t, i, det);
+      const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
+      const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
       const jColor = (judge==='합격'||judge==='PASS') ? '#008a3d' : (judge ? '#e60012' : '#999');
       return `<tr><td>${i+1}</td><td class="left">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td>${e2(unit)}</td><td>${e2(resultValue)}</td><td style="font-weight:800;color:${jColor}">${e2(judge||'-')}</td><td></td></tr>`;
     }).join('') : '<tr><td colspan="7" style="color:#999;padding:14px">시험 항목 없음</td></tr>';
@@ -2401,8 +2430,9 @@ function buildKolasWordHTML(r){
 
     const rows = tests.length ? tests.map(function(t,i){
       const judge = det['judge_'+i] || '';
-      const unit = (t.detail && t.detail.unit) || '';
-      const resultValue = (t.detail && t.detail.resultValue) || '';
+      const auto = deriveKolasResult(t, i, det);
+      const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
+      const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
       return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td></td></tr>`;
     }).join('') : '<tr><td colspan="7" align="center">시험 항목 없음</td></tr>';
 
