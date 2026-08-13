@@ -2268,8 +2268,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-head-mid{font-size:10px;color:#333;line-height:1.8}
 .kp-head-mid b{font-weight:900}
 .kp-mark{display:flex;flex-direction:column;align-items:center;gap:1px}
-.kp-mark img{height:60px;object-fit:contain}
-.kp-mark .acc-no{font-size:8.5px;font-weight:400;letter-spacing:0.3px;color:#111}
+.kp-mark img{height:88px;object-fit:contain}
 .kp-sec{margin-bottom:3.2mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
 .kp-sec-body{padding-left:16px;font-size:11.5px;line-height:1.8}
@@ -2307,7 +2306,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
         <div class="kp-org">${e2(r.companyName||'일룸수면과학연구소')}</div>
       </div>
       <div class="kp-head-mid">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</div>
-      <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}<div class="acc-no">KOLAS ACC. NO. KT1333</div></div>
+      <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
     </div>
     <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
   </div>
@@ -2326,7 +2325,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   </div>
 
   <div class="kp-note">
-    ${r.remarkNote?e2(r.remarkNote)+'<br>':''}
     1. 이 성적서의 시험결과는 의뢰자에 의해 제공된 시험품에 한하여 유효하며 이의 사용을 금합니다.<br>
     2. 이 성적서의 시험결과 중 * 표시된 시험항목은 시험기관의 인정범위 밖의 것입니다.<br>
     3. 이 성적서의 진위여부는 기업신뢰플러스(www.g4b.go.kr)에서 성적서번호로 확인 가능합니다.
