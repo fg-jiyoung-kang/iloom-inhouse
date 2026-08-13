@@ -2345,7 +2345,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-table th{background:#f2f2f2;font-weight:700}
 .kp-table td.left{text-align:left}
 .kp-note{font-size:10.5px;color:#444;line-height:1.8;margin-top:6mm;border-top:1px solid #ccc;padding-top:3.5mm}
-.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:11mm;font-size:11px}
+.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:16mm;font-size:11px}
 .kp-confirm-table th,.kp-confirm-table td{border:1px solid #999;padding:6px 10px;text-align:center}
 .kp-confirm-table th{background:#f2f2f2;font-weight:900}
 .kp-confirm-table .confirm-label{width:8%}
@@ -2429,8 +2429,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 function buildKolasWordHTML(r){
     const e2=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const f2=s=>s?String(s).replace(/-/g,'.'):'';
-    const ksrc=document.getElementById('kolas-logo-src')?.src||'';
-    const iloomLogoSrc=document.getElementById('iloom-logo-src')?.src||'';
     const tests=r.tests||[];
     const det=r.detailData||{};
 
@@ -2439,33 +2437,40 @@ function buildKolasWordHTML(r){
       const auto = deriveKolasResult(t, i, det);
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
-      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td></td></tr>`;
+      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td>&nbsp;</td></tr>`;
     }).join('') : '<tr><td colspan="7" align="center">시험 항목 없음</td></tr>';
 
+    // 워드 HTML 렌더러는 큰 이미지·flex 레이아웃을 불안정하게 처리하므로
+    // 로고/마크 이미지 없이 표+텍스트만으로 구성해 레이아웃이 깨지지 않게 한다.
     return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>${e2(r.receiptNo)} 시험성적서</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
 <style>
+@page WordSection1 { size: 210mm 297mm; margin: 20mm 18mm; }
+div.WordSection1 { page: WordSection1; }
 body{font-family:'맑은 고딕',sans-serif;font-size:11pt;color:#111}
 table{border-collapse:collapse}
 table.bordered{width:100%;margin:6px 0}
 table.bordered td,table.bordered th{border:1px solid #999;padding:6px 8px;font-size:10pt}
 table.bordered th{background:#f2f2f2}
+table.plain td{border:none;padding:0;vertical-align:top}
 .title{text-align:center;font-size:22pt;font-weight:bold;letter-spacing:6px;margin-bottom:14px}
 .secnum{font-weight:bold;font-size:11pt;margin:12px 0 4px}
 .secbody{margin:0 0 0 16px;font-size:11pt}
 .note{font-size:9pt;color:#444;margin-top:10px}
 </style></head>
 <body>
+<div class="WordSection1">
 <div class="title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
-<table style="width:100%"><tr>
-  <td style="width:55%;vertical-align:middle">
-    ${iloomLogoSrc?`<img src="${iloomLogoSrc}" height="28"><br>`:''}
-    <b>수면과학연구소</b><br>
-    <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</span>
-  </td>
-  <td style="width:25%;vertical-align:middle;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</td>
-  <td style="width:20%;text-align:center;vertical-align:middle">${ksrc?`<img src="${ksrc}" height="70">`:''}</td>
-</tr></table>
+<table class="plain" style="width:100%">
+  <tr>
+    <td style="width:65%">
+      <b style="font-size:13pt;color:#c81e2c">iloom</b> <b>수면과학연구소</b><br>
+      <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</span>
+    </td>
+    <td style="width:35%;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)<br>(KOLAS ACC.NO KT1333)</td>
+  </tr>
+</table>
 <hr>
 <div class="secnum">1. 의뢰자</div><div class="secbody">기관명 : ${e2(r.requestDept||'-')}</div>
 <div class="secnum">2. 시험대상품목</div><div class="secbody">제품명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재질 : '+e2(r.sampleMaterial):''}</div>
@@ -2487,10 +2492,12 @@ table.bordered th{background:#f2f2f2}
 </table>
 <p style="font-size:9pt;line-height:1.7;margin-top:10px">
   위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에
-  서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
+  서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다.<br>
+  (KOLAS ACC.NO KT1333)
 </p>
 <p style="text-align:center;font-weight:bold;margin-top:16px">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</p>
 <p style="text-align:center;font-weight:bold">한국인정기구 인정 &nbsp;수면과학연구소 (인)</p>
+</div>
 </body></html>`;
 }
 function newReport(){
