@@ -2440,6 +2440,7 @@ function buildKolasWordHTML(r){
     const f2=s=>s?String(s).replace(/-/g,'.'):'';
     const tests=r.tests||[];
     const det=r.detailData||{};
+    const ksrc=document.getElementById('kolas-logo-src')?.src||'';
 
     const rows = tests.length ? tests.map(function(t,i){
       const judge = det['judge_'+i] || '';
@@ -2450,7 +2451,8 @@ function buildKolasWordHTML(r){
     }).join('') : '<tr><td colspan="7" align="center">시험 항목 없음</td></tr>';
 
     // 워드 HTML 렌더러는 큰 이미지·flex 레이아웃을 불안정하게 처리하므로
-    // 로고/마크 이미지 없이 표+텍스트만으로 구성해 레이아웃이 깨지지 않게 한다.
+    // 표+텍스트 위주로 구성하되, 코라스 마크는 표 셀 안에 width/height 속성을 지정한
+    // 단순 img 태그로만 넣어 레이아웃이 깨지지 않게 한다.
     return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>${e2(r.receiptNo)} 시험성적서</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
@@ -2473,11 +2475,12 @@ table.plain td{border:none;padding:0;vertical-align:top}
 <div class="title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
 <table class="plain" style="width:100%">
   <tr>
-    <td style="width:65%">
+    <td style="width:50%">
       <b style="font-size:13pt;color:#c81e2c">iloom</b> <b>수면과학연구소</b><br>
       <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</span>
     </td>
-    <td style="width:35%;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)<br>(KOLAS ACC.NO KT1333)</td>
+    <td style="width:30%;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)<br>(KOLAS ACC.NO KT1333)</td>
+    <td style="width:20%" align="right">${ksrc?`<img src="${ksrc}" width="90" height="50">`:''}</td>
   </tr>
 </table>
 <hr>
