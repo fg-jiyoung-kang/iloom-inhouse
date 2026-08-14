@@ -2336,8 +2336,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-row{display:flex;gap:2px}
 .kp-row-lbl{width:15mm;flex-shrink:0}
 .kp-head-mid b{font-weight:900}
-.kp-mark{flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.kp-mark img{height:78px;object-fit:contain;transform:scale(1.25)}
+.kp-mark{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.kp-mark img{height:70px;object-fit:contain}
 .kp-sec{margin-bottom:3.2mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
 .kp-sec-body{padding-left:16px;font-size:11.5px;line-height:1.8}
@@ -2353,7 +2353,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
 .kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:3mm;gap:12px}
-.kp-acc{font-size:11.5px;line-height:1.4;color:#333;flex:1}
+.kp-acc{font-size:10.5px;line-height:1.4;color:#333;flex:1;text-align:center}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
 .kp-footer{text-align:center;margin-top:8mm}
@@ -2420,7 +2420,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 
   <div class="kp-bottom">
     <div class="kp-acc">
-      위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에 서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다.<br>(KOLAS ACC.NO KT1333)
+      위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에 서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
     </div>
     ${_vUrl?`<div class="kp-qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(_vUrl)}" width="64" height="64" style="display:block;border:0.5px solid #e5e7eb"><div class="lbl">위변조방지 QR</div></div>`:''}
   </div>
