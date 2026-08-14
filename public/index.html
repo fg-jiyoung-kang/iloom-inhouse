@@ -2323,10 +2323,10 @@ function buildKolasPrintHTML(r){
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
 .kp{width:210mm;min-height:297mm;padding:12mm 14mm;position:relative;background:#fff}
-.kp-title{text-align:center;font-size:25px;font-weight:900;letter-spacing:6px;margin:0 0 4mm;padding-bottom:3mm;border-bottom:2px solid #111}
-.kp-head{display:flex;flex-direction:column;border-bottom:2px solid #111;padding-bottom:0;margin-bottom:4mm}
-.kp-org-logo{height:26px;object-fit:contain;object-position:left center;align-self:flex-start;margin-bottom:-6mm}
-.kp-head-info{display:flex;align-items:stretch;margin-top:1mm}
+.kp-title{text-align:center;font-size:25px;font-weight:900;letter-spacing:6px;margin:0 0 5mm;padding-bottom:3mm;border-bottom:2px solid #111}
+.kp-head{border-bottom:2px solid #111;padding-bottom:0;margin-bottom:4mm}
+.kp-org-logo{height:26px;object-fit:contain;object-position:left center;align-self:flex-start;margin-bottom:-6.5mm}
+.kp-head-info{display:flex;align-items:stretch}
 .kp-head-left{flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:1.5mm}
 .kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px}
 .kp-address{font-size:9.5px;color:#555;font-weight:400;white-space:nowrap}
@@ -2373,9 +2373,9 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   <div class="kp-original-stamp"><div class="os-title">원&nbsp;본</div><div class="os-line"></div><div class="os-date">${_printedDate}<br>${_printedTime}</div></div>
   <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-head">
-    ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
     <div class="kp-head-info">
       <div class="kp-head-left">
+        ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
         <div class="kp-org">수면과학연구소</div>
         <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
       </div>
