@@ -2324,17 +2324,18 @@ function buildKolasPrintHTML(r){
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
 .kp{width:210mm;min-height:297mm;padding:12mm 14mm;position:relative;background:#fff}
 .kp-title{text-align:center;font-size:25px;font-weight:900;letter-spacing:6px;margin:0 0 4mm;padding-bottom:3mm;border-bottom:2px solid #111}
-.kp-head{display:grid;grid-template-columns:auto 1fr auto;column-gap:14px;row-gap:1.5mm;align-items:center;border-bottom:2px solid #111;padding-bottom:4mm;margin-bottom:4.5mm}
-.kp-org-logo{grid-column:1;grid-row:1;height:30px;object-fit:contain}
-.kp-org{grid-column:1;grid-row:2;font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px}
-.kp-address{grid-column:1;grid-row:3;font-size:9.5px;color:#555;font-weight:400;white-space:nowrap}
-.kp-head-mid{grid-column:2;font-size:10.5px;color:#333;white-space:nowrap;border-left:1px solid #ddd;border-right:1px solid #ddd;padding:0 14px;display:flex;align-items:center;justify-content:flex-end}
-.kp-head-mid.row2{grid-row:2}
-.kp-head-mid.row3{grid-row:3}
+.kp-head{display:flex;flex-direction:column;border-bottom:2px solid #111;padding-bottom:4mm;margin-bottom:4.5mm}
+.kp-org-logo{height:30px;object-fit:contain}
+.kp-head-info{display:flex;align-items:stretch;margin-top:2mm}
+.kp-head-left{flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:2mm}
+.kp-org{font-size:12px;font-weight:700;color:#2b2b2b;letter-spacing:1.5px}
+.kp-address{font-size:9.5px;color:#555;font-weight:400;white-space:nowrap}
+.kp-divider{width:1px;background:#ddd;margin:0 14px;flex-shrink:0}
+.kp-head-mid{flex:1;font-size:10.5px;color:#333;white-space:nowrap;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;gap:4px;padding-right:14px}
 .kp-row{display:flex;gap:2px}
 .kp-row-lbl{width:15mm;flex-shrink:0}
 .kp-head-mid b{font-weight:900}
-.kp-mark{grid-column:3;grid-row:1/4;display:flex;align-items:center;justify-content:flex-end}
+.kp-mark{flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .kp-mark img{height:90px;object-fit:contain}
 .kp-sec{margin-bottom:3.2mm}
 .kp-sec-num{font-weight:900;font-size:12px;margin-bottom:2mm}
@@ -2372,11 +2373,19 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-head">
     ${iloomLogoSrc?`<img class="kp-org-logo" src="${iloomLogoSrc}">`:''}
-    <div class="kp-org">수면과학연구소</div>
-    <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
-    <div class="kp-head-mid row2"><div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div></div>
-    <div class="kp-head-mid row3"><div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div></div>
-    <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
+    <div class="kp-head-info">
+      <div class="kp-head-left">
+        <div class="kp-org">수면과학연구소</div>
+        <div class="kp-address">${e2(r.companyAddress||'')}${r.companyTel?' &nbsp;·&nbsp; Tel '+e2(r.companyTel):''}</div>
+      </div>
+      <div class="kp-divider"></div>
+      <div class="kp-head-mid">
+        <div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div>
+        <div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div>
+      </div>
+      <div class="kp-divider"></div>
+      <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
+    </div>
   </div>
 
   <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기&nbsp;관&nbsp;명 : ${e2(r.requestDept||'-')}</div></div>
