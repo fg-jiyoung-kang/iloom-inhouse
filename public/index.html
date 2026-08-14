@@ -2475,12 +2475,12 @@ table.plain td{border:none;padding:0;vertical-align:top}
 <div class="title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
 <table class="plain" style="width:100%">
   <tr>
-    <td style="width:50%">
+    <td style="width:77mm">
       <b style="font-size:13pt;color:#c81e2c">iloom</b> <b>수면과학연구소</b><br>
-      <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?' · Tel '+e2(r.companyTel):''}</span>
+      <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?'<br>Tel '+e2(r.companyTel):''}</span>
     </td>
-    <td style="width:30%;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)<br>(KOLAS ACC.NO KT1333)</td>
-    <td style="width:20%" align="right">${ksrc?`<img src="${ksrc}" width="90" height="50">`:''}</td>
+    <td style="width:52mm;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</td>
+    <td style="width:35mm" align="right">${ksrc?`<img src="${ksrc}" height="40">`:''}</td>
   </tr>
 </table>
 <hr>
