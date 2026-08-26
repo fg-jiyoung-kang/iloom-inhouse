@@ -698,7 +698,7 @@ button,input,select{font:inherit}
             <table class="input-table" id="testTable">
               <thead>
                 <tr>
-                  <th>No.</th><th>시험 항목</th><th>시험 규격</th><th>시험 기준</th><th>구분</th><th></th>
+                  <th>No.</th><th>시험 항목</th><th>시험 규격</th><th>시험 기준</th><th>구분</th><th>KOLAS</th><th></th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -2309,9 +2309,11 @@ function buildKolasPrintHTML(r){
     const _printedDate=`${_now.getFullYear()}/${_pad(_now.getMonth()+1)}/${_pad(_now.getDate())}`;
     const _printedTime=`${_pad(_now.getHours())}:${_pad(_now.getMinutes())}:${_pad(_now.getSeconds())}`;
 
-    const rows = tests.length ? tests.map(function(t,i){
-      const judge = det['judge_'+i] || '';
-      const auto = deriveKolasResult(t, i, det);
+    const kolasTests = tests.map(function(t,i){ return {t:t, origIdx:i}; }).filter(function(x){ return x.t.kolasInclude!==false; });
+    const rows = kolasTests.length ? kolasTests.map(function(x,i){
+      const t=x.t, origIdx=x.origIdx;
+      const judge = det['judge_'+origIdx] || '';
+      const auto = deriveKolasResult(t, origIdx, det);
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
       const jColor = (judge==='합격'||judge==='PASS') ? '#008a3d' : (judge ? '#e60012' : '#999');
@@ -2442,9 +2444,11 @@ function buildKolasWordHTML(r){
     const det=r.detailData||{};
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
 
-    const rows = tests.length ? tests.map(function(t,i){
-      const judge = det['judge_'+i] || '';
-      const auto = deriveKolasResult(t, i, det);
+    const kolasTests = tests.map(function(t,i){ return {t:t, origIdx:i}; }).filter(function(x){ return x.t.kolasInclude!==false; });
+    const rows = kolasTests.length ? kolasTests.map(function(x,i){
+      const t=x.t, origIdx=x.origIdx;
+      const judge = det['judge_'+origIdx] || '';
+      const auto = deriveKolasResult(t, origIdx, det);
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
       return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td>&nbsp;</td></tr>`;
@@ -2544,7 +2548,7 @@ function addTest(item){
   // 현재 규격에서 최신 crit/spec 적용
   const _aStd = (typeof getStandards==='function' ? getStandards() : []).find(function(s){return s.name===item.name;});
   if(_aStd){ if(_aStd.spec) item.spec=_aStd.spec; if(_aStd.crit!==undefined) item.crit=_aStd.crit; }
-  tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><input class="t-spec" value="${esc(item.spec)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><textarea class="t-crit" rows="3" readonly tabindex="-1" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:none;min-height:32px;background:#f9fafb;cursor:default;pointer-events:none">${esc(item.crit||item.result||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
+  tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><input class="t-spec" value="${esc(item.spec)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><textarea class="t-crit" rows="3" readonly tabindex="-1" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:none;min-height:32px;background:#f9fafb;cursor:default;pointer-events:none">${esc(item.crit||item.result||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td style="text-align:center"><input type="checkbox" class="t-kolasInclude" title="이 항목을 KOLAS 성적서에 포함" ${item.kolasInclude===false?'':'checked'}></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
   tbody.appendChild(tr);
   tr.querySelector('.t-cat').value=item.category||'기타';
 
@@ -2552,7 +2556,7 @@ function addTest(item){
   const detailTr = document.createElement('tr');
   detailTr.className = 't-detail-row';
   detailTr.style.display = 'none';
-  detailTr.innerHTML = `<td colspan="6" style="padding:0;background:#fafbfc">
+  detailTr.innerHTML = `<td colspan="7" style="padding:0;background:#fafbfc">
     <div style="padding:12px 16px;border:1px solid #f0d0d0;border-top:none;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#374151">변퇴색 (급)<input class="d-colorChange" style="border:1px solid #ddd;border-radius:7px;padding:7px;font-size:12px" value="${esc(detail.colorChange||'')}"></label>
       <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#374151">이염 (급)<input class="d-staining" style="border:1px solid #ddd;border-radius:7px;padding:7px;font-size:12px" value="${esc(detail.staining||'')}"></label>
@@ -2660,6 +2664,7 @@ function collectTests(){
       spec: tr.querySelector('.t-spec').value,
       crit: tr.querySelector('.t-crit')?.value||'',
       category: tr.querySelector('.t-cat').value,
+      kolasInclude: tr.querySelector('.t-kolasInclude')?.checked!==false,
       detail
     };
   });
