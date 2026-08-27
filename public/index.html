@@ -2396,7 +2396,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   <div class="kp-sec"><div class="kp-sec-num">2. 시험대상품목</div><div class="kp-sec-body">제&nbsp;품&nbsp;명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재&nbsp;&nbsp;&nbsp;&nbsp;질 : '+e2(r.sampleMaterial):''}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">3. 시험기간</div><div class="kp-sec-body">${f2(r.testPeriodStart)||'-'} ~ ${f2(r.testPeriodEnd)||'-'}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">4. 시험장소</div><div class="kp-sec-body">${e2(r.testLocation||'-')}</div></div>
-  <div class="kp-sec"><div class="kp-sec-num">5. 시험방법</div><div class="kp-sec-body" style="white-space:pre-wrap">${e2(r.testMethod||'-')}</div></div>
+  <div class="kp-sec"><div class="kp-sec-num">5. 시험방법</div><div class="kp-sec-body" style="white-space:pre-wrap">${kolasTests.length ? kolasTests.map(function(x){ return e2(x.t.name||'') + (x.t.spec ? ' : '+e2(x.t.spec) : ''); }).join('<br>') : e2(r.testMethod||'-')}</div></div>
   <div class="kp-sec">
     <div class="kp-sec-num">6. 시험결과</div>
     <table class="kp-table">
@@ -2492,7 +2492,7 @@ table.plain td{border:none;padding:0;vertical-align:top}
 <div class="secnum">2. 시험대상품목</div><div class="secbody">제품명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재질 : '+e2(r.sampleMaterial):''}</div>
 <div class="secnum">3. 시험기간</div><div class="secbody">${f2(r.testPeriodStart)||'-'} ~ ${f2(r.testPeriodEnd)||'-'}</div>
 <div class="secnum">4. 시험장소</div><div class="secbody">${e2(r.testLocation||'-')}</div>
-<div class="secnum">5. 시험방법</div><div class="secbody">${e2(r.testMethod||'-')}</div>
+<div class="secnum">5. 시험방법</div><div class="secbody">${kolasTests.length ? kolasTests.map(function(x){ return e2(x.t.name||'') + (x.t.spec ? ' : '+e2(x.t.spec) : ''); }).join('<br>') : e2(r.testMethod||'-')}</div>
 <div class="secnum">6. 시험결과</div>
 <table class="bordered">
   <tr><th>No.</th><th>시험 항목</th><th>규격</th><th>단위</th><th>시험 결과</th><th>판정</th><th>비고</th></tr>
