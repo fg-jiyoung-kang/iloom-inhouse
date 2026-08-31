@@ -12,7 +12,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { Pool, types } = require('pg');
-const pdfParse = require('pdf-parse');
 
 // Postgres BIGINT(oid 20)은 기본적으로 문자열로 오므로 숫자로 파싱한다
 // (타임스탬프 밀리초 값이 문자열이면 화면에서 Invalid Date 가 된다)
@@ -520,89 +519,6 @@ app.delete('/api/:table(reports|requests|settings)', requireLogin, async (req, r
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':delete]', e.message);
-    res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
-  }
-});
-
-// ══════════════════════════════════════════════════════════
-// API — 외부 시험성적서 PDF 텍스트 추출 (납품용 증명서 작성 보조용)
-// PDF 형식이 시험기관마다 달라 완전 자동 파싱은 신뢰할 수 없으므로,
-// 표는 칸(좌표) 단위로 묶어서 표 블록으로, 나머지는 줄 단위 텍스트로
-// 뽑아 화면에 보여주고 사용자가 넣을 항목(표/줄)을 직접 체크해서 고른다.
-// ══════════════════════════════════════════════════════════
-const PDF_CELL_SEP = '';
-
-// pdf-parse의 기본 렌더러는 같은 줄(y좌표)의 글자를 구분자 없이 그냥 이어붙여서
-// 표의 여러 칸이 한 덩어리로 뭉개진다("구 분시 험 결 과기 준"). 여기서는 글자들을
-// y좌표로 먼저 줄을 묶고, 같은 줄 안에서 x좌표 간격이 벌어지면(표의 칸 경계로 보고)
-// 칸을 나눠 PDF_CELL_SEP으로 구분해준다.
-function renderPageWithColumns(pageData) {
-  const renderOptions = { normalizeWhitespace: false, disableCombineTextItems: false };
-  return pageData.getTextContent(renderOptions).then((textContent) => {
-    const items = textContent.items
-      .map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width || it.str.length * 4 }))
-      .filter((it) => it.str && it.str.trim());
-
-    const Y_TOL = 2.5;
-    const rows = [];
-    items.forEach((it) => {
-      let row = rows.find((r) => Math.abs(r.y - it.y) <= Y_TOL);
-      if (!row) { row = { y: it.y, items: [] }; rows.push(row); }
-      row.items.push(it);
-    });
-    rows.sort((a, b) => b.y - a.y); // PDF 좌표는 위로 갈수록 y가 커짐
-
-    const GAP_TOL = 8; // pt 단위 — 이보다 간격이 벌어지면 다른 칸으로 봄
-    const lines = rows.map((row) => {
-      const its = row.items.slice().sort((a, b) => a.x - b.x);
-      const cells = [];
-      let cur = '';
-      let prevEndX = null;
-      its.forEach((it) => {
-        if (prevEndX !== null && it.x - prevEndX > GAP_TOL) {
-          cells.push(cur.trim());
-          cur = '';
-        }
-        cur += it.str;
-        prevEndX = it.x + it.w;
-      });
-      if (cur.trim()) cells.push(cur.trim());
-      return cells.join(PDF_CELL_SEP);
-    }).filter(Boolean);
-
-    return lines.join('\n');
-  });
-}
-
-app.post('/api/extract-pdf-text', requireLogin, async (req, res) => {
-  try {
-    const raw = String((req.body || {}).pdfBase64 || '');
-    const b64 = raw.replace(/^data:application\/pdf[^,]*,/, '');
-    if (!b64) return res.status(400).json({ error: 'MISSING_PDF' });
-    const buf = Buffer.from(b64, 'base64');
-    const data = await pdfParse(buf, { pagerender: renderPageWithColumns });
-    const rawLines = (data.text || '')
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    // 칸이 2개 이상인 줄이 연속되면 하나의 표 블록으로 묶는다
-    const blocks = [];
-    let curTable = null;
-    rawLines.forEach((line) => {
-      const cells = line.split(PDF_CELL_SEP).map((c) => c.trim()).filter(Boolean);
-      if (cells.length >= 2) {
-        if (!curTable) { curTable = { type: 'table', rows: [] }; blocks.push(curTable); }
-        curTable.rows.push(cells);
-      } else {
-        curTable = null;
-        if (cells[0]) blocks.push({ type: 'text', text: cells[0] });
-      }
-    });
-
-    res.json({ ok: true, blocks, pageCount: data.numpages || 0 });
-  } catch (e) {
-    console.error('[extract-pdf-text]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
   }
 });
