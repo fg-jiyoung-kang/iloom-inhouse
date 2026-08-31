@@ -1719,17 +1719,8 @@ async function init(){
   })();
   navInit(); bindInputs(); renderStandardSelect(); renderStandards(); newReport();
   initAccounts(); initListActions();
-  // Supabase에서 최신 데이터 가져온 뒤 렌더링 (await로 완료 보장)
-  await renderListAsync();
-  // Supabase에서 공유 데이터 불러오기 (병합)
-  await loadSharedFromSupabase();
-  // 비밀번호 해싱 마이그레이션 (서버 동기화 후 실행 — 평문 → SHA-256)
-  await migratePasswordsIfNeeded();
-  // startAutoSave 비활성화 — 수동 저장만 사용
-  startSyncTimer(); // 10초 전체 동기화 시작
-  // 로컬 데이터를 Supabase에 업로드
-  migrateLocalToSupabase();
-  // 로그인 사용자 표시 + 관리자 탭 제어
+  // 로그인 사용자 표시 + 관리자 탭 제어 — sessionStorage는 동기라 네트워크 응답을
+  // 기다릴 필요 없이 여기서 바로 적용해야 사이드바 탭이 늦게 뜨지 않는다.
   try{
     const u = JSON.parse(sessionStorage.getItem('iloom_user')||'{}');
     const el = document.getElementById('sidebarUsername');
@@ -1759,6 +1750,16 @@ async function init(){
       updateUnlockBadge();
     }
   }catch(e){}
+  // Supabase에서 최신 데이터 가져온 뒤 렌더링 (await로 완료 보장)
+  await renderListAsync();
+  // Supabase에서 공유 데이터 불러오기 (병합)
+  await loadSharedFromSupabase();
+  // 비밀번호 해싱 마이그레이션 (서버 동기화 후 실행 — 평문 → SHA-256)
+  await migratePasswordsIfNeeded();
+  // startAutoSave 비활성화 — 수동 저장만 사용
+  startSyncTimer(); // 10초 전체 동기화 시작
+  // 로컬 데이터를 Supabase에 업로드
+  migrateLocalToSupabase();
 }
 function toggleSidebar(){
   var s=document.querySelector('.sidebar');
