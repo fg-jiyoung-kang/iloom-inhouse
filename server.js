@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { Pool, types } = require('pg');
+const pdfParse = require('pdf-parse');
 
 // Postgres BIGINT(oid 20)은 기본적으로 문자열로 오므로 숫자로 파싱한다
 // (타임스탬프 밀리초 값이 문자열이면 화면에서 Invalid Date 가 된다)
@@ -24,7 +25,7 @@ const SIGNKEY_ROW_ID = '__session_secret';   // 서명키를 보관하는 설정
 const SESSION_COOKIE = 'iloom_sess';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
 
-app.use(express.json({ limit: '25mb' }));
+app.use(express.json({ limit: '40mb' }));
 app.disable('x-powered-by');
 
 // 기본 보안 헤더
@@ -519,6 +520,29 @@ app.delete('/api/:table(reports|requests|settings)', requireLogin, async (req, r
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':delete]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// API — 외부 시험성적서 PDF 텍스트 추출 (납품용 증명서 작성 보조용)
+// PDF 형식이 시험기관마다 달라 자동 파싱은 신뢰할 수 없으므로,
+// 텍스트를 줄 단위로 뽑아 화면에 보여주고 사용자가 직접 체크해서 고른다.
+// ══════════════════════════════════════════════════════════
+app.post('/api/extract-pdf-text', requireLogin, async (req, res) => {
+  try {
+    const raw = String((req.body || {}).pdfBase64 || '');
+    const b64 = raw.replace(/^data:application\/pdf[^,]*,/, '');
+    if (!b64) return res.status(400).json({ error: 'MISSING_PDF' });
+    const buf = Buffer.from(b64, 'base64');
+    const data = await pdfParse(buf);
+    const lines = (data.text || '')
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    res.json({ ok: true, lines, pageCount: data.numpages || 0 });
+  } catch (e) {
+    console.error('[extract-pdf-text]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
   }
 });
