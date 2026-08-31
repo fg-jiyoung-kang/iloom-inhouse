@@ -780,7 +780,7 @@ button,input,select{font:inherit}
 
           <div id="ext_checklistWrap" style="display:none;margin-top:16px">
             <div class="section-title"><h3 style="font-size:14px">보고서에 포함할 항목 선택</h3></div>
-            <p style="font-size:12px;color:#9ca3af;margin-bottom:8px">PDF에서 읽은 줄들입니다. 보고서에 넣을 항목만 체크하세요.</p>
+            <p style="font-size:12px;color:#9ca3af;margin-bottom:8px">PDF에서 읽은 내용입니다. 표는 표 단위로 묶여 있습니다 — 보고서에 넣을 항목만 체크하세요.</p>
             <div id="ext_checklist" style="max-height:320px;overflow:auto;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;background:#fafbfc"></div>
           </div>
 
@@ -3725,11 +3725,12 @@ function renderPdfStore(){
 // ══════════════════════════════════════════════════════════
 // 외부 성적서 (퍼시스 납품용 증명서) — 외부 시험기관 PDF를 첨부해
 // 일룸(iloom) 제조 → 퍼시스(FURSYS) 공급 매트리스의 시험결과 증명서를 생성한다.
-// PDF 형식이 시험기관·시험종류마다 달라 자동 파싱은 신뢰할 수 없으므로,
-// 서버가 텍스트만 줄 단위로 뽑아 보여주고 사용자가 넣을 항목을 직접 체크한다.
+// PDF 형식이 시험기관·시험종류마다 달라 완전 자동 파싱은 신뢰할 수 없으므로,
+// 서버가 표는 표 블록으로, 나머지는 줄 단위 텍스트로 뽑아 보여주고
+// 사용자가 보고서에 넣을 항목(표/줄)을 직접 체크한다.
 // ══════════════════════════════════════════════════════════
 let _extCurrentId = null;
-let _extPdfLines = [];
+let _extBlocks = []; // [{type:'text', text} | {type:'table', rows:[[...cells]]}]
 
 function initExternalTab(){
   const wire = function(id, fn){ const el=document.getElementById(id); if(el && !el._wired){ el._wired=true; el.onclick=fn; } };
@@ -3743,7 +3744,7 @@ function initExternalTab(){
 
 function extNewReport(){
   _extCurrentId = null;
-  _extPdfLines = [];
+  _extBlocks = [];
   ['ext_productName','ext_modelSpec','ext_testLab','ext_docNo'].forEach(function(id){ const el=document.getElementById(id); if(el) el.value=''; });
   const ds=document.getElementById('ext_domesticStandard'); if(ds) ds.value='KS G 4300';
   const us=document.getElementById('ext_usStandard'); if(us) us.value='16 CFR 1610';
@@ -3780,8 +3781,10 @@ async function extExtractPdf(){
     });
     if(!res.ok){ throw new Error('서버 오류 '+res.status); }
     const data = await res.json();
-    _extPdfLines = data.lines || [];
-    if(status) status.textContent = (data.pageCount||0)+'페이지에서 '+_extPdfLines.length+'줄을 읽었습니다. 보고서에 넣을 항목을 체크하세요.';
+    _extBlocks = data.blocks || [];
+    const tableCount = _extBlocks.filter(function(b){return b.type==='table';}).length;
+    const textCount = _extBlocks.filter(function(b){return b.type==='text';}).length;
+    if(status) status.textContent = (data.pageCount||0)+'페이지에서 표 '+tableCount+'개, 텍스트 '+textCount+'줄을 읽었습니다. 보고서에 넣을 항목을 체크하세요.';
     extRenderChecklist();
   } catch(e){
     console.error('extExtractPdf', e);
@@ -3790,22 +3793,36 @@ async function extExtractPdf(){
   }
 }
 
+function extRenderTableHTML(rows, extraStyle){
+  const head = rows[0]||[];
+  const body = rows.slice(1);
+  return '<table style="width:100%;border-collapse:collapse;font-size:12px;'+(extraStyle||'')+'">'
+    +'<tr>'+head.map(function(c){return '<th style="border:1px solid #ccc;padding:5px 8px;background:#f4f4f4;text-align:center">'+esc(c)+'</th>';}).join('')+'</tr>'
+    +body.map(function(r){return '<tr>'+r.map(function(c){return '<td style="border:1px solid #ccc;padding:5px 8px;text-align:center">'+esc(c)+'</td>';}).join('')+'</tr>';}).join('')
+    +'</table>';
+}
+
 function extRenderChecklist(){
   const wrap = document.getElementById('ext_checklistWrap');
   const box = document.getElementById('ext_checklist');
   if(!wrap || !box) return;
-  if(!_extPdfLines.length){ wrap.style.display='none'; box.innerHTML=''; return; }
+  if(!_extBlocks.length){ wrap.style.display='none'; box.innerHTML=''; return; }
   wrap.style.display='';
-  box.innerHTML = _extPdfLines.map(function(line, i){
+  box.innerHTML = _extBlocks.map(function(b, i){
+    if(b.type==='table'){
+      return '<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid #f1f1f1;cursor:pointer">'
+        +'<input type="checkbox" class="ext-block-chk" data-idx="'+i+'" style="margin-top:4px;flex-shrink:0">'
+        +'<div style="flex:1;overflow-x:auto">'+extRenderTableHTML(b.rows)+'</div></label>';
+    }
     return '<label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:12.5px;border-bottom:1px solid #f1f1f1;cursor:pointer">'
-      +'<input type="checkbox" class="ext-line-chk" data-idx="'+i+'" style="margin-top:2px;flex-shrink:0">'
-      +'<span>'+esc(line)+'</span></label>';
+      +'<input type="checkbox" class="ext-block-chk" data-idx="'+i+'" style="margin-top:2px;flex-shrink:0">'
+      +'<span>'+esc(b.text)+'</span></label>';
   }).join('');
 }
 
-function extGetCheckedLines(){
-  return [...document.querySelectorAll('.ext-line-chk:checked')].map(function(chk){
-    return _extPdfLines[Number(chk.dataset.idx)];
+function extGetCheckedBlocks(){
+  return [...document.querySelectorAll('.ext-block-chk:checked')].map(function(chk){
+    return _extBlocks[Number(chk.dataset.idx)];
   }).filter(Boolean);
 }
 
@@ -3821,7 +3838,7 @@ function extCollectData(){
     usClass: document.getElementById('ext_usClass')?.value||'',
     testLab: document.getElementById('ext_testLab')?.value||'',
     docNo: document.getElementById('ext_docNo')?.value||'',
-    checkedLines: extGetCheckedLines(),
+    checkedBlocks: extGetCheckedBlocks(),
     savedAt: new Date().toISOString()
   };
 }
@@ -3830,8 +3847,20 @@ function buildExternalReportHTML(d){
   const e2 = s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const product = e2(d.productName||'제품');
   const lab = e2(d.testLab||'공인시험기관');
-  const linesHtml = (d.checkedLines&&d.checkedLines.length)
-    ? '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.8">'+d.checkedLines.map(function(l){return '<li>'+e2(l)+'</li>';}).join('')+'</ul>'
+  const blocks = d.checkedBlocks||[];
+  const linesHtml = blocks.length
+    ? blocks.map(function(b){
+        if(b.type==='table'){
+          const rows = b.rows||[];
+          const head = rows[0]||[];
+          const body = rows.slice(1);
+          return '<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px">'
+            +'<tr>'+head.map(function(c){return '<th style="border:1px solid #999;padding:6px 9px;background:#f4f4f4;text-align:center">'+e2(c)+'</th>';}).join('')+'</tr>'
+            +body.map(function(r){return '<tr>'+r.map(function(c){return '<td style="border:1px solid #999;padding:6px 9px;text-align:center">'+e2(c)+'</td>';}).join('')+'</tr>';}).join('')
+            +'</table>';
+        }
+        return '<p class="er-p">'+e2(b.text)+'</p>';
+      }).join('')
     : '<p style="color:#999">선택된 시험결과 항목이 없습니다.</p>';
   const CSS = `
     @page{size:A4;margin:20mm 18mm}
@@ -3974,11 +4003,11 @@ async function renderExternalSavedList(){
 
 function loadExternalReport(d){
   _extCurrentId = d.id;
-  _extPdfLines = d.checkedLines ? d.checkedLines.slice() : [];
+  _extBlocks = d.checkedBlocks ? d.checkedBlocks.slice() : [];
   const map = {ext_productName:'productName', ext_modelSpec:'modelSpec', ext_domesticStandard:'domesticStandard', ext_domesticResult:'domesticResult', ext_usStandard:'usStandard', ext_usClass:'usClass', ext_testLab:'testLab', ext_docNo:'docNo'};
   Object.keys(map).forEach(function(elId){ const el=document.getElementById(elId); if(el) el.value = d[map[elId]]||el.value; });
   extRenderChecklist();
-  document.querySelectorAll('.ext-line-chk').forEach(function(chk){ chk.checked = true; });
+  document.querySelectorAll('.ext-block-chk').forEach(function(chk){ chk.checked = true; });
   const status=document.getElementById('ext_extractStatus'); if(status) status.textContent='저장된 문서를 불러왔습니다.';
 }
 
