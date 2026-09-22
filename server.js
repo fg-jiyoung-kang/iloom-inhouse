@@ -711,18 +711,21 @@ app.post('/api/extract-summary-table', requireLogin, async (req, res) => {
         }
         const titleText = titleLines.join(' ');
         const standard = extractStandardCodes(titleText);
-        // 제목에서 괄호로 시작하는(=규격 인용) 줄은 빼고, 나머지를 항목명으로 쓴다
-        const itemName = titleLines.filter((l) => !l.trim().startsWith('(')).join(' ').trim() || titleText.replace(/\([\s\S]*$/, '').trim();
+        // 제목에서 괄호로 시작하는(=규격 인용) 줄은 빼고, 나머지를 항목명으로 쓴다.
+        // 쉼표 뒤는 단위 표기(예: "아릴아민, mg/kg"의 ", mg/kg")라 항목명에서는 뺀다.
+        let itemName = titleLines.filter((l) => !l.trim().startsWith('(')).join(' ').trim() || titleText.replace(/\([\s\S]*$/, '').trim();
+        itemName = itemName.split(',')[0].trim();
 
         // 데이터 구간: 표 머리글 다음 줄부터 시작해서, "값처럼 생기지 않은" 줄을 만나는 순간 멈춘다
         // (그 줄부터는 각주나 다음 항목 제목이 시작된 것으로 본다 — 다음 표 머리글까지 무작정
         // 다 긁어오면 그 사이에 낀 각주·다음 항목 제목까지 데이터로 잘못 섞여 들어간다).
         const dataRows = [];
+        let criterion = ''; // "주)" 각주에 적힌 기준(예: pH 4.0~7.5)을 참고용으로 같이 보여준다
         for (let i = h + 1; i < nextH; i += 1) {
           const cells = allLines[i];
           const text = cells.join(' ');
           if (/^\([A-Z](?:,\s*[A-Z])*\)$/.test(text)) continue; // "(A)" 등 시료 반복 표시
-          if (/^주\)/.test(text)) break; // 각주를 만나면 이 항목의 데이터는 끝난 것
+          if (/^주\)/.test(text)) { criterion = text.replace(/^주\)\s*/, ''); break; } // 각주 = 기준, 여기서 데이터는 끝
           if (isLegendLine(text)) break; // "검출안됨:5mg/kg미만" 같은 legend도 데이터 끝 신호
           if (!cells.length) continue;
           const lastCell = cells[cells.length - 1] || '';
@@ -747,8 +750,11 @@ app.post('/api/extract-summary-table', requireLogin, async (req, res) => {
         } else {
           result = dataRows.map((r) => (r.label ? `${r.label}: ${r.value}` : r.value)).join('; ');
         }
+        // "검출안됨"은 유해물질 시험에서 워낙 자주(수십 건) 반복돼 그대로 나열하면 표가 지저분해지니
+        // 요청대로 PASS로 축약한다 — 그 외 실측값(숫자/등급 등)은 값 그대로 둔다.
+        if (/^검출\s*안\s*됨(\s*\(전체\s*\d+건\s*동일\))?$/.test(result)) result = 'PASS';
 
-        items.push({ category: guessCategory(itemName), item: itemName, standard, result, verdict: '' });
+        items.push({ category: guessCategory(itemName), item: itemName, standard, criterion, result, verdict: '' });
       });
     }
 

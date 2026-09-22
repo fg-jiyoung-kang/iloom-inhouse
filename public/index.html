@@ -796,7 +796,7 @@ button,input,select{font:inherit}
           <div class="table-wrap">
             <table class="input-table" id="ec_itemsTable">
               <thead>
-                <tr><th style="width:90px">구분</th><th>시험 항목</th><th>시험 규격</th><th style="width:120px">결과</th><th style="width:80px">판정</th><th style="width:40px"></th></tr>
+                <tr><th style="width:90px">구분</th><th>시험 항목</th><th>시험 규격</th><th>기준(참고)</th><th style="width:120px">결과</th><th style="width:80px">판정</th><th style="width:40px"></th></tr>
               </thead>
               <tbody id="ec_itemsBody"></tbody>
             </table>
@@ -5841,7 +5841,7 @@ async function deleteExtCertAsync(id) {
 let ec_currentId = null;
 let ec_items = [];
 
-function ec_blankItem(){ return { category:'', item:'', standard:'', result:'', verdict:'' }; }
+function ec_blankItem(){ return { category:'', item:'', standard:'', criterion:'', result:'', verdict:'' }; }
 
 function ec_renderItemsTable(){
   const body = $('ec_itemsBody');
@@ -5853,6 +5853,7 @@ function ec_renderItemsTable(){
       '<td><input data-f="category" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><input data-f="item" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><input data-f="standard" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
+      '<td><input data-f="criterion" placeholder="참고용(PDF 각주)" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px;color:#6b7280;font-size:12px"></td>' +
       '<td><input data-f="result" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><input data-f="verdict" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><button type="button" class="btn ghost" style="padding:4px 8px" title="삭제">✕</button></td>';
@@ -6044,7 +6045,7 @@ async function ec_extractPdf(file){
       return;
     }
     if(data.certNoGuess && !$('ec_certNo').value.trim()) $('ec_certNo').value = data.certNoGuess;
-    ec_items = ec_items.concat(data.items.map(it => ({ category: it.category, item: it.item, standard: it.standard, result: it.result, verdict: it.verdict })));
+    ec_items = ec_items.concat(data.items.map(it => ({ category: it.category, item: it.item, standard: it.standard, criterion: it.criterion || '', result: it.result, verdict: it.verdict })));
     ec_renderItemsTable();
     const modeNote = data.mode === 'summary-table' ? '요약표에서' : '항목별 표를 모아서';
     statusEl.textContent = `${modeNote} ${data.items.length}개 항목을 읽어왔습니다. "구분"은 항목명으로 추정한 제안값이고 "판정"은 원문에 없어 비워뒀습니다 — 아래 표에서 꼭 확인·수정해주세요.`;
