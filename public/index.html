@@ -6015,8 +6015,8 @@ function ec_buildPrintHTML(f){
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e2(f.docNo)} 외부증빙</title>
     <style>
       *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
-      @page{size:A4;margin-top:20mm;margin-bottom:20mm}
-      body{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif;padding:32px;color:#111;font-size:13px;line-height:1.5}
+      @page{size:A4;margin:0}
+      body{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif;padding:2cm 32px;color:#111;font-size:13px;line-height:1.5}
       h1{text-align:center;font-size:22px;margin-bottom:4px}
       .sub{text-align:center;color:#6b7280;margin-bottom:20px}
       .banner{border-top:2px solid #e39a9a;border-bottom:2px solid #e39a9a;padding:16px 0;margin-bottom:22px}
@@ -6041,7 +6041,7 @@ function ec_buildPrintHTML(f){
       .diagram .arrow .lbl{font-size:11px;color:#374151;display:block}
       .signrow td{border:1px solid #d1d5db;padding:12px}
       tr,.diagram,.banner{page-break-inside:avoid}
-      @media print{ body{padding:0 26px} .no-print{display:none} }
+      @media print{ body{padding:2cm 26px} .no-print{display:none} }
     </style></head><body>
     <div class="banner">
       <h1>퍼시스 매트리스 시험 결과 보고서</h1>
