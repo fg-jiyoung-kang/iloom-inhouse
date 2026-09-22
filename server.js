@@ -934,8 +934,23 @@ async function buildExtCertDocxBuffer(f) {
     sections: [{
       properties: { page: { size: { width: 11907, height: 16840 } } }, // A4
       children: [
-        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 }, children: [new TextRun({ text: '시험 결과 보고서', bold: true, size: 36 })] }),
-        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: '(퍼시스 매트리스 납품용 증빙자료)', size: 20, color: '6B7280' })] }),
+        (() => {
+          const logo = publicImage('iloom-logo.png');
+          return new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 40 },
+            children: logo ? [new ImageRun({ data: logo.buffer, type: logo.type, transformation: { width: 100, height: 35 } })] : [],
+          });
+        })(),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+          border: {
+            top: { style: BorderStyle.SINGLE, size: 8, color: 'E39A9A', space: 8 },
+            bottom: { style: BorderStyle.SINGLE, size: 8, color: 'E39A9A', space: 8 },
+          },
+          children: [new TextRun({ text: '퍼시스 매트리스 시험 결과 보고서', bold: true, size: 30 })],
+        }),
         infoTable,
         new Paragraph({ text: '', spacing: { after: 200 } }),
 

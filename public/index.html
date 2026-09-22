@@ -6017,6 +6017,9 @@ function ec_buildPrintHTML(f){
       body{font-family:'Malgun Gothic',sans-serif;padding:32px;color:#111;font-size:13px}
       h1{text-align:center;font-size:22px;margin-bottom:4px}
       .sub{text-align:center;color:#6b7280;margin-bottom:20px}
+      .banner{position:relative;border-top:2px solid #e39a9a;border-bottom:2px solid #e39a9a;padding:16px 60px;margin-bottom:22px}
+      .banner img{position:absolute;top:12px;right:0;height:18px;object-fit:contain}
+      .banner h1{margin:0;font-size:19px;letter-spacing:0.5px}
       table{width:100%;border-collapse:collapse;margin-bottom:8px}
       td,th{border:1px solid #d1d5db;padding:8px}
       .info td:first-child{background:#f3f4f6;font-weight:700;width:160px;text-align:center}
@@ -6036,8 +6039,10 @@ function ec_buildPrintHTML(f){
       .signrow td{border:1px solid #d1d5db;padding:12px}
       @media print{ .no-print{display:none} }
     </style></head><body>
-    <h1>시험 결과 보고서</h1>
-    <div class="sub">(퍼시스 매트리스 납품용 증빙자료)</div>
+    <div class="banner">
+      <img src="/iloom-logo.png">
+      <h1>퍼시스 매트리스 시험 결과 보고서</h1>
+    </div>
     <table class="info">
       <tr><td>문서번호</td><td>${e2(f.docNo)}</td></tr>
       <tr><td>작성일</td><td>${e2(f.createdDate)}</td></tr>
@@ -6078,7 +6083,9 @@ function ec_buildPrintHTML(f){
 
     <h2>3. 시험 결과 요약</h2>
     <p style="font-style:italic;color:#6b7280;font-size:12px">[표 2] 시험 항목별 결과 종합 (성적서 NO. ${e2(f.certNo)})</p>
-    <table><thead><tr><td>구분</td><td>시험 항목</td><td>시험 규격</td><td>결과</td><td>판정</td></tr></thead><tbody>${rows}</tbody></table>
+    <table class="resultTable">
+      <colgroup><col style="width:11%"><col style="width:32%"><col style="width:24%"><col style="width:20%"><col style="width:13%"></colgroup>
+      <thead><tr><td>구분</td><td>시험 항목</td><td>시험 규격</td><td>결과</td><td>판정</td></tr></thead><tbody>${rows}</tbody></table>
     <h2>4. 결론</h2>
     <p>종합 판정: <b>${e2(overall)}</b></p>
     <h2>5. 첨부</h2>
