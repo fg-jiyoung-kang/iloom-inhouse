@@ -793,11 +793,15 @@ function infoRow(label, value) {
   });
 }
 
-// "data:image/png;base64,...." 형태의 서명 이미지를 docx ImageRun이 쓸 수 있는 Buffer로 바꾼다.
-function dataUrlToBuffer(dataUrl) {
-  const m = /^data:image\/(png|jpe?g);base64,(.+)$/.exec(String(dataUrl || ''));
-  if (!m) return null;
-  return { buffer: Buffer.from(m[2], 'base64'), type: m[1] === 'jpg' ? 'jpeg' : m[1] };
+// public/ 아래 고정 이미지(로고·서명 도장)를 읽어 docx ImageRun이 쓸 수 있는 Buffer로 바꾼다.
+// 이 앱의 다른 성적서들과 동일하게, 기술책임자(강지영)·품질책임자(장성진) 서명 도장은
+// public/jy-sign.png · public/sj-sign.png를 그대로 쓴다 — 요청으로 새로 받을 필요가 없다.
+function publicImage(filename) {
+  try {
+    return { buffer: fs.readFileSync(path.join(__dirname, 'public', filename)), type: 'png' };
+  } catch (e) {
+    return null;
+  }
 }
 
 function bulletPara(text) {
@@ -817,13 +821,18 @@ function multiLinePara(text) {
 
 // "iloom → 제조·공급 → FURSYS" 관계도를 표(칸 3개짜리 1행)로 표현한다.
 function supplyDiagramTable() {
-  function box(title, sub1, sub2, shade) {
+  function box(logoFile, logoWidth, logoHeight, sub1, sub2, shade) {
+    const logo = publicImage(logoFile);
     return new TableCell({
       width: { size: 3000, type: WidthType.DXA },
       shading: { type: ShadingType.CLEAR, fill: shade },
       margins: { top: 200, bottom: 200, left: 100, right: 100 },
       children: [
-        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: title, bold: true, size: 28 })] }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 60 },
+          children: logo ? [new ImageRun({ data: logo.buffer, type: logo.type, transformation: { width: logoWidth, height: logoHeight } })] : [new TextRun({ text: '(로고)', size: 20 })],
+        }),
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 20 }, children: [new TextRun({ text: sub1, bold: true, size: 18 })] }),
         new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: sub2, size: 16, color: '6B7280' })] }),
       ],
@@ -840,9 +849,9 @@ function supplyDiagramTable() {
   return new Table({
     width: { size: 7200, type: WidthType.DXA },
     rows: [new TableRow({ children: [
-      box('iloom', '제조 · 시험 주체', '일룸 매트리스사업부 품질보증팀', 'FFF1F0'),
+      box('iloom-logo.png', 140, 49, '제조 · 시험 주체', '일룸 매트리스사업부 품질보증팀', 'FFF1F0'),
       arrowCell,
-      box('FURSYS', '브랜드 · 공급처', '퍼시스 매트리스로 판매', 'F3F4F6'),
+      box('fursys-logo.png', 140, 58, '브랜드 · 공급처', '퍼시스 매트리스로 판매', 'F3F4F6'),
     ] })],
   });
 }
@@ -900,10 +909,10 @@ async function buildExtCertDocxBuffer(f) {
   const body = (text) => new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text })] });
 
   // 확인(서명)란 — 기술책임자 강지영 · 품질책임자 장성진은 이 앱의 다른 성적서와 동일하게 고정된 서명을 쓴다
-  function signCell(label, name, sign) {
-    const img = dataUrlToBuffer(sign);
+  function signCell(label, name, signFile) {
+    const img = publicImage(signFile);
     return new TableCell({
-      width: { size: 2400, type: WidthType.DXA },
+      width: { size: 3600, type: WidthType.DXA },
       margins: { top: 100, bottom: 100 },
       children: [
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: `${label} (${name})`, bold: true, size: 18 })] }),
@@ -916,9 +925,8 @@ async function buildExtCertDocxBuffer(f) {
   const signTable = new Table({
     width: { size: 7200, type: WidthType.DXA },
     rows: [new TableRow({ children: [
-      signCell('작성자', f.author || '', ''),
-      signCell('기술책임자', '강지영', f.techSignData),
-      signCell('품질책임자', '장성진', f.qualitySignData),
+      signCell('기술책임자', '강지영', 'jy-sign.png'),
+      signCell('품질책임자', '장성진', 'sj-sign.png'),
     ] })],
   });
 

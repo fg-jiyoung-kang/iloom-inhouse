@@ -5899,9 +5899,6 @@ function ec_collectForm(){
     certNo: $('ec_certNo').value.trim(),
     overviewText: $('ec_overviewText').value,
     items: ec_items,
-    // 기술책임자(강지영)·품질책임자(장성진) 서명은 이 앱의 다른 성적서와 동일하게 고정 서명을 쓴다
-    techSignData: (typeof JY_SIGN_DATA !== 'undefined' ? JY_SIGN_DATA : ''),
-    qualitySignData: (typeof SJ_SIGN_DATA !== 'undefined' ? SJ_SIGN_DATA : ''),
     savedAt: new Date().toISOString(),
   };
 }
@@ -6013,7 +6010,7 @@ function ec_buildPrintHTML(f){
     </tr>`).join('');
   function signBox(label, name, sign){
     const img = sign ? `<img src="${sign}" style="height:60px;width:60px;object-fit:contain;mix-blend-mode:multiply">` : '<span style="color:#9ca3af;font-size:11px">(서명 없음)</span>';
-    return `<td style="text-align:center;width:33%"><div style="font-weight:700;font-size:12px;margin-bottom:6px">${e2(label)} (${e2(name)})</div>${img}</td>`;
+    return `<td style="text-align:center;width:50%"><div style="font-weight:700;font-size:12px;margin-bottom:6px">${e2(label)} (${e2(name)})</div>${img}</td>`;
   }
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e2(f.docNo)} 외부증빙</title>
     <style>
@@ -6062,9 +6059,9 @@ function ec_buildPrintHTML(f){
 
     <h2>2. 제조 및 공급 관계</h2>
     <div class="diagram">
-      <div class="box iloom"><div class="title">iloom</div><div class="sub1">제조 · 시험 주체</div><div class="sub2">일룸 매트리스사업부 품질보증팀</div></div>
+      <div class="box iloom"><img src="/iloom-logo.png" style="height:28px;object-fit:contain"><div class="sub1">제조 · 시험 주체</div><div class="sub2">일룸 매트리스사업부 품질보증팀</div></div>
       <div class="arrow">▶<span class="lbl">제조·공급</span></div>
-      <div class="box fursys"><div class="title">FURSYS</div><div class="sub1">브랜드 · 공급처</div><div class="sub2">퍼시스 매트리스로 판매</div></div>
+      <div class="box fursys"><img src="/fursys-logo.png" style="height:32px;object-fit:contain"><div class="sub1">브랜드 · 공급처</div><div class="sub2">퍼시스 매트리스로 판매</div></div>
     </div>
     <div class="figcap">[그림 1] 퍼시스 매트리스 제조 · 공급 체계</div>
     <table>
@@ -6089,9 +6086,8 @@ function ec_buildPrintHTML(f){
 
     <h2>확인</h2>
     <table class="signrow"><tr>
-      ${signBox('작성자', f.author, '')}
-      ${signBox('기술책임자', '강지영', f.techSignData)}
-      ${signBox('품질책임자', '장성진', f.qualitySignData)}
+      ${signBox('기술책임자', '강지영', '/jy-sign.png')}
+      ${signBox('품질책임자', '장성진', '/sj-sign.png')}
     </tr></table>
 
     <div class="no-print" style="margin-top:24px;text-align:center"><button onclick="window.print()">인쇄</button></div>
