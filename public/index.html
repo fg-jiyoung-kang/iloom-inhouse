@@ -5912,9 +5912,25 @@ function ec_defaultOverview(){
   return `본 보고서는 "퍼시스 매트리스" 관련 제출용으로, 제품에 적용되는 '${fabric}'의 시험 결과를 국내·해외 시험 기준에 따라 검증하고 그 결과를 증빙하기 위해 작성되었습니다.`;
 }
 
-function ec_newForm(){
+// 문서번호를 "ILM-QA-TR-{연도}-{4자리 순번}"으로 자동 채번한다.
+// 같은 해에 저장된 문서번호 중 가장 큰 순번 다음 번호를 붙이고, 없으면 0001부터 시작한다.
+// 자동으로 채워줄 뿐 이후 직접 수정 가능하다.
+async function ec_nextDocNo(year){
+  const prefix = `ILM-QA-TR-${year}-`;
+  let maxSeq = 0;
+  try {
+    const list = await getExtCertsAsync();
+    list.forEach(r => {
+      const m = String(r.docNo||'').match(new RegExp(`^${prefix}(\\d{4})$`));
+      if(m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+    });
+  } catch(e){ /* 목록을 못 가져와도 0001부터 시작 */ }
+  return prefix + String(maxSeq + 1).padStart(4, '0');
+}
+
+async function ec_newForm(){
   ec_currentId = null;
-  $('ec_docNo').value = '';
+  $('ec_docNo').value = '생성 중...';
   $('ec_createdDate').value = new Date().toISOString().slice(0,10);
   $('ec_author').value = '이용희';
   $('ec_targetProduct').value = '퍼시스 매트리스 (제조 : 일룸)';
@@ -5923,6 +5939,7 @@ function ec_newForm(){
   $('ec_certNo').value = '';
   $('ec_overviewText').value = ec_defaultOverview();
   ec_items = [];
+  ec_nextDocNo(new Date().getFullYear()).then(no => { $('ec_docNo').value = no; });
   ec_renderItemsTable();
 }
 
