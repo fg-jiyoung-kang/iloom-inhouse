@@ -6016,7 +6016,7 @@ function ec_buildPrintHTML(f){
     <style>
       *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
       @page{size:A4;margin-top:18mm;margin-bottom:16mm}
-      body{font-family:'Malgun Gothic',sans-serif;padding:32px;color:#111;font-size:13px}
+      body{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif;padding:32px;color:#111;font-size:13px;line-height:1.5}
       h1{text-align:center;font-size:22px;margin-bottom:4px}
       .sub{text-align:center;color:#6b7280;margin-bottom:20px}
       .banner{border-top:2px solid #e39a9a;border-bottom:2px solid #e39a9a;padding:16px 0;margin-bottom:22px}
@@ -6026,6 +6026,8 @@ function ec_buildPrintHTML(f){
       .info td:first-child{background:#f3f4f6;font-weight:700;width:160px;text-align:center}
       h2{font-size:15px;border-left:4px solid #e60012;padding-left:8px;margin:24px 0 8px}
       thead td{background:#fee2e2;font-weight:700;text-align:center}
+      .resultTable td{white-space:nowrap}
+      .resultTable td:nth-child(2){white-space:normal}
       .bullet{font-weight:700;margin:12px 0 4px}
       .figcap{text-align:center;color:#6b7280;font-size:12px;font-style:italic;margin:4px 0 16px}
       .diagram{display:flex;align-items:center;justify-content:center;gap:16px;margin:16px 0}
@@ -6085,7 +6087,7 @@ function ec_buildPrintHTML(f){
     <h2>3. 시험 결과 요약</h2>
     <p style="font-style:italic;color:#6b7280;font-size:12px">[표 2] 시험 항목별 결과 종합 (성적서 NO. ${e2(f.certNo)})</p>
     <table class="resultTable">
-      <colgroup><col style="width:11%"><col style="width:32%"><col style="width:24%"><col style="width:20%"><col style="width:13%"></colgroup>
+      <colgroup><col style="width:12%"><col style="width:30%"><col style="width:23%"><col style="width:19%"><col style="width:16%"></colgroup>
       <thead><tr><td>구분</td><td>시험 항목</td><td>시험 규격</td><td>결과</td><td>판정</td></tr></thead><tbody>${rows}</tbody></table>
     <h2>4. 결론</h2>
     <p>종합 판정: <b>${e2(overall)}</b></p>
