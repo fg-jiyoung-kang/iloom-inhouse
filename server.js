@@ -12,6 +12,11 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { Pool, types } = require('pg');
+const pdfParse = require('pdf-parse');
+const {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  WidthType, BorderStyle, AlignmentType, HeadingLevel, ShadingType,
+} = require('docx');
 
 // Postgres BIGINT(oid 20)은 기본적으로 문자열로 오므로 숫자로 파싱한다
 // (타임스탬프 밀리초 값이 문자열이면 화면에서 Invalid Date 가 된다)
@@ -19,7 +24,7 @@ types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
 
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
-const TABLES = ['reports', 'requests', 'accounts', 'settings'];
+const TABLES = ['reports', 'requests', 'accounts', 'settings', 'extcerts'];
 const SIGNKEY_ROW_ID = '__session_secret';   // 서명키를 보관하는 설정 행 이름(값 자체는 실행 중에 자동 생성)
 const SESSION_COOKIE = 'iloom_sess';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
@@ -467,7 +472,7 @@ function dataTable(name) {
   return TABLES.includes(name) && name !== 'accounts';
 }
 
-app.get('/api/:table(reports|requests|settings)', requireLogin, async (req, res) => {
+app.get('/api/:table(reports|requests|settings|extcerts)', requireLogin, async (req, res) => {
   if (!dbReady(res)) return;
   const table = req.params.table;
   if (!dataTable(table)) return res.status(404).json({ error: 'NO_TABLE' });
@@ -486,7 +491,7 @@ app.get('/api/:table(reports|requests|settings)', requireLogin, async (req, res)
   }
 });
 
-app.post('/api/:table(reports|requests|settings)', requireLogin, async (req, res) => {
+app.post('/api/:table(reports|requests|settings|extcerts)', requireLogin, async (req, res) => {
   if (!dbReady(res)) return;
   const table = req.params.table;
   if (!dataTable(table)) return res.status(404).json({ error: 'NO_TABLE' });
@@ -507,7 +512,7 @@ app.post('/api/:table(reports|requests|settings)', requireLogin, async (req, res
   }
 });
 
-app.delete('/api/:table(reports|requests|settings)', requireLogin, async (req, res) => {
+app.delete('/api/:table(reports|requests|settings|extcerts)', requireLogin, async (req, res) => {
   if (!dbReady(res)) return;
   const table = req.params.table;
   if (!dataTable(table)) return res.status(404).json({ error: 'NO_TABLE' });
@@ -519,6 +524,217 @@ app.delete('/api/:table(reports|requests|settings)', requireLogin, async (req, r
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':delete]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// API — 외부증빙(퍼시스 납품용 증명서) PDF에서 "시험 항목별 결과 종합"
+// 요약표만 추출한다.
+//
+// 예전에 성적서 PDF 전체(서술형 보고서 포함)를 표/텍스트 블록으로 통째로
+// 재구성하려다가, 표 인식이 미세하게 어긋나는 문제로 사용자가 기능 전체를
+// 롤백한 적이 있다(2026-08-31). 이번에는 범위를 "구분/시험항목/시험규격/
+// 결과/판정" 요약표 한 개로 좁히고 — 이 표는 시험기관 PDF에 이미 한 줄에
+// 한 항목씩 정리되어 있어 훨씬 안정적으로 뽑을 수 있다 — 추출 결과는
+// 절대 그대로 보고서에 반영하지 않고, 화면에서 사람이 검토·수정한 뒤에만
+// 쓰도록 프런트에서 강제한다.
+// ══════════════════════════════════════════════════════════
+
+// pdf-parse의 기본 렌더러는 같은 줄(y좌표)의 글자를 구분자 없이 이어붙여서
+// 표의 여러 칸이 한 덩어리로 뭉개진다. 글자를 y좌표로 먼저 줄로 묶고, 같은
+// 줄 안에서 x좌표 간격이 벌어지면 칸 경계로 보고 나눠준다.
+function renderPageWithColumns(pageData) {
+  const renderOptions = { normalizeWhitespace: false, disableCombineTextItems: false };
+  return pageData.getTextContent(renderOptions).then((textContent) => {
+    const items = textContent.items
+      .map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width || it.str.length * 4 }))
+      .filter((it) => it.str && it.str.trim());
+
+    const Y_TOL = 2.5;
+    const rows = [];
+    items.forEach((it) => {
+      let row = rows.find((r) => Math.abs(r.y - it.y) <= Y_TOL);
+      if (!row) { row = { y: it.y, items: [] }; rows.push(row); }
+      row.items.push(it);
+    });
+    rows.sort((a, b) => b.y - a.y); // PDF 좌표는 위로 갈수록 y가 커짐
+
+    const GAP_TOL = 8; // pt 단위 — 이보다 간격이 벌어지면 다른 칸으로 봄
+    const CELL_SEP = '\u0001';
+    const lines = rows.map((row) => {
+      const its = row.items.slice().sort((a, b) => a.x - b.x);
+      const cells = [];
+      let cur = '';
+      let prevEndX = null;
+      its.forEach((it) => {
+        if (prevEndX !== null && it.x - prevEndX > GAP_TOL) {
+          cells.push(cur.trim());
+          cur = '';
+        }
+        cur += it.str;
+        prevEndX = it.x + it.w;
+      });
+      if (cur.trim()) cells.push(cur.trim());
+      return cells.join(CELL_SEP);
+    }).filter(Boolean);
+
+    return lines.join('\n');
+  });
+}
+
+app.post('/api/extract-summary-table', requireLogin, async (req, res) => {
+  try {
+    const raw = String((req.body || {}).pdfBase64 || '');
+    const b64 = raw.replace(/^data:application\/pdf[^,]*,/, '');
+    if (!b64) return res.status(400).json({ error: 'MISSING_PDF' });
+    const buf = Buffer.from(b64, 'base64');
+    const data = await pdfParse(buf, { pagerender: renderPageWithColumns });
+    const lines = (data.text || '')
+      .split(/\r?\n/)
+      .map((l) => l.split('\u0001').map((c) => c.trim()).filter(Boolean))
+      .filter((cells) => cells.length);
+
+    // "구분"과 "판정"을 모두 포함하는 줄을 표 머리글로 본다
+    const headerIdx = lines.findIndex((cells) => {
+      const joined = cells.join(' ');
+      return joined.includes('구분') && joined.includes('판정');
+    });
+
+    let certNoGuess = '';
+    const certMatch = (data.text || '').match(/성적서\s*NO\.?\s*([0-9A-Za-z()]+)/);
+    if (certMatch) certNoGuess = certMatch[1];
+
+    const items = [];
+    if (headerIdx >= 0) {
+      let lastCategory = '';
+      for (let i = headerIdx + 1; i < lines.length; i += 1) {
+        const cells = lines[i];
+        if (cells.length < 3) break; // 표 아래 안내문구 등으로 넘어간 것으로 봄
+        let row = cells;
+        if (row.length === 4) row = [lastCategory, ...row]; // 구분 칸이 병합되어 생략된 경우
+        if (row.length < 5) break;
+        const [category, item, standard, result, verdict] = row;
+        lastCategory = category || lastCategory;
+        items.push({
+          category: category || lastCategory,
+          item: item || '',
+          standard: standard || '',
+          result: result || '',
+          verdict: verdict || '',
+          raw: cells.join(' | '),
+        });
+      }
+    }
+
+    res.json({ ok: true, items, certNoGuess, headerFound: headerIdx >= 0 });
+  } catch (e) {
+    console.error('[extract-summary-table]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════
+// API — 외부증빙 보고서를 .docx 파일로 생성
+// (화면에서 사람이 검토·확정한 값만 받아서 문서를 만든다 — 이 엔드포인트는
+// PDF를 다시 읽지 않는다)
+// ══════════════════════════════════════════════════════════
+function extCellText(text, opts) {
+  return new Paragraph({
+    alignment: (opts && opts.align) || AlignmentType.CENTER,
+    children: [new TextRun({ text: String(text == null ? '' : text), bold: !!(opts && opts.bold), color: (opts && opts.color) || undefined, size: (opts && opts.size) || 20 })],
+  });
+}
+function extCell(text, opts) {
+  return new TableCell({
+    width: { size: (opts && opts.width) || 2000, type: WidthType.DXA },
+    shading: opts && opts.shade ? { type: ShadingType.CLEAR, fill: opts.shade } : undefined,
+    verticalAlign: 'center',
+    children: [extCellText(text, opts)],
+  });
+}
+function infoRow(label, value) {
+  return new TableRow({
+    children: [
+      extCell(label, { width: 2200, shade: 'F3F4F6', bold: true, align: AlignmentType.CENTER }),
+      extCell(value, { width: 6800, align: AlignmentType.LEFT }),
+    ],
+  });
+}
+
+async function buildExtCertDocxBuffer(f) {
+  const items = Array.isArray(f.items) ? f.items : [];
+  const badCount = items.filter((it) => String(it.verdict || '').trim() === '부적합').length;
+  const overallVerdict = items.length === 0 ? '판정 항목 없음' : (badCount > 0 ? `부적합 ${badCount}건 있음` : '적합 (Pass)');
+
+  const infoTable = new Table({
+    width: { size: 9000, type: WidthType.DXA },
+    rows: [
+      infoRow('문서번호', f.docNo),
+      infoRow('작성일', f.createdDate),
+      infoRow('작성부서', f.department || '일룸 매트리스사업부 품질보증팀'),
+      infoRow('작성자', f.author),
+      infoRow('대상 제품', f.targetProduct),
+      infoRow('대상 원단/자재', f.targetFabric),
+      infoRow('시험 기관', f.testAgency),
+      infoRow('성적서 번호', f.certNo),
+    ],
+  });
+
+  const resultHeader = new TableRow({
+    tableHeader: true,
+    children: ['구분', '시험 항목', '시험 규격', '결과', '판정'].map((h) =>
+      extCell(h, { width: 1800, shade: 'FEE2E2', bold: true })),
+  });
+  const resultRows = items.map((it) => new TableRow({
+    children: [
+      extCell(it.category, { width: 1400 }),
+      extCell(it.item, { width: 2400, align: AlignmentType.LEFT }),
+      extCell(it.standard, { width: 2000 }),
+      extCell(it.result, { width: 1600 }),
+      extCell(it.verdict, { width: 1200, bold: true, color: String(it.verdict || '').trim() === '부적합' ? 'DC2626' : undefined }),
+    ],
+  }));
+  const resultTable = new Table({ width: { size: 9000, type: WidthType.DXA }, rows: [resultHeader, ...resultRows] });
+
+  const h2 = (text) => new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 }, children: [new TextRun({ text, bold: true })] });
+  const body = (text) => new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text })] });
+
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { width: 11907, height: 16840 } } }, // A4
+      children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 }, children: [new TextRun({ text: '시험 결과 보고서', bold: true, size: 36 })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: '(퍼시스 매트리스 납품용 증빙자료)', size: 20, color: '6B7280' })] }),
+        infoTable,
+        new Paragraph({ text: '', spacing: { after: 200 } }),
+        h2('1. 개요'),
+        body(f.overviewText || `본 보고서는 "퍼시스 매트리스" 관련 제출용으로, 제품에 적용되는 원단/자재 '${f.targetFabric || ''}'의 시험 결과를 국내·해외 시험 기준에 따라 검증하고 그 결과를 증빙하기 위해 작성되었습니다.`),
+        h2('2. 제조 및 공급 관계'),
+        body('퍼시스 매트리스는 퍼시스그룹 내 일룸 매트리스사업부에서 제조·공급하는 매트리스를 적용합니다. 원단 및 소재의 안전성 시험은 제조 주체인 일룸이 직접 계획·의뢰하여 공인시험기관에서 수행하며, 그 결과를 퍼시스에 제공합니다. 따라서 본 보고서의 시험 결과는 퍼시스 매트리스에 그대로 적용됩니다.'),
+        h2('3. 시험 결과 요약'),
+        new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: `[표] 시험 항목별 결과 종합 (성적서 NO. ${f.certNo || ''})`, italics: true, size: 18 })] }),
+        resultTable,
+        h2('4. 결론'),
+        body(`종합 판정: ${overallVerdict}`),
+        h2('5. 첨부'),
+        body(`${f.testAgency || ''} 시험성적서 NO. ${f.certNo || ''} 1부`),
+      ],
+    }],
+  });
+
+  return Packer.toBuffer(doc);
+}
+
+app.post('/api/extcert-docx', requireLogin, async (req, res) => {
+  try {
+    const buf = await buildExtCertDocxBuffer(req.body || {});
+    const filename = `${(req.body && req.body.docNo) || '외부증빙'}.docx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buf);
+  } catch (e) {
+    console.error('[extcert-docx]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
   }
 });

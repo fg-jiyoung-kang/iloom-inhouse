@@ -25,3 +25,10 @@ CREATE TABLE IF NOT EXISTS settings (
   data       jsonb,
   updated_at timestamptz DEFAULT now()
 );
+
+-- 외부증빙(퍼시스 납품용 증명서) — 시험 항목별 결과 요약표 + 상단 정보
+CREATE TABLE IF NOT EXISTS extcerts (
+  id         text PRIMARY KEY,
+  data       jsonb,
+  updated_at timestamptz DEFAULT now()
+);
