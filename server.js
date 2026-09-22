@@ -16,6 +16,7 @@ const pdfParse = require('pdf-parse');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   WidthType, BorderStyle, AlignmentType, HeadingLevel, ShadingType, ImageRun,
+  Footer, PageNumber,
 } = require('docx');
 
 // Postgres BIGINT(oid 20)은 기본적으로 문자열로 오므로 숫자로 파싱한다
@@ -930,9 +931,26 @@ async function buildExtCertDocxBuffer(f) {
     ] })],
   });
 
+  const pageFooter = new Footer({
+    children: [new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ children: [PageNumber.CURRENT], size: 18, color: '9CA3AF' }),
+        new TextRun({ text: ' / ', size: 18, color: '9CA3AF' }),
+        new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 18, color: '9CA3AF' }),
+      ],
+    })],
+  });
+
   const doc = new Document({
     sections: [{
-      properties: { page: { size: { width: 11907, height: 16840 } } }, // A4
+      properties: {
+        page: {
+          size: { width: 11907, height: 16840 }, // A4
+          margin: { top: 1600, bottom: 1400, left: 1400, right: 1400 },
+        },
+      },
+      footers: { default: pageFooter },
       children: [
         new Paragraph({
           alignment: AlignmentType.CENTER,
