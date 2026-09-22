@@ -761,7 +761,12 @@ button,input,select{font:inherit}
           <div class="card form-card">
             <h2>기본 정보</h2>
             <div class="form-grid">
-              <label>문서번호<input id="ec_docNo" placeholder="예: ILM-QA-TR-2026-0001"></label>
+              <label>문서번호
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input id="ec_docNo" placeholder="예: ILM-QA-TR-2026-0001" style="flex:1">
+                  <button type="button" class="btn ghost" style="padding:8px 10px;font-size:12px" onclick="ec_copyField('ec_docNo')">복사</button>
+                </div>
+              </label>
               <label>작성일<input id="ec_createdDate" type="date"></label>
               <label>작성부서<input id="ec_department" value="일룸 매트리스사업부 품질보증팀" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
               <label>작성자
@@ -775,7 +780,12 @@ button,input,select{font:inherit}
               <label>대상 제품<input id="ec_targetProduct" value="퍼시스 매트리스 (제조 : 일룸)"></label>
               <label>대상 원단/자재<input id="ec_targetFabric" placeholder="예: 7S1 (난연 원단)"></label>
               <label>시험 기관<input id="ec_testAgency" placeholder="예: KOTITI 시험연구원"></label>
-              <label>성적서 번호<input id="ec_certNo" placeholder="PDF 업로드 시 자동으로 채워집니다"></label>
+              <label>성적서 번호
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input id="ec_certNo" placeholder="PDF 업로드 시 자동으로 채워집니다" style="flex:1">
+                  <button type="button" class="btn ghost" style="padding:8px 10px;font-size:12px" onclick="ec_copyField('ec_certNo')">복사</button>
+                </div>
+              </label>
             </div>
           </div>
         </div>
@@ -796,7 +806,7 @@ button,input,select{font:inherit}
           <div class="table-wrap">
             <table class="input-table" id="ec_itemsTable">
               <thead>
-                <tr><th style="width:90px">구분</th><th>시험 항목</th><th>시험 규격</th><th>기준(참고)</th><th style="width:120px">결과</th><th style="width:80px">판정</th><th style="width:40px"></th></tr>
+                <tr><th style="width:90px">구분</th><th>시험 항목</th><th>시험 규격</th><th style="width:120px">결과</th><th style="width:80px">판정</th><th style="width:40px"></th></tr>
               </thead>
               <tbody id="ec_itemsBody"></tbody>
             </table>
@@ -5841,7 +5851,7 @@ async function deleteExtCertAsync(id) {
 let ec_currentId = null;
 let ec_items = [];
 
-function ec_blankItem(){ return { category:'', item:'', standard:'', criterion:'', result:'', verdict:'' }; }
+function ec_blankItem(){ return { category:'', item:'', standard:'', result:'', verdict:'' }; }
 
 function ec_renderItemsTable(){
   const body = $('ec_itemsBody');
@@ -5853,7 +5863,6 @@ function ec_renderItemsTable(){
       '<td><input data-f="category" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><input data-f="item" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><input data-f="standard" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
-      '<td><input data-f="criterion" placeholder="참고용(PDF 각주)" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px;color:#6b7280;font-size:12px"></td>' +
       '<td><input data-f="result" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><input data-f="verdict" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px"></td>' +
       '<td><button type="button" class="btn ghost" style="padding:4px 8px" title="삭제">✕</button></td>';
@@ -5927,6 +5936,20 @@ async function ec_nextDocNo(year){
     });
   } catch(e){ /* 목록을 못 가져와도 0001부터 시작 */ }
   return prefix + String(maxSeq + 1).padStart(4, '0');
+}
+
+async function ec_copyField(id){
+  const el = $(id);
+  const val = el ? el.value.trim() : '';
+  if(!val){ showToast('복사할 내용이 없습니다.'); return; }
+  try {
+    await navigator.clipboard.writeText(val);
+    showToast('복사되었습니다.');
+  } catch(e){
+    el.select();
+    document.execCommand('copy');
+    showToast('복사되었습니다.');
+  }
 }
 
 async function ec_newForm(){
@@ -6045,7 +6068,7 @@ async function ec_extractPdf(file){
       return;
     }
     if(data.certNoGuess && !$('ec_certNo').value.trim()) $('ec_certNo').value = data.certNoGuess;
-    ec_items = ec_items.concat(data.items.map(it => ({ category: it.category, item: it.item, standard: it.standard, criterion: it.criterion || '', result: it.result, verdict: it.verdict })));
+    ec_items = ec_items.concat(data.items.map(it => ({ category: it.category, item: it.item, standard: it.standard, result: it.result, verdict: it.verdict })));
     ec_renderItemsTable();
     const modeNote = data.mode === 'summary-table' ? '요약표에서' : '항목별 표를 모아서';
     statusEl.textContent = `${modeNote} ${data.items.length}개 항목을 읽어왔습니다. "구분"은 항목명으로 추정한 제안값이고 "판정"은 원문에 없어 비워뒀습니다 — 아래 표에서 꼭 확인·수정해주세요.`;
