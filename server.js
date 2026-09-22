@@ -934,14 +934,6 @@ async function buildExtCertDocxBuffer(f) {
     sections: [{
       properties: { page: { size: { width: 11907, height: 16840 } } }, // A4
       children: [
-        (() => {
-          const logo = publicImage('iloom-logo.png');
-          return new Paragraph({
-            alignment: AlignmentType.RIGHT,
-            spacing: { after: 40 },
-            children: logo ? [new ImageRun({ data: logo.buffer, type: logo.type, transformation: { width: 100, height: 35 } })] : [],
-          });
-        })(),
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 240 },
