@@ -583,6 +583,63 @@ function renderPageWithColumns(pageData) {
   });
 }
 
+// 페이지 머리글/바닥글 등 시험기관 PDF마다 반복되는 잡음 줄 — 항목으로 잘못 섞이지 않게 걸러낸다
+function isNoiseLine(text) {
+  const t = text.trim();
+  if (!t) return true;
+  if (/PAGE\s*\d+\s*OF\s*\d+/i.test(t)) return true;
+  if (/^QPF-\d/i.test(t)) return true;
+  if (/KOTITI\s*Testing/i.test(t)) return true;
+  if (/^\d{10,}$/.test(t)) return true; // 성적서번호만 단독으로 찍힌 머리글 줄
+  if (/^Primary Contact/i.test(t)) return true;
+  if (/^-\s*시험결과\s*기록\s*완료\s*-$/.test(t)) return true;
+  return false;
+}
+
+// 항목 구분(카테고리)을 항목명 키워드로 추정한다 — 시험기관 PDF에는 이 분류가
+// 문자로 적혀있지 않으므로 어디까지나 "제안"이며, 화면에서 사람이 확인·수정해야 한다.
+const CATEGORY_KEYWORDS = [
+  [/아릴아민|pH|포름알데히드|염소화페놀|방염제|유해원소|유해염료/, '유해물질'],
+  [/밀도|파열강도|인장강도|인열강도|필링|투습도|공기투과도|치수변화/, '물성'],
+  [/마찰\s*견뢰도|땀\s*견뢰도|물\s*견뢰도|견뢰도/, '견뢰도'],
+  [/혼용률/, '조성'],
+  [/방염시험|가연성|연소/, '난연'],
+];
+function guessCategory(itemName) {
+  const hit = CATEGORY_KEYWORDS.find(([re]) => re.test(itemName));
+  return hit ? hit[1] : '';
+}
+
+// 항목 제목/표 안 KS 규격 텍스트 중, "KS ...년도" 형태의 규격 코드만 뽑아낸다.
+// 규격이 여러 개 섞여 있으면(예: "KS K0210:2023/KS K0210-1:2026") 전부 " / "로 이어붙인다.
+// (탐욕적으로 매칭해 "KS K0642.8.14.1A법:2022"처럼 중간에 다른 숫자가 섞여도
+//  진짜 연도(맨 뒤 4자리)까지 놓치지 않고 잡는다)
+function extractStandardCodes(text) {
+  const matches = text.match(/KS[\s\S]{0,45}\d{4}/g) || [];
+  const cleaned = matches.map((m) => m.replace(/\s+/g, ' ').trim());
+  return [...new Set(cleaned)].join(' / ');
+}
+
+// "검출안됨:5mg/kg미만" 같은 각주성 정의 줄인지 판단한다. 콜론이 있어도 "KS" 규격
+// 인용문(예: "KS K0739:2017")은 legend가 아니므로 제외한다.
+function isLegendLine(text) {
+  if (!/[:：]/.test(text)) return false;
+  if (/KS/.test(text)) return false;
+  return true;
+}
+
+// 값처럼 생긴 셀인지 판단한다 — 항목 제목/각주 텍스트와 실제 시험결과 값을 구분하는 핵심 신호.
+function looksLikeValue(v) {
+  const s = (v || '').trim();
+  if (!s) return false;
+  if (/^[\d.,\s]+(mm\/sec|g\/m²·?24h?ours?|N|%|급)?$/.test(s)) return true;
+  if (/^검출\s*안\s*됨$/.test(s)) return true;
+  if (/^\d+-\d+$/.test(s)) return true; // 등급 "4-5"
+  if (/발화되지\s*않음|발화됨/.test(s)) return true;
+  if (/^[가-힣A-Za-z]+\s*\d+%$/.test(s)) return true; // "폴리에스터 100%"
+  return false;
+}
+
 app.post('/api/extract-summary-table', requireLogin, async (req, res) => {
   try {
     const raw = String((req.body || {}).pdfBase64 || '');
@@ -590,44 +647,112 @@ app.post('/api/extract-summary-table', requireLogin, async (req, res) => {
     if (!b64) return res.status(400).json({ error: 'MISSING_PDF' });
     const buf = Buffer.from(b64, 'base64');
     const data = await pdfParse(buf, { pagerender: renderPageWithColumns });
-    const lines = (data.text || '')
+    const allLines = (data.text || '')
       .split(/\r?\n/)
       .map((l) => l.split('\u0001').map((c) => c.trim()).filter(Boolean))
-      .filter((cells) => cells.length);
+      .filter((cells) => cells.length)
+      .filter((cells) => !isNoiseLine(cells.join(' ')));
 
-    // "구분"과 "판정"을 모두 포함하는 줄을 표 머리글로 본다
-    const headerIdx = lines.findIndex((cells) => {
+    let certNoGuess = '';
+    const certMatch = (data.text || '').match(/(?:KOTITI\s*No\.?|성적서\s*NO\.?)\s*([0-9A-Za-z()]+)/i);
+    if (certMatch) certNoGuess = certMatch[1];
+
+    // 방식 1) "구분/시험항목/시험규격/결과/판정"이 한 표에 다 정리된 요약표가 있으면 그걸 그대로 쓴다.
+    const summaryHeaderIdx = allLines.findIndex((cells) => {
       const joined = cells.join(' ');
       return joined.includes('구분') && joined.includes('판정');
     });
-
-    let certNoGuess = '';
-    const certMatch = (data.text || '').match(/성적서\s*NO\.?\s*([0-9A-Za-z()]+)/);
-    if (certMatch) certNoGuess = certMatch[1];
-
     const items = [];
-    if (headerIdx >= 0) {
+    if (summaryHeaderIdx >= 0) {
       let lastCategory = '';
-      for (let i = headerIdx + 1; i < lines.length; i += 1) {
-        const cells = lines[i];
-        if (cells.length < 3) break; // 표 아래 안내문구 등으로 넘어간 것으로 봄
+      for (let i = summaryHeaderIdx + 1; i < allLines.length; i += 1) {
+        const cells = allLines[i];
+        if (cells.length < 3) break;
         let row = cells;
-        if (row.length === 4) row = [lastCategory, ...row]; // 구분 칸이 병합되어 생략된 경우
+        if (row.length === 4) row = [lastCategory, ...row];
         if (row.length < 5) break;
         const [category, item, standard, result, verdict] = row;
         lastCategory = category || lastCategory;
-        items.push({
-          category: category || lastCategory,
-          item: item || '',
-          standard: standard || '',
-          result: result || '',
-          verdict: verdict || '',
-          raw: cells.join(' | '),
-        });
+        items.push({ category: category || lastCategory, item: item || '', standard: standard || '', result: result || '', verdict: verdict || '' });
       }
     }
 
-    res.json({ ok: true, items, certNoGuess, headerFound: headerIdx >= 0 });
+    // 방식 2) (실제 시험기관 PDF는 대부분 이 형태) 항목마다 "항목명 + (KS 규격)" 제목 아래
+    // "구분/시험결과/기준" 3칸 표가 따로따로 있다 — 이 작은 표들을 순서대로 훑어서 항목별로 모은다.
+    // "판정"(적합/부적합)과 "구분"(유해물질/물성 등 분류)은 원문에 글자로 적혀있지 않으므로
+    // 절대 지어내지 않는다 — 구분은 항목명으로 추정한 "제안값"만 넣고, 판정은 항상 비워서
+    // 사람이 직접 판단해 채우도록 한다.
+    // "기준" 칸이 아예 없는 항목(예: 방염시험 — 구분/시험결과 2칸뿐)도 있어 2칸/3칸 머리글을 모두 인정한다
+    const headerIdxs = [];
+    allLines.forEach((cells, i) => {
+      const isHeader3 = cells.length === 3 && cells[0] === '구분' && /결과/.test(cells[1]) && cells[2] === '기준';
+      const isHeader2 = cells.length === 2 && cells[0] === '구분' && /결과/.test(cells[1]);
+      if (isHeader3 || isHeader2) headerIdxs.push(i);
+    });
+
+    if (headerIdxs.length) {
+      headerIdxs.forEach((h, hi) => {
+        const nextH = hi + 1 < headerIdxs.length ? headerIdxs[hi + 1] : allLines.length;
+
+        // 제목 구간: 이 표 머리글 바로 위쪽에서 시작해 위로 거슬러 올라가며 모은다.
+        // "주)" 각주를 만나면(=이전 항목 몫) 멈추고, "검출안됨:5mg/kg미만" 같은 legend 줄은
+        // 건너뛰고 계속 올라가며, 값처럼 생긴 줄을 만나면(=이전 항목의 실제 데이터) 그 자리에서 멈춘다.
+        const prevEnd = hi === 0 ? 0 : headerIdxs[hi - 1] + 1;
+        const titleLines = [];
+        for (let i = h - 1; i >= prevEnd; i -= 1) {
+          const cells = allLines[i];
+          const text = cells.join(' ');
+          if (/^주\)/.test(text)) break; // 각주를 만나면 그 위는 이전 항목 몫이니 멈춤
+          if (isLegendLine(text)) continue; // legend 줄은 제목이 아니니 건너뛰고 계속 올라감
+          const lastCell = cells[cells.length - 1] || '';
+          if (cells.length <= 2 && looksLikeValue(lastCell)) break; // 이전 항목의 실제 데이터를 만나면 멈춤
+          titleLines.unshift(text);
+          if (titleLines.length >= 4) break; // 제목이 4줄을 넘어가진 않는다고 봄
+        }
+        const titleText = titleLines.join(' ');
+        const standard = extractStandardCodes(titleText);
+        // 제목에서 괄호로 시작하는(=규격 인용) 줄은 빼고, 나머지를 항목명으로 쓴다
+        const itemName = titleLines.filter((l) => !l.trim().startsWith('(')).join(' ').trim() || titleText.replace(/\([\s\S]*$/, '').trim();
+
+        // 데이터 구간: 표 머리글 다음 줄부터 시작해서, "값처럼 생기지 않은" 줄을 만나는 순간 멈춘다
+        // (그 줄부터는 각주나 다음 항목 제목이 시작된 것으로 본다 — 다음 표 머리글까지 무작정
+        // 다 긁어오면 그 사이에 낀 각주·다음 항목 제목까지 데이터로 잘못 섞여 들어간다).
+        const dataRows = [];
+        for (let i = h + 1; i < nextH; i += 1) {
+          const cells = allLines[i];
+          const text = cells.join(' ');
+          if (/^\([A-Z](?:,\s*[A-Z])*\)$/.test(text)) continue; // "(A)" 등 시료 반복 표시
+          if (/^주\)/.test(text)) break; // 각주를 만나면 이 항목의 데이터는 끝난 것
+          if (isLegendLine(text)) break; // "검출안됨:5mg/kg미만" 같은 legend도 데이터 끝 신호
+          if (!cells.length) continue;
+          const lastCell = cells[cells.length - 1] || '';
+          if (!looksLikeValue(lastCell)) break; // 값처럼 안 생겼으면 다음 항목 제목이 시작된 것
+          if (cells.length === 1) dataRows.push({ label: '', value: cells[0] });
+          else dataRows.push({ label: cells[0], value: cells[1] });
+        }
+
+        if (!itemName || !dataRows.length) return; // 제목이나 데이터를 못 찾으면 이 표는 건너뜀
+
+        // 결과값 정리: 값이 1개면 그대로, 2개면 "라벨 값 / 라벨 값"으로, 전부 같으면 개수만 덧붙이고,
+        // 제각각이면 전부 나열한다 — 어느 경우든 원문 값을 그대로 쓰고 새로 지어내지 않는다.
+        let result;
+        const values = dataRows.map((r) => r.value);
+        const allSame = values.every((v) => v === values[0]);
+        if (dataRows.length === 1) {
+          result = dataRows[0].value;
+        } else if (allSame) {
+          result = `${values[0]} (전체 ${dataRows.length}건 동일)`;
+        } else if (dataRows.length === 2 && dataRows[0].label && dataRows[1].label) {
+          result = `${dataRows[0].label} ${dataRows[0].value} / ${dataRows[1].label} ${dataRows[1].value}`;
+        } else {
+          result = dataRows.map((r) => (r.label ? `${r.label}: ${r.value}` : r.value)).join('; ');
+        }
+
+        items.push({ category: guessCategory(itemName), item: itemName, standard, result, verdict: '' });
+      });
+    }
+
+    res.json({ ok: true, items, certNoGuess, mode: summaryHeaderIdx >= 0 ? 'summary-table' : (headerIdxs.length ? 'per-item-tables' : 'none') });
   } catch (e) {
     console.error('[extract-summary-table]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: e.message });

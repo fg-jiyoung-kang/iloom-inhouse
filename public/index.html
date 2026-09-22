@@ -6039,14 +6039,15 @@ async function ec_extractPdf(file){
     });
     const data = await res.json();
     if(!res.ok || !data.ok){ statusEl.textContent = '추출에 실패했습니다: ' + (data.message || res.status); return; }
-    if(!data.headerFound || !data.items.length){
-      statusEl.textContent = '표를 찾지 못했습니다 — "구분/시험항목/판정"이 포함된 요약표가 있는 PDF인지 확인해주세요. 아래 표에 직접 입력해주세요.';
+    if(!data.items.length){
+      statusEl.textContent = '항목을 찾지 못했습니다 — 표 형태가 달라서 자동 인식이 안 되는 PDF일 수 있어요. 아래 표에 직접 입력해주세요.';
       return;
     }
     if(data.certNoGuess && !$('ec_certNo').value.trim()) $('ec_certNo').value = data.certNoGuess;
     ec_items = ec_items.concat(data.items.map(it => ({ category: it.category, item: it.item, standard: it.standard, result: it.result, verdict: it.verdict })));
     ec_renderItemsTable();
-    statusEl.textContent = `${data.items.length}개 항목을 읽어왔습니다. 반드시 아래 표에서 내용을 확인·수정한 뒤 사용해주세요.`;
+    const modeNote = data.mode === 'summary-table' ? '요약표에서' : '항목별 표를 모아서';
+    statusEl.textContent = `${modeNote} ${data.items.length}개 항목을 읽어왔습니다. "구분"은 항목명으로 추정한 제안값이고 "판정"은 원문에 없어 비워뒀습니다 — 아래 표에서 꼭 확인·수정해주세요.`;
   } catch(e){
     statusEl.textContent = '추출 중 오류가 발생했습니다: ' + e.message;
   }
