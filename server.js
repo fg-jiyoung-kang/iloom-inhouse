@@ -15,7 +15,7 @@ const { Pool, types } = require('pg');
 const pdfParse = require('pdf-parse');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  WidthType, BorderStyle, AlignmentType, HeadingLevel, ShadingType,
+  WidthType, BorderStyle, AlignmentType, HeadingLevel, ShadingType, ImageRun,
 } = require('docx');
 
 // Postgres BIGINT(oid 20)은 기본적으로 문자열로 오므로 숫자로 파싱한다
@@ -793,10 +793,66 @@ function infoRow(label, value) {
   });
 }
 
+// "data:image/png;base64,...." 형태의 서명 이미지를 docx ImageRun이 쓸 수 있는 Buffer로 바꾼다.
+function dataUrlToBuffer(dataUrl) {
+  const m = /^data:image\/(png|jpe?g);base64,(.+)$/.exec(String(dataUrl || ''));
+  if (!m) return null;
+  return { buffer: Buffer.from(m[2], 'base64'), type: m[1] === 'jpg' ? 'jpeg' : m[1] };
+}
+
+function bulletPara(text) {
+  return new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: '▪ ' + text, bold: true })] });
+}
+function bodyPara(text) {
+  return new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text })] });
+}
+// docx-js는 TextRun 안의 "\n"을 줄바꿈으로 처리하지 않으므로, 줄 단위로 나눠 break로 이어붙인다
+function multiLinePara(text) {
+  const lines = String(text).split('\n');
+  return new Paragraph({
+    spacing: { after: 160 },
+    children: lines.map((line, i) => new TextRun(i === 0 ? { text: line } : { text: line, break: 1 })),
+  });
+}
+
+// "iloom → 제조·공급 → FURSYS" 관계도를 표(칸 3개짜리 1행)로 표현한다.
+function supplyDiagramTable() {
+  function box(title, sub1, sub2, shade) {
+    return new TableCell({
+      width: { size: 3000, type: WidthType.DXA },
+      shading: { type: ShadingType.CLEAR, fill: shade },
+      margins: { top: 200, bottom: 200, left: 100, right: 100 },
+      children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: title, bold: true, size: 28 })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 20 }, children: [new TextRun({ text: sub1, bold: true, size: 18 })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: sub2, size: 16, color: '6B7280' })] }),
+      ],
+    });
+  }
+  const arrowCell = new TableCell({
+    width: { size: 1200, type: WidthType.DXA },
+    verticalAlign: 'center',
+    children: [
+      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '▶', size: 28, color: 'C81E2C' })] }),
+      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '제조·공급', size: 14 })] }),
+    ],
+  });
+  return new Table({
+    width: { size: 7200, type: WidthType.DXA },
+    rows: [new TableRow({ children: [
+      box('iloom', '제조 · 시험 주체', '일룸 매트리스사업부 품질보증팀', 'FFF1F0'),
+      arrowCell,
+      box('FURSYS', '브랜드 · 공급처', '퍼시스 매트리스로 판매', 'F3F4F6'),
+    ] })],
+  });
+}
+
 async function buildExtCertDocxBuffer(f) {
   const items = Array.isArray(f.items) ? f.items : [];
   const badCount = items.filter((it) => String(it.verdict || '').trim() === '부적합').length;
   const overallVerdict = items.length === 0 ? '판정 항목 없음' : (badCount > 0 ? `부적합 ${badCount}건 있음` : '적합 (Pass)');
+  const fabric = f.targetFabric || '해당 원단/자재';
+  const agency = f.testAgency || '공인시험기관';
 
   const infoTable = new Table({
     width: { size: 9000, type: WidthType.DXA },
@@ -811,6 +867,18 @@ async function buildExtCertDocxBuffer(f) {
       infoRow('성적서 번호', f.certNo),
     ],
   });
+
+  const roleHeader = new TableRow({
+    tableHeader: true,
+    children: ['구분', '주체', '역할'].map((h) => extCell(h, { width: 2400, shade: 'F3F4F6', bold: true })),
+  });
+  const roleRows = [
+    ['제조', '일룸 매트리스사업부', '매트리스 제조 및 원단·자재 사양 결정'],
+    ['품질보증', '일룸 매트리스사업부 품질보증팀', '시험 계획 수립, 시험 의뢰 및 결과 검증'],
+    ['시험 수행', agency, '공인시험기관'],
+    ['공급 · 판매', '퍼시스(FURSYS)', '일룸 제조 제품을 퍼시스 매트리스로 공급'],
+  ].map(([a, b, c]) => new TableRow({ children: [extCell(a, { width: 2400 }), extCell(b, { width: 2400 }), extCell(c, { width: 2400, align: AlignmentType.LEFT })] }));
+  const roleTable = new Table({ width: { size: 7200, type: WidthType.DXA }, rows: [roleHeader, ...roleRows] });
 
   const resultHeader = new TableRow({
     tableHeader: true,
@@ -831,6 +899,29 @@ async function buildExtCertDocxBuffer(f) {
   const h2 = (text) => new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 }, children: [new TextRun({ text, bold: true })] });
   const body = (text) => new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text })] });
 
+  // 확인(서명)란 — 기술책임자 강지영 · 품질책임자 장성진은 이 앱의 다른 성적서와 동일하게 고정된 서명을 쓴다
+  function signCell(label, name, sign) {
+    const img = dataUrlToBuffer(sign);
+    return new TableCell({
+      width: { size: 2400, type: WidthType.DXA },
+      margins: { top: 100, bottom: 100 },
+      children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: `${label} (${name})`, bold: true, size: 18 })] }),
+        img
+          ? new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: img.buffer, type: img.type, transformation: { width: 70, height: 70 } })] })
+          : new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '(서명 없음)', size: 16, color: '9CA3AF' })] }),
+      ],
+    });
+  }
+  const signTable = new Table({
+    width: { size: 7200, type: WidthType.DXA },
+    rows: [new TableRow({ children: [
+      signCell('작성자', f.author || '', ''),
+      signCell('기술책임자', '강지영', f.techSignData),
+      signCell('품질책임자', '장성진', f.qualitySignData),
+    ] })],
+  });
+
   const doc = new Document({
     sections: [{
       properties: { page: { size: { width: 11907, height: 16840 } } }, // A4
@@ -839,17 +930,33 @@ async function buildExtCertDocxBuffer(f) {
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: '(퍼시스 매트리스 납품용 증빙자료)', size: 20, color: '6B7280' })] }),
         infoTable,
         new Paragraph({ text: '', spacing: { after: 200 } }),
+
         h2('1. 개요'),
-        body(f.overviewText || `본 보고서는 "퍼시스 매트리스" 관련 제출용으로, 제품에 적용되는 원단/자재 '${f.targetFabric || ''}'의 시험 결과를 국내·해외 시험 기준에 따라 검증하고 그 결과를 증빙하기 위해 작성되었습니다.`),
+        bulletPara('목적'),
+        bodyPara(f.overviewText || `본 보고서는 "퍼시스 매트리스" 제출용으로, 제품에 적용되는 매트리스 원단/자재 '${fabric}'의 성능을 국내·해외 시험 기준에 따라 검증하고 그 결과를 증빙하기 위해 작성되었습니다.`),
+        bulletPara('제품 및 시험 주체'),
+        bodyPara('퍼시스 매트리스는 일룸(iloom) 매트리스사업부에서 제조한 매트리스를 사용하고 있습니다. 이에 따라 원단 및 소재의 안전성 시험은 제조 주체인 일룸이 직접 계획·의뢰하여 공인시험기관에서 수행하며, 그 결과를 퍼시스에 제공합니다.'),
+        bulletPara('대상'),
+        multiLinePara(`대상 제품 : ${f.targetProduct || ''}\n시험 대상 : ${fabric}\n시험 기관 : ${agency}`),
+
         h2('2. 제조 및 공급 관계'),
-        body('퍼시스 매트리스는 퍼시스그룹 내 일룸 매트리스사업부에서 제조·공급하는 매트리스를 적용합니다. 원단 및 소재의 안전성 시험은 제조 주체인 일룸이 직접 계획·의뢰하여 공인시험기관에서 수행하며, 그 결과를 퍼시스에 제공합니다. 따라서 본 보고서의 시험 결과는 퍼시스 매트리스에 그대로 적용됩니다.'),
+        supplyDiagramTable(),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 200 }, children: [new TextRun({ text: '[그림 1] 퍼시스 매트리스 제조 · 공급 체계', italics: true, size: 16, color: '6B7280' })] }),
+        roleTable,
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60, after: 200 }, children: [new TextRun({ text: '[표 1] 주체별 역할 구분', italics: true, size: 16, color: '6B7280' })] }),
+        body('퍼시스 매트리스는 퍼시스그룹 내 일룸 매트리스사업부에서 제조·공급하는 매트리스를 적용합니다. 따라서 본 보고서의 시험 결과는 퍼시스 매트리스에 그대로 적용됩니다.'),
+
         h2('3. 시험 결과 요약'),
-        new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: `[표] 시험 항목별 결과 종합 (성적서 NO. ${f.certNo || ''})`, italics: true, size: 18 })] }),
+        new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: `[표 2] 시험 항목별 결과 종합 (성적서 NO. ${f.certNo || ''})`, italics: true, size: 18 })] }),
         resultTable,
         h2('4. 결론'),
         body(`종합 판정: ${overallVerdict}`),
         h2('5. 첨부'),
-        body(`${f.testAgency || ''} 시험성적서 NO. ${f.certNo || ''} 1부`),
+        body(`${agency} 시험성적서 NO. ${f.certNo || ''} 1부`),
+
+        new Paragraph({ text: '', spacing: { before: 300, after: 100 } }),
+        new Paragraph({ spacing: { after: 100 }, children: [new TextRun({ text: '확인', bold: true, size: 20 })] }),
+        signTable,
       ],
     }],
   });

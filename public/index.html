@@ -5899,6 +5899,9 @@ function ec_collectForm(){
     certNo: $('ec_certNo').value.trim(),
     overviewText: $('ec_overviewText').value,
     items: ec_items,
+    // 기술책임자(강지영)·품질책임자(장성진) 서명은 이 앱의 다른 성적서와 동일하게 고정 서명을 쓴다
+    techSignData: (typeof JY_SIGN_DATA !== 'undefined' ? JY_SIGN_DATA : ''),
+    qualitySignData: (typeof SJ_SIGN_DATA !== 'undefined' ? SJ_SIGN_DATA : ''),
     savedAt: new Date().toISOString(),
   };
 }
@@ -5999,6 +6002,8 @@ function ec_buildPrintHTML(f){
   const e2 = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   const bad = f.items.filter(it => String(it.verdict||'').trim() === '부적합').length;
   const overall = !f.items.length ? '판정 항목 없음' : (bad > 0 ? `부적합 ${bad}건 있음` : '적합 (Pass)');
+  const fabric = f.targetFabric || '해당 원단/자재';
+  const agency = f.testAgency || '공인시험기관';
   const rows = f.items.map(it => `<tr>
       <td style="text-align:center">${e2(it.category)}</td>
       <td>${e2(it.item)}</td>
@@ -6006,16 +6011,32 @@ function ec_buildPrintHTML(f){
       <td style="text-align:center">${e2(it.result)}</td>
       <td style="text-align:center;font-weight:700;${String(it.verdict||'').trim()==='부적합'?'color:#dc2626':''}">${e2(it.verdict)}</td>
     </tr>`).join('');
+  function signBox(label, name, sign){
+    const img = sign ? `<img src="${sign}" style="height:60px;width:60px;object-fit:contain;mix-blend-mode:multiply">` : '<span style="color:#9ca3af;font-size:11px">(서명 없음)</span>';
+    return `<td style="text-align:center;width:33%"><div style="font-weight:700;font-size:12px;margin-bottom:6px">${e2(label)} (${e2(name)})</div>${img}</td>`;
+  }
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e2(f.docNo)} 외부증빙</title>
     <style>
       body{font-family:'Malgun Gothic',sans-serif;padding:32px;color:#111;font-size:13px}
       h1{text-align:center;font-size:22px;margin-bottom:4px}
       .sub{text-align:center;color:#6b7280;margin-bottom:20px}
-      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      table{width:100%;border-collapse:collapse;margin-bottom:8px}
       td,th{border:1px solid #d1d5db;padding:8px}
       .info td:first-child{background:#f3f4f6;font-weight:700;width:160px;text-align:center}
       h2{font-size:15px;border-left:4px solid #e60012;padding-left:8px;margin:24px 0 8px}
       thead td{background:#fee2e2;font-weight:700;text-align:center}
+      .bullet{font-weight:700;margin:12px 0 4px}
+      .figcap{text-align:center;color:#6b7280;font-size:12px;font-style:italic;margin:4px 0 16px}
+      .diagram{display:flex;align-items:center;justify-content:center;gap:16px;margin:16px 0}
+      .diagram .box{flex:1;max-width:220px;border:1px solid #d1d5db;border-radius:10px;padding:16px;text-align:center}
+      .diagram .box.iloom{background:#fff1f0}
+      .diagram .box.fursys{background:#f3f4f6}
+      .diagram .box .title{font-weight:800;font-size:18px}
+      .diagram .box .sub1{font-weight:700;font-size:12px;margin-top:6px}
+      .diagram .box .sub2{font-size:11px;color:#6b7280;margin-top:2px}
+      .diagram .arrow{text-align:center;font-size:22px;color:#c81e2c}
+      .diagram .arrow .lbl{font-size:11px;color:#374151;display:block}
+      .signrow td{border:1px solid #d1d5db;padding:12px}
       @media print{ .no-print{display:none} }
     </style></head><body>
     <h1>시험 결과 보고서</h1>
@@ -6030,17 +6051,49 @@ function ec_buildPrintHTML(f){
       <tr><td>시험 기관</td><td>${e2(f.testAgency)}</td></tr>
       <tr><td>성적서 번호</td><td>${e2(f.certNo)}</td></tr>
     </table>
+
     <h2>1. 개요</h2>
-    <p>${e2(f.overviewText)}</p>
+    <div class="bullet">▪ 목적</div>
+    <p>${e2(f.overviewText || `본 보고서는 "퍼시스 매트리스" 제출용으로, 제품에 적용되는 매트리스 원단/자재 '${fabric}'의 성능을 국내·해외 시험 기준에 따라 검증하고 그 결과를 증빙하기 위해 작성되었습니다.`)}</p>
+    <div class="bullet">▪ 제품 및 시험 주체</div>
+    <p>퍼시스 매트리스는 일룸(iloom) 매트리스사업부에서 제조한 매트리스를 사용하고 있습니다. 이에 따라 원단 및 소재의 안전성 시험은 제조 주체인 일룸이 직접 계획·의뢰하여 공인시험기관에서 수행하며, 그 결과를 퍼시스에 제공합니다.</p>
+    <div class="bullet">▪ 대상</div>
+    <p>대상 제품 : ${e2(f.targetProduct)}<br>시험 대상 : ${e2(fabric)}<br>시험 기관 : ${e2(agency)}</p>
+
     <h2>2. 제조 및 공급 관계</h2>
-    <p>퍼시스 매트리스는 퍼시스그룹 내 일룸 매트리스사업부에서 제조·공급하는 매트리스를 적용합니다. 원단 및 소재의 안전성 시험은 제조 주체인 일룸이 직접 계획·의뢰하여 공인시험기관에서 수행하며, 그 결과를 퍼시스에 제공합니다. 따라서 본 보고서의 시험 결과는 퍼시스 매트리스에 그대로 적용됩니다.</p>
+    <div class="diagram">
+      <div class="box iloom"><div class="title">iloom</div><div class="sub1">제조 · 시험 주체</div><div class="sub2">일룸 매트리스사업부 품질보증팀</div></div>
+      <div class="arrow">▶<span class="lbl">제조·공급</span></div>
+      <div class="box fursys"><div class="title">FURSYS</div><div class="sub1">브랜드 · 공급처</div><div class="sub2">퍼시스 매트리스로 판매</div></div>
+    </div>
+    <div class="figcap">[그림 1] 퍼시스 매트리스 제조 · 공급 체계</div>
+    <table>
+      <thead><tr><td>구분</td><td>주체</td><td>역할</td></tr></thead>
+      <tbody>
+        <tr><td style="text-align:center">제조</td><td style="text-align:center">일룸 매트리스사업부</td><td>매트리스 제조 및 원단·자재 사양 결정</td></tr>
+        <tr><td style="text-align:center">품질보증</td><td style="text-align:center">일룸 매트리스사업부 품질보증팀</td><td>시험 계획 수립, 시험 의뢰 및 결과 검증</td></tr>
+        <tr><td style="text-align:center">시험 수행</td><td style="text-align:center">${e2(agency)}</td><td>공인시험기관</td></tr>
+        <tr><td style="text-align:center">공급 · 판매</td><td style="text-align:center">퍼시스(FURSYS)</td><td>일룸 제조 제품을 퍼시스 매트리스로 공급</td></tr>
+      </tbody>
+    </table>
+    <div class="figcap">[표 1] 주체별 역할 구분</div>
+    <p>퍼시스 매트리스는 퍼시스그룹 내 일룸 매트리스사업부에서 제조·공급하는 매트리스를 적용합니다. 따라서 본 보고서의 시험 결과는 퍼시스 매트리스에 그대로 적용됩니다.</p>
+
     <h2>3. 시험 결과 요약</h2>
-    <p style="font-style:italic;color:#6b7280;font-size:12px">[표] 시험 항목별 결과 종합 (성적서 NO. ${e2(f.certNo)})</p>
+    <p style="font-style:italic;color:#6b7280;font-size:12px">[표 2] 시험 항목별 결과 종합 (성적서 NO. ${e2(f.certNo)})</p>
     <table><thead><tr><td>구분</td><td>시험 항목</td><td>시험 규격</td><td>결과</td><td>판정</td></tr></thead><tbody>${rows}</tbody></table>
     <h2>4. 결론</h2>
     <p>종합 판정: <b>${e2(overall)}</b></p>
     <h2>5. 첨부</h2>
-    <p>${e2(f.testAgency)} 시험성적서 NO. ${e2(f.certNo)} 1부</p>
+    <p>${e2(agency)} 시험성적서 NO. ${e2(f.certNo)} 1부</p>
+
+    <h2>확인</h2>
+    <table class="signrow"><tr>
+      ${signBox('작성자', f.author, '')}
+      ${signBox('기술책임자', '강지영', f.techSignData)}
+      ${signBox('품질책임자', '장성진', f.qualitySignData)}
+    </tr></table>
+
     <div class="no-print" style="margin-top:24px;text-align:center"><button onclick="window.print()">인쇄</button></div>
     </body></html>`;
 }
