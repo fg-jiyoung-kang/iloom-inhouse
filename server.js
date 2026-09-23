@@ -914,7 +914,7 @@ async function buildExtCertDocxBuffer(f) {
     const img = publicImage(signFile);
     return new TableCell({
       width: { size: 3600, type: WidthType.DXA },
-      margins: { top: 100, bottom: 100 },
+      margins: { top: 40, bottom: 40 },
       children: [
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: `${label} (${name})`, bold: true, size: 18 })] }),
         img
