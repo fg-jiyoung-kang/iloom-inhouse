@@ -763,6 +763,7 @@ button,input,select{font:inherit}
             <div style="font-weight:800;font-size:14px;color:#15803d">발행 완료된 문서입니다</div>
             <div id="ecLockDetail" style="font-size:12px;color:#166534;margin-top:2px"></div>
           </div>
+          <button type="button" id="ec_editBtn" style="display:none;background:#fff;border:1.5px solid #16a34a;color:#15803d;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">수정</button>
         </div>
         <div class="grid-layout no-print">
           <div class="card form-card">
@@ -5860,20 +5861,24 @@ let ec_currentId = null;
 let ec_items = [];
 let ec_issuedInfo = null; // {by, at} — 발행되어 잠긴 문서면 채워짐, 아니면 null
 let ec_locked = false;
+let ec_editUnlocked = false; // 발행된 문서를 관리자가 "수정" 버튼으로 임시로 풀어둔 상태
 
-// 발행(잠금) 후에는 발행한 사람 본인이거나 관리자(ADMIN_ID)만 계속 수정할 수 있다.
+// 발행 전에는 누구나 수정 가능. 발행된 뒤에는 관리자(ADMIN_ID)가 "수정" 버튼을
+// 눌러 임시로 풀지 않는 한 항목이든 뭐든 전부 잠긴다 — 발행자 본인도 예외 없음.
 function ec_canEditCurrent(){
   if(!ec_issuedInfo) return true;
-  const u = getCurUser();
-  return u.id === ec_issuedInfo.by || u.id === ADMIN_ID;
+  return getCurUser().id === ADMIN_ID && ec_editUnlocked;
 }
 
 function ec_applyLockState(){
   ec_locked = !ec_canEditCurrent();
+  const isAdmin = getCurUser().id === ADMIN_ID;
   const banner = $('ecLockBanner');
   const detail = $('ecLockDetail');
+  const editBtn = $('ec_editBtn');
   if(banner) banner.style.display = ec_issuedInfo ? 'flex' : 'none';
-  if(detail && ec_issuedInfo) detail.textContent = `발행자: ${ec_issuedInfo.by || '-'} · 발행일: ${(ec_issuedInfo.at||'').slice(0,10)}` + (ec_locked ? ' — 발행자 또는 관리자만 수정할 수 있습니다.' : ' — 발행자 본인이라 계속 수정할 수 있습니다.');
+  if(detail && ec_issuedInfo) detail.textContent = `발행자: ${ec_issuedInfo.by || '-'} · 발행일: ${(ec_issuedInfo.at||'').slice(0,10)}` + (ec_locked ? ' — 관리자만 "수정" 버튼을 눌러 수정할 수 있습니다.' : ' — 지금 수정 중입니다. 저장하면 다시 잠깁니다.');
+  if(editBtn) editBtn.style.display = (ec_issuedInfo && isAdmin && !ec_editUnlocked) ? '' : 'none';
 
   ['ec_docNo','ec_createdDate','ec_author','ec_targetProduct','ec_targetFabric','ec_testAgency','ec_certNo','ec_overviewText','ec_addRowBtn','ec_pdfFile'].forEach(id => {
     const el = $(id);
@@ -5959,6 +5964,7 @@ function ec_fillForm(rec){
   $('ec_overviewText').value = rec.overviewText || '';
   ec_items = Array.isArray(rec.items) ? rec.items.map(it => Object.assign(ec_blankItem(), it)) : [];
   ec_issuedInfo = rec.issued ? { by: rec.issuedBy, at: rec.issuedAt } : null;
+  ec_editUnlocked = false; // 다시 불러올 때마다 잠긴 상태로 시작 — "수정"을 눌러야 풀림
   ec_applyLockState();
 }
 
@@ -6009,6 +6015,7 @@ async function ec_newForm(){
   $('ec_overviewText').value = ec_defaultOverview();
   ec_items = [];
   ec_issuedInfo = null;
+  ec_editUnlocked = false;
   ec_nextDocNo(new Date().getFullYear()).then(no => { $('ec_docNo').value = no; });
   ec_applyLockState();
 }
@@ -6024,7 +6031,7 @@ async function ec_renderList(){
   const u = getCurUser();
   box.innerHTML = '<div class="table-wrap"><table class="input-table"><thead><tr><th>문서번호</th><th>작성일</th><th>대상 원단</th><th>작성자</th><th>상태</th><th style="width:140px"></th></tr></thead><tbody>' +
     list.map(r => {
-      const canManage = !r.issued || u.id === r.issuedBy || u.id === ADMIN_ID;
+      const canManage = !r.issued || u.id === ADMIN_ID;
       const status = r.issued ? `🔒 발행완료 (${e2(r.issuedBy||'')})` : '작성중';
       return `<tr><td>${e2(r.docNo)}</td><td>${e2(r.createdDate)}</td><td>${e2(r.targetFabric)}</td><td>${e2(r.author)}</td><td style="font-size:12px;${r.issued?'color:#16a34a;font-weight:700':'color:#9ca3af'}">${status}</td><td>
       <button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px" onclick="ec_loadRecord('${r.id}')">불러오기</button>
@@ -6205,21 +6212,31 @@ function initExtCertTab(){
       if(!f.docNo){ alert('문서번호를 입력해주세요.'); return; }
       await setExtCertAsync(f);
       ec_currentId = f.id;
+      // 발행된 문서를 관리자가 "수정"으로 풀어서 고친 뒤 저장하면, 다시 잠긴 상태로 돌아간다.
+      ec_editUnlocked = false;
+      ec_applyLockState();
       alert('저장되었습니다.');
       ec_renderList();
     });
     $('ec_issueBtn').addEventListener('click', async () => {
       const f = ec_collectForm();
       if(!f.docNo){ alert('문서번호를 입력해주세요.'); return; }
-      if(!confirm('발행하면 이 문서는 잠기고, 이후에는 발행한 본인 또는 관리자만 수정할 수 있습니다. 발행할까요?')) return;
+      if(!confirm('발행하면 이 문서는 잠기고, 이후에는 관리자가 "수정" 버튼을 눌러야만 고칠 수 있습니다. 발행할까요?')) return;
       const u = getCurUser();
       ec_issuedInfo = { by: u.id || '', at: new Date().toISOString() };
       const saved = ec_collectForm();
       await setExtCertAsync(saved);
       ec_currentId = saved.id;
+      ec_editUnlocked = false;
       ec_applyLockState();
       alert('발행되었습니다. 이제 이 문서는 잠겼습니다.');
       ec_renderList();
+    });
+    $('ec_editBtn').addEventListener('click', () => {
+      if(getCurUser().id !== ADMIN_ID){ alert('관리자만 수정할 수 있습니다.'); return; }
+      if(!confirm('발행된 문서를 수정합니다. 저장하면 다시 잠깁니다. 계속할까요?')) return;
+      ec_editUnlocked = true;
+      ec_applyLockState();
     });
     $('ec_printBtn').addEventListener('click', () => {
       const f = ec_collectForm();
