@@ -918,7 +918,7 @@ async function buildExtCertDocxBuffer(f) {
       children: [
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: `${label} (${name})`, bold: true, size: 18 })] }),
         img
-          ? new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: img.buffer, type: img.type, transformation: { width: 130, height: 130 } })] })
+          ? new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: img.buffer, type: img.type, transformation: { width: 190, height: 190 } })] })
           : new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '(서명 없음)', size: 16, color: '9CA3AF' })] }),
       ],
     });
