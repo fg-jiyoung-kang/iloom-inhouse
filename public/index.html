@@ -760,7 +760,7 @@ button,input,select{font:inherit}
         <div id="ecLockBanner" style="display:none;background:#dcfce7;border:1.5px solid #16a34a;border-radius:12px;padding:14px 20px;margin-bottom:12px;align-items:center;gap:12px">
           <span style="font-size:22px">🔒</span>
           <div style="flex:1">
-            <div style="font-weight:800;font-size:14px;color:#15803d">발행 완료된 문서입니다</div>
+            <div id="ecLockTitle" style="font-weight:800;font-size:14px;color:#15803d">발행 완료된 문서입니다</div>
             <div id="ecLockDetail" style="font-size:12px;color:#166534;margin-top:2px"></div>
           </div>
           <button type="button" id="ec_editBtn" style="display:none;background:#fff;border:1.5px solid #16a34a;color:#15803d;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">수정</button>
@@ -5861,24 +5861,35 @@ let ec_currentId = null;
 let ec_items = [];
 let ec_issuedInfo = null; // {by, at} — 발행되어 잠긴 문서면 채워짐, 아니면 null
 let ec_locked = false;
-let ec_editUnlocked = false; // 발행된 문서를 관리자가 "수정" 버튼으로 임시로 풀어둔 상태
+let ec_viewLocked = false; // 불러온 직후의 "보기 전용" 상태 — "수정" 버튼을 눌러야 풀림
 
-// 발행 전에는 누구나 수정 가능. 발행된 뒤에는 관리자(ADMIN_ID)가 "수정" 버튼을
-// 눌러 임시로 풀지 않는 한 항목이든 뭐든 전부 잠긴다 — 발행자 본인도 예외 없음.
+// 새로 작성 중인 문서는 항상 바로 수정 가능. 그 외(목록에서 불러온 문서)는
+// "수정" 버튼을 눌러 풀기 전까지 항목이든 뭐든 전부 보기 전용이다.
 function ec_canEditCurrent(){
-  if(!ec_issuedInfo) return true;
-  return getCurUser().id === ADMIN_ID && ec_editUnlocked;
+  return !ec_viewLocked;
+}
+// 발행되지 않은 문서는 누구나 "수정"을 눌러 풀 수 있다. 발행된 문서는 관리자(ADMIN_ID)만 가능.
+function ec_editAllowed(){
+  if(ec_issuedInfo) return getCurUser().id === ADMIN_ID;
+  return true;
 }
 
 function ec_applyLockState(){
   ec_locked = !ec_canEditCurrent();
-  const isAdmin = getCurUser().id === ADMIN_ID;
   const banner = $('ecLockBanner');
   const detail = $('ecLockDetail');
+  const bannerTitle = $('ecLockTitle');
   const editBtn = $('ec_editBtn');
-  if(banner) banner.style.display = ec_issuedInfo ? 'flex' : 'none';
-  if(detail && ec_issuedInfo) detail.textContent = `발행자: ${ec_issuedInfo.by || '-'} · 발행일: ${(ec_issuedInfo.at||'').slice(0,10)}` + (ec_locked ? ' — 관리자만 "수정" 버튼을 눌러 수정할 수 있습니다.' : ' — 지금 수정 중입니다. 저장하면 다시 잠깁니다.');
-  if(editBtn) editBtn.style.display = (ec_issuedInfo && isAdmin && !ec_editUnlocked) ? '' : 'none';
+  if(banner) banner.style.display = ec_viewLocked ? 'flex' : 'none';
+  if(ec_viewLocked){
+    if(bannerTitle) bannerTitle.textContent = ec_issuedInfo ? '발행 완료된 문서입니다' : '불러온 문서입니다 (보기 전용)';
+    if(detail){
+      detail.textContent = ec_issuedInfo
+        ? `발행자: ${ec_issuedInfo.by || '-'} · 발행일: ${(ec_issuedInfo.at||'').slice(0,10)} — 관리자만 "수정" 버튼을 눌러 수정할 수 있습니다.`
+        : '수정하려면 "수정" 버튼을 눌러주세요. 저장하면 다시 보기 전용으로 바뀝니다.';
+    }
+  }
+  if(editBtn) editBtn.style.display = (ec_viewLocked && ec_editAllowed()) ? '' : 'none';
 
   ['ec_docNo','ec_createdDate','ec_author','ec_targetProduct','ec_targetFabric','ec_testAgency','ec_certNo','ec_overviewText','ec_addRowBtn','ec_pdfFile'].forEach(id => {
     const el = $(id);
@@ -5889,7 +5900,6 @@ function ec_applyLockState(){
   if(saveBtn) saveBtn.disabled = ec_locked;
   if(issueBtn){
     issueBtn.style.display = ec_issuedInfo ? 'none' : '';
-    issueBtn.disabled = ec_locked;
   }
   ec_renderItemsTable();
 }
@@ -5964,7 +5974,7 @@ function ec_fillForm(rec){
   $('ec_overviewText').value = rec.overviewText || '';
   ec_items = Array.isArray(rec.items) ? rec.items.map(it => Object.assign(ec_blankItem(), it)) : [];
   ec_issuedInfo = rec.issued ? { by: rec.issuedBy, at: rec.issuedAt } : null;
-  ec_editUnlocked = false; // 다시 불러올 때마다 잠긴 상태로 시작 — "수정"을 눌러야 풀림
+  ec_viewLocked = true; // 불러올 때마다 보기 전용으로 시작 — "수정"을 눌러야 풀림
   ec_applyLockState();
 }
 
@@ -6015,7 +6025,7 @@ async function ec_newForm(){
   $('ec_overviewText').value = ec_defaultOverview();
   ec_items = [];
   ec_issuedInfo = null;
-  ec_editUnlocked = false;
+  ec_viewLocked = false; // 새로 작성하는 문서는 바로 수정 가능
   ec_nextDocNo(new Date().getFullYear()).then(no => { $('ec_docNo').value = no; });
   ec_applyLockState();
 }
@@ -6212,8 +6222,8 @@ function initExtCertTab(){
       if(!f.docNo){ alert('문서번호를 입력해주세요.'); return; }
       await setExtCertAsync(f);
       ec_currentId = f.id;
-      // 발행된 문서를 관리자가 "수정"으로 풀어서 고친 뒤 저장하면, 다시 잠긴 상태로 돌아간다.
-      ec_editUnlocked = false;
+      // 저장하면 다시 보기 전용으로 돌아간다 — 계속 고치려면 "수정"을 또 눌러야 한다.
+      ec_viewLocked = true;
       ec_applyLockState();
       alert('저장되었습니다.');
       ec_renderList();
@@ -6227,15 +6237,15 @@ function initExtCertTab(){
       const saved = ec_collectForm();
       await setExtCertAsync(saved);
       ec_currentId = saved.id;
-      ec_editUnlocked = false;
+      ec_viewLocked = true;
       ec_applyLockState();
       alert('발행되었습니다. 이제 이 문서는 잠겼습니다.');
       ec_renderList();
     });
     $('ec_editBtn').addEventListener('click', () => {
-      if(getCurUser().id !== ADMIN_ID){ alert('관리자만 수정할 수 있습니다.'); return; }
-      if(!confirm('발행된 문서를 수정합니다. 저장하면 다시 잠깁니다. 계속할까요?')) return;
-      ec_editUnlocked = true;
+      if(!ec_editAllowed()){ alert('관리자만 수정할 수 있습니다.'); return; }
+      if(ec_issuedInfo && !confirm('발행된 문서를 수정합니다. 저장하면 다시 잠깁니다. 계속할까요?')) return;
+      ec_viewLocked = false;
       ec_applyLockState();
     });
     $('ec_printBtn').addEventListener('click', () => {
