@@ -530,7 +530,7 @@ app.delete('/api/:table(reports|requests|settings|extcerts)', requireLogin, asyn
 });
 
 // ══════════════════════════════════════════════════════════
-// API — 외부증빙(퍼시스 납품용 증명서) PDF에서 "시험 항목별 결과 종합"
+// API — 제품사용확인서(퍼시스 납품용 증명서) PDF에서 "시험 항목별 결과 종합"
 // 요약표만 추출한다.
 //
 // 예전에 성적서 PDF 전체(서술형 보고서 포함)를 표/텍스트 블록으로 통째로
@@ -767,7 +767,7 @@ app.post('/api/extract-summary-table', requireLogin, async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════
-// API — 외부증빙 보고서를 .docx 파일로 생성
+// API — 제품사용확인서 보고서를 .docx 파일로 생성
 // (화면에서 사람이 검토·확정한 값만 받아서 문서를 만든다 — 이 엔드포인트는
 // PDF를 다시 읽지 않는다)
 // ══════════════════════════════════════════════════════════
@@ -1000,7 +1000,7 @@ async function buildExtCertDocxBuffer(f) {
 app.post('/api/extcert-docx', requireLogin, async (req, res) => {
   try {
     const buf = await buildExtCertDocxBuffer(req.body || {});
-    const filename = `${(req.body && req.body.docNo) || '외부증빙'}.docx`;
+    const filename = `${(req.body && req.body.docNo) || '제품사용확인서'}.docx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(buf);

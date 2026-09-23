@@ -336,7 +336,7 @@ button,input,select{font:inherit}
         닫기
       </button>
       <div class="brand" style="cursor:pointer" onclick="(function(){ var b=document.querySelector('.nav-btn[data-tab=request]'); if(b)b.click(); if(typeof clearRequest==='function')clearRequest(); if(typeof initRequestTab==='function')initRequestTab(); })()">
-        <img src="" id="sidebar-iloom-logo" style="display:none">
+        <img src="" id="sidebar-iloom-logo" style="width:40px;height:40px;object-fit:contain;border-radius:8px;flex-shrink:0">
         <div>
           <strong>IN HOUSE TEST LAB</strong>
           <span>품질보증팀 (일룸수면과학연구소)</span>
@@ -352,7 +352,7 @@ button,input,select{font:inherit}
         <button class="nav-btn" data-tab="write"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>성적서 작성</button>
         <button class="nav-btn" data-tab="list"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>성적서 조회</button>
         <button class="nav-btn" data-tab="pdfstore" id="pdfstoreNavBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>PDF 보관함</button>
-        <button class="nav-btn" data-tab="extcert" id="extcertNavBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>외부증빙</button>
+        <button class="nav-btn" data-tab="extcert" id="extcertNavBtn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>제품사용확인서</button>
         <button class="nav-btn" data-tab="standard"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>시험 규격 관리</button>
         <button class="nav-btn" data-tab="unlockReq" id="unlockReqNavBtn" style="display:none;align-items:center;gap:4px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>성적서 수정요청<span id="unlockReqBadge" style="display:none;background:#ef4444;color:#fff;border-radius:9999px;padding:1px 7px;font-size:10px;font-weight:900;line-height:1.6;margin-left:4px">0</span></button>
         <button class="nav-btn" data-tab="setting"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>회사/결재 설정</button>
@@ -755,7 +755,7 @@ button,input,select{font:inherit}
         </div>
       </section>
 
-      <!-- 외부증빙(퍼시스 납품용 증명서) 탭 -->
+      <!-- 제품사용확인서(퍼시스 납품용 증명서) 탭 -->
       <section class="tab-panel" id="tab-extcert">
         <div class="grid-layout no-print">
           <div class="card form-card">
@@ -827,8 +827,8 @@ button,input,select{font:inherit}
         </div>
 
         <div class="card no-print">
-          <div class="section-title"><h2>저장된 외부증빙 목록</h2></div>
-          <div id="ec_list"><p style="color:#9ca3af;text-align:center;padding:24px 0">저장된 외부증빙이 없습니다.</p></div>
+          <div class="section-title"><h2>저장된 제품사용확인서 목록</h2></div>
+          <div id="ec_list"><p style="color:#9ca3af;text-align:center;padding:24px 0">저장된 제품사용확인서가 없습니다.</p></div>
         </div>
       </section>
 
@@ -1885,7 +1885,7 @@ function updateTopbar(tab){
   const autoSaveStatus = document.getElementById('autoSaveStatus');
 
   // 탭별 제목
-  const titles = {request:'의뢰서 작성', write:'', list:'성적서 조회', pdfstore:'PDF 보관함', extcert:'외부증빙', standard:'시험 규격 관리', setting:'회사/결재 설정', accounts:'계정 관리', admin:'관리자 등록'};
+  const titles = {request:'의뢰서 작성', write:'', list:'성적서 조회', pdfstore:'PDF 보관함', extcert:'제품사용확인서', standard:'시험 규격 관리', setting:'회사/결재 설정', accounts:'계정 관리', admin:'관리자 등록'};
   if(titleEl) titleEl.textContent = titles[tab] || '';
 
   // 항상 actions 표시
@@ -5836,7 +5836,7 @@ async function deleteReportsAsync(ids) {
   }
 }
 
-// ── 외부증빙(퍼시스 납품용 증명서) ──
+// ── 제품사용확인서(퍼시스 납품용 증명서) ──
 async function getExtCertsAsync() {
   const rows = await supaFetch('extcerts', 'GET');
   return (rows||[]).map(r => r.data).sort((a,b) => new Date(b.savedAt||0) - new Date(a.savedAt||0));
@@ -5973,7 +5973,7 @@ async function ec_renderList(){
   box.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:16px 0">불러오는 중...</p>';
   let list = [];
   try { list = await getExtCertsAsync(); } catch(e){ box.innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px 0">목록을 불러오지 못했습니다.</p>'; return; }
-  if(!list.length){ box.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:24px 0">저장된 외부증빙이 없습니다.</p>'; return; }
+  if(!list.length){ box.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:24px 0">저장된 제품사용확인서가 없습니다.</p>'; return; }
   const e2 = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   box.innerHTML = '<div class="table-wrap"><table class="input-table"><thead><tr><th>문서번호</th><th>작성일</th><th>대상 원단</th><th>작성자</th><th style="width:140px"></th></tr></thead><tbody>' +
     list.map(r => `<tr><td>${e2(r.docNo)}</td><td>${e2(r.createdDate)}</td><td>${e2(r.targetFabric)}</td><td>${e2(r.author)}</td><td>
@@ -6012,7 +6012,7 @@ function ec_buildPrintHTML(f){
     const img = sign ? `<img src="${sign}" style="height:110px;width:110px;object-fit:contain;mix-blend-mode:multiply">` : '<span style="color:#9ca3af;font-size:11px">(서명 없음)</span>';
     return `<td style="text-align:center;width:50%"><div style="font-weight:700;font-size:12px;margin-bottom:6px">${e2(label)} (${e2(name)})</div>${img}</td>`;
   }
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e2(f.docNo)} 외부증빙</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e2(f.docNo)} 제품사용확인서</title>
     <style>
       *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
       @page{size:A4;margin:20mm 16mm}
@@ -6175,7 +6175,7 @@ function initExtCertTab(){
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = (f.docNo || '외부증빙') + '.docx';
+      a.href = url; a.download = (f.docNo || '제품사용확인서') + '.docx';
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
     });
