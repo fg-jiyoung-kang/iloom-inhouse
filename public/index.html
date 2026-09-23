@@ -6009,7 +6009,7 @@ function ec_buildPrintHTML(f){
       <td style="text-align:center;font-weight:700;${String(it.verdict||'').trim()==='부적합'?'color:#dc2626':''}">${e2(it.verdict)}</td>
     </tr>`).join('');
   function signBox(label, name, sign){
-    const img = sign ? `<img src="${sign}" style="height:170px;width:170px;object-fit:contain;mix-blend-mode:multiply">` : '<span style="color:#9ca3af;font-size:11px">(서명 없음)</span>';
+    const img = sign ? `<img src="${sign}" style="width:180px;height:auto;object-fit:contain;mix-blend-mode:multiply">` : '<span style="color:#9ca3af;font-size:11px">(서명 없음)</span>';
     return `<td style="text-align:center;width:50%"><div style="font-weight:700;font-size:12px;margin-bottom:6px">${e2(label)} (${e2(name)})</div>${img}</td>`;
   }
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${e2(f.docNo)} 제품사용확인서</title>

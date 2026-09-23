@@ -909,16 +909,27 @@ async function buildExtCertDocxBuffer(f) {
   const h2 = (text) => new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 }, children: [new TextRun({ text, bold: true })] });
   const body = (text) => new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text })] });
 
-  // 확인(서명)란 — 기술책임자 강지영 · 품질책임자 장성진은 이 앱의 다른 성적서와 동일하게 고정된 서명을 쓴다
+  // 확인(서명)란 — 기술책임자 강지영 · 품질책임자 장성진은 이 앱의 다른 성적서와 동일하게 고정된 서명을 쓴다.
+  // 서명 이미지가 가로로 넓고 얇은 비율이라, 정사각형으로 강제하면 위아래에 빈 여백이 크게 남는다 —
+  // 실제 이미지 가로세로 비율대로 높이를 계산해서 그 여백을 없앤다.
   function signCell(label, name, signFile) {
     const img = publicImage(signFile);
+    const targetWidth = 190;
+    let height = targetWidth;
+    if (img) {
+      try {
+        const w = img.buffer.readUInt32BE(16);
+        const h = img.buffer.readUInt32BE(20);
+        if (w && h) height = Math.round((targetWidth * h) / w);
+      } catch (e) { /* 크기 계산 실패 시 정사각형으로 대체 */ }
+    }
     return new TableCell({
       width: { size: 3600, type: WidthType.DXA },
       margins: { top: 40, bottom: 40 },
       children: [
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 40 }, children: [new TextRun({ text: `${label} (${name})`, bold: true, size: 18 })] }),
         img
-          ? new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: img.buffer, type: img.type, transformation: { width: 190, height: 190 } })] })
+          ? new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ data: img.buffer, type: img.type, transformation: { width: targetWidth, height } })] })
           : new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '(서명 없음)', size: 16, color: '9CA3AF' })] }),
       ],
     });
