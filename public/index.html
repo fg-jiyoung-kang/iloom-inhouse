@@ -757,6 +757,13 @@ button,input,select{font:inherit}
 
       <!-- 제품사용확인서(퍼시스 납품용 증명서) 탭 -->
       <section class="tab-panel" id="tab-extcert">
+        <div id="ecLockBanner" style="display:none;background:#dcfce7;border:1.5px solid #16a34a;border-radius:12px;padding:14px 20px;margin-bottom:12px;align-items:center;gap:12px">
+          <span style="font-size:22px">🔒</span>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:14px;color:#15803d">발행 완료된 문서입니다</div>
+            <div id="ecLockDetail" style="font-size:12px;color:#166534;margin-top:2px"></div>
+          </div>
+        </div>
         <div class="grid-layout no-print">
           <div class="card form-card">
             <h2>기본 정보</h2>
@@ -820,6 +827,7 @@ button,input,select{font:inherit}
 
         <div class="card no-print" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button class="btn" id="ec_saveBtn" type="button" style="background:#1f2937;color:#fff;border-color:#1f2937">목록에 저장</button>
+          <button class="btn" id="ec_issueBtn" type="button" style="background:#16a34a;color:#fff;border-color:#16a34a">발행(잠금)</button>
           <button class="btn" id="ec_printBtn" type="button">PDF로 인쇄</button>
           <button class="btn" id="ec_wordBtn" type="button">워드(.docx) 다운로드</button>
           <button class="btn ghost" id="ec_newBtn" type="button">새로 작성</button>
@@ -5850,6 +5858,36 @@ async function deleteExtCertAsync(id) {
 
 let ec_currentId = null;
 let ec_items = [];
+let ec_issuedInfo = null; // {by, at} — 발행되어 잠긴 문서면 채워짐, 아니면 null
+let ec_locked = false;
+
+// 발행(잠금) 후에는 발행한 사람 본인이거나 관리자(ADMIN_ID)만 계속 수정할 수 있다.
+function ec_canEditCurrent(){
+  if(!ec_issuedInfo) return true;
+  const u = getCurUser();
+  return u.id === ec_issuedInfo.by || u.id === ADMIN_ID;
+}
+
+function ec_applyLockState(){
+  ec_locked = !ec_canEditCurrent();
+  const banner = $('ecLockBanner');
+  const detail = $('ecLockDetail');
+  if(banner) banner.style.display = ec_issuedInfo ? 'flex' : 'none';
+  if(detail && ec_issuedInfo) detail.textContent = `발행자: ${ec_issuedInfo.by || '-'} · 발행일: ${(ec_issuedInfo.at||'').slice(0,10)}` + (ec_locked ? ' — 발행자 또는 관리자만 수정할 수 있습니다.' : ' — 발행자 본인이라 계속 수정할 수 있습니다.');
+
+  ['ec_docNo','ec_createdDate','ec_author','ec_targetProduct','ec_targetFabric','ec_testAgency','ec_certNo','ec_overviewText','ec_addRowBtn','ec_pdfFile'].forEach(id => {
+    const el = $(id);
+    if(el) el.disabled = ec_locked;
+  });
+  const saveBtn = $('ec_saveBtn');
+  const issueBtn = $('ec_issueBtn');
+  if(saveBtn) saveBtn.disabled = ec_locked;
+  if(issueBtn){
+    issueBtn.style.display = ec_issuedInfo ? 'none' : '';
+    issueBtn.disabled = ec_locked;
+  }
+  ec_renderItemsTable();
+}
 
 function ec_blankItem(){ return { category:'', item:'', standard:'', result:'', verdict:'' }; }
 
@@ -5869,9 +5907,12 @@ function ec_renderItemsTable(){
     const inputs = tr.querySelectorAll('input[data-f]');
     inputs.forEach(inp => {
       inp.value = it[inp.dataset.f] || '';
+      inp.disabled = ec_locked;
       inp.addEventListener('input', () => { ec_items[idx][inp.dataset.f] = inp.value; ec_updateVerdictBadge(); });
     });
-    tr.querySelector('button').addEventListener('click', () => { ec_items.splice(idx,1); ec_renderItemsTable(); });
+    const delBtn = tr.querySelector('button');
+    delBtn.disabled = ec_locked;
+    delBtn.addEventListener('click', () => { ec_items.splice(idx,1); ec_renderItemsTable(); });
     body.appendChild(tr);
   });
   ec_updateVerdictBadge();
@@ -5899,6 +5940,9 @@ function ec_collectForm(){
     certNo: $('ec_certNo').value.trim(),
     overviewText: $('ec_overviewText').value,
     items: ec_items,
+    issued: !!ec_issuedInfo,
+    issuedBy: ec_issuedInfo ? ec_issuedInfo.by : null,
+    issuedAt: ec_issuedInfo ? ec_issuedInfo.at : null,
     savedAt: new Date().toISOString(),
   };
 }
@@ -5914,7 +5958,8 @@ function ec_fillForm(rec){
   $('ec_certNo').value = rec.certNo || '';
   $('ec_overviewText').value = rec.overviewText || '';
   ec_items = Array.isArray(rec.items) ? rec.items.map(it => Object.assign(ec_blankItem(), it)) : [];
-  ec_renderItemsTable();
+  ec_issuedInfo = rec.issued ? { by: rec.issuedBy, at: rec.issuedAt } : null;
+  ec_applyLockState();
 }
 
 function ec_defaultOverview(){
@@ -5963,8 +6008,9 @@ async function ec_newForm(){
   $('ec_certNo').value = '';
   $('ec_overviewText').value = ec_defaultOverview();
   ec_items = [];
+  ec_issuedInfo = null;
   ec_nextDocNo(new Date().getFullYear()).then(no => { $('ec_docNo').value = no; });
-  ec_renderItemsTable();
+  ec_applyLockState();
 }
 
 async function ec_renderList(){
@@ -5975,11 +6021,16 @@ async function ec_renderList(){
   try { list = await getExtCertsAsync(); } catch(e){ box.innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px 0">목록을 불러오지 못했습니다.</p>'; return; }
   if(!list.length){ box.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:24px 0">저장된 제품사용확인서가 없습니다.</p>'; return; }
   const e2 = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  box.innerHTML = '<div class="table-wrap"><table class="input-table"><thead><tr><th>문서번호</th><th>작성일</th><th>대상 원단</th><th>작성자</th><th style="width:140px"></th></tr></thead><tbody>' +
-    list.map(r => `<tr><td>${e2(r.docNo)}</td><td>${e2(r.createdDate)}</td><td>${e2(r.targetFabric)}</td><td>${e2(r.author)}</td><td>
+  const u = getCurUser();
+  box.innerHTML = '<div class="table-wrap"><table class="input-table"><thead><tr><th>문서번호</th><th>작성일</th><th>대상 원단</th><th>작성자</th><th>상태</th><th style="width:140px"></th></tr></thead><tbody>' +
+    list.map(r => {
+      const canManage = !r.issued || u.id === r.issuedBy || u.id === ADMIN_ID;
+      const status = r.issued ? `🔒 발행완료 (${e2(r.issuedBy||'')})` : '작성중';
+      return `<tr><td>${e2(r.docNo)}</td><td>${e2(r.createdDate)}</td><td>${e2(r.targetFabric)}</td><td>${e2(r.author)}</td><td style="font-size:12px;${r.issued?'color:#16a34a;font-weight:700':'color:#9ca3af'}">${status}</td><td>
       <button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px" onclick="ec_loadRecord('${r.id}')">불러오기</button>
-      <button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px;color:#dc2626" onclick="ec_deleteRecord('${r.id}')">삭제</button>
-    </td></tr>`).join('') + '</tbody></table></div>';
+      ${canManage ? `<button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px;color:#dc2626" onclick="ec_deleteRecord('${r.id}')">삭제</button>` : ''}
+    </td></tr>`;
+    }).join('') + '</tbody></table></div>';
 }
 
 async function ec_loadRecord(id){
@@ -6155,6 +6206,19 @@ function initExtCertTab(){
       await setExtCertAsync(f);
       ec_currentId = f.id;
       alert('저장되었습니다.');
+      ec_renderList();
+    });
+    $('ec_issueBtn').addEventListener('click', async () => {
+      const f = ec_collectForm();
+      if(!f.docNo){ alert('문서번호를 입력해주세요.'); return; }
+      if(!confirm('발행하면 이 문서는 잠기고, 이후에는 발행한 본인 또는 관리자만 수정할 수 있습니다. 발행할까요?')) return;
+      const u = getCurUser();
+      ec_issuedInfo = { by: u.id || '', at: new Date().toISOString() };
+      const saved = ec_collectForm();
+      await setExtCertAsync(saved);
+      ec_currentId = saved.id;
+      ec_applyLockState();
+      alert('발행되었습니다. 이제 이 문서는 잠겼습니다.');
       ec_renderList();
     });
     $('ec_printBtn').addEventListener('click', () => {
