@@ -2191,7 +2191,7 @@ function buildPrintHTML(r){
     const det=r.detailData||{};
     // 현재 규격에서 최신 crit/spec 병합
     const _pStds = typeof getStandards === 'function' ? getStandards() : [];
-    tests.forEach(function(t){ const s=_pStds.find(function(x){return stdCoreName(x.name)===stdCoreName(t.name);}); if(s){ if(s.name) t.name=s.name; if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
+    tests.forEach(function(t){ const s=_pStds.find(function(x){return stdCoreName(x.name)===stdCoreName(t.name);}); if(s){ if(s.name) t.name=s.name; if(s.spec) t.spec=s.spec; const _isDim=(t.name||'').includes('치수의 측정')||(t.name||'').includes('치수의측정'); if(!_isDim && s.crit!==undefined) t.crit=s.crit; } });
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
     const iloomsrc=document.getElementById('iloom-logo-src')?.src||'';
     const showKolas=(r.purpose||'').includes('KOLAS용');
@@ -2897,7 +2897,10 @@ function renderDetailSection(externalData){
         delete saved['name_edit_'+idx]; // 예전 이름으로 남아있던 수동 수정 캐시도 같이 지운다
       }
       t.spec = std.spec || t.spec;
-      t.crit = std.crit !== undefined ? std.crit : t.crit;
+      // 치수의측정은 제품마다 사이즈가 달라서(SS/Q/K 등) 규격에 등록된 공통 기준을
+      // 강제로 덮어쓰면 안 된다 — 이 칸은 성적서마다 직접 적는 값으로 남겨둔다.
+      const _isDimTest = (t.name||'').includes('치수의 측정') || (t.name||'').includes('치수의측정');
+      if(!_isDimTest) t.crit = std.crit !== undefined ? std.crit : t.crit;
       saved['crit_edit_'+idx] = t.crit;
       // 테이블 DOM의 .t-name/.t-crit/.t-spec도 즉시 업데이트
       const _tr = testTableRows[idx];
@@ -3462,7 +3465,7 @@ function renderPreview(){
     const tests=r.tests;
     // 현재 규격에서 최신 crit/spec 병합
     const _rStds = typeof getStandards === 'function' ? getStandards() : [];
-    (tests||[]).forEach(function(t){ const s=_rStds.find(function(x){return stdCoreName(x.name)===stdCoreName(t.name);}); if(s){ if(s.name) t.name=s.name; if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
+    (tests||[]).forEach(function(t){ const s=_rStds.find(function(x){return stdCoreName(x.name)===stdCoreName(t.name);}); if(s){ if(s.name) t.name=s.name; if(s.spec) t.spec=s.spec; const _isDim=(t.name||'').includes('치수의 측정')||(t.name||'').includes('치수의측정'); if(!_isDim && s.crit!==undefined) t.crit=s.crit; } });
     const lenPct=pct(num(r.lengthBefore),num(r.lengthAfter));
     const widPct=pct(num(r.widthBefore),num(r.widthAfter));
     const lpEl=$('lengthPctDisplay'); if(lpEl) lpEl.textContent=lenPct||'—';
