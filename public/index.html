@@ -1096,6 +1096,15 @@ function getReqItemList(){
   return getStandards().map(function(s){ return {label: s.name, spec: s.spec||''}; });
 }
 
+// 예전에는 "수직하중시험, [100kg ,8만회]"처럼 조건을 이름에 붙였다가, 나중에
+// "수직하중시험" / spec:"KS G 4300, [100kg ,8만회]"처럼 조건을 규격 쪽으로 옮겨
+// 정리한 적이 있다. 그래서 예전에 저장된 성적서의 시험명은 지금 규격 목록의
+// 이름과 글자 그대로는 더 이상 안 맞는다. 콤마나 대괄호 앞의 "핵심 이름"만
+// 잘라서 비교하면 이런 정리 이후에도 같은 항목으로 계속 인식할 수 있다.
+function stdCoreName(name){
+  return (name||'').split(',')[0].split('[')[0].trim();
+}
+
 function snapshotCheckedReqLabels(){
   const s = [];
   document.querySelectorAll('.req-item-chk:checked').forEach(function(chk){ s.push(chk.dataset.label); });
@@ -1385,10 +1394,10 @@ function applyItemListToTestTable(itemList, opts){
       name = parts[0].trim();
       specFromItem = parts.slice(1).join(' - ').trim();
     }
-    const stdMatch = stdLib.find(function(s){ return (s.name||'').trim() === name; }) || {};
-    // 의뢰서에 캐시된 예전 규격(specFromItem)보다, 지금 규격 관리에 등록된 최신 값을 우선한다 —
-    // 안 그러면 규격을 고쳐도(예: 조건 [100kg ,8만회] 추가) 성적서 쪽은 계속 예전 규격으로 남는다.
-    addTest({name:name, spec:stdMatch.spec||specFromItem||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
+    const stdMatch = stdLib.find(function(s){ return stdCoreName(s.name) === stdCoreName(name); }) || {};
+    // 의뢰서에 캐시된 예전 이름/규격보다, 지금 규격 관리에 등록된 최신 값을 우선한다 —
+    // 안 그러면 규격을 고쳐도(예: 조건 [100kg ,8만회] 추가/이동) 성적서 쪽은 계속 예전 값으로 남는다.
+    addTest({name:stdMatch.name||name, spec:stdMatch.spec||specFromItem||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
   });
   window._loadingReport = false;
   // renderDetailSection은 다시 그리기 전에 "세부 데이터" 박스에 지금 남아있는 입력값을
@@ -2163,7 +2172,7 @@ function buildPrintHTML(r){
     const det=r.detailData||{};
     // 현재 규격에서 최신 crit/spec 병합
     const _pStds = typeof getStandards === 'function' ? getStandards() : [];
-    tests.forEach(function(t){ const s=_pStds.find(function(x){return (x.name||'').trim()===(t.name||'').trim();}); if(s){ if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
+    tests.forEach(function(t){ const s=_pStds.find(function(x){return stdCoreName(x.name)===stdCoreName(t.name);}); if(s){ if(s.name) t.name=s.name; if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
     const iloomsrc=document.getElementById('iloom-logo-src')?.src||'';
     const showKolas=(r.purpose||'').includes('KOLAS용');
@@ -2672,8 +2681,8 @@ function addTest(item){
   const tbody=$('testTable').querySelector('tbody'); const tr=document.createElement('tr');
   const detail = item.detail || {};
   // 현재 규격에서 최신 crit/spec 적용
-  const _aStd = (typeof getStandards==='function' ? getStandards() : []).find(function(s){return (s.name||'').trim()===(item.name||'').trim();});
-  if(_aStd){ if(_aStd.spec) item.spec=_aStd.spec; if(_aStd.crit!==undefined) item.crit=_aStd.crit; }
+  const _aStd = (typeof getStandards==='function' ? getStandards() : []).find(function(s){return stdCoreName(s.name)===stdCoreName(item.name);});
+  if(_aStd){ if(_aStd.name) item.name=_aStd.name; if(_aStd.spec) item.spec=_aStd.spec; if(_aStd.crit!==undefined) item.crit=_aStd.crit; }
   tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><input class="t-spec" value="${esc(item.spec)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><textarea class="t-crit" rows="3" readonly tabindex="-1" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:none;min-height:32px;background:#f9fafb;cursor:default;pointer-events:none">${esc(item.crit||item.result||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td style="text-align:center"><input type="checkbox" class="t-kolasInclude" title="이 항목을 KOLAS 성적서에 포함" ${item.kolasInclude===true?'checked':''}></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
   tbody.appendChild(tr);
   tr.querySelector('.t-cat').value=item.category||'기타';
@@ -2831,14 +2840,22 @@ function renderDetailSection(externalData){
   // 현재 규격에서 최신 crit/spec 항상 반영 (수동 수정 불가이므로 무조건 덮어씀)
   const _currStds = typeof getStandards === 'function' ? getStandards() : [];
   tests.forEach(function(t, idx){
-    const std = _currStds.find(function(s){ return (s.name||'').trim() === (t.name||'').trim(); });
+    const std = _currStds.find(function(s){ return stdCoreName(s.name) === stdCoreName(t.name); });
     if(std){
+      // 이름도 지금 규격의 이름으로 맞춘다 — 예전엔 이름에 조건을 붙였다가([100kg ,8만회])
+      // 지금은 규격 쪽에 붙이는 식으로 정리된 적이 있어서, 핵심 이름만 같으면 지금
+      // 규격의 이름/규격 표기를 그대로 따라가게 한다.
+      if(std.name && std.name !== t.name){
+        t.name = std.name;
+        delete saved['name_edit_'+idx]; // 예전 이름으로 남아있던 수동 수정 캐시도 같이 지운다
+      }
       t.spec = std.spec || t.spec;
       t.crit = std.crit !== undefined ? std.crit : t.crit;
       saved['crit_edit_'+idx] = t.crit;
-      // 테이블 DOM의 .t-crit도 즉시 업데이트
+      // 테이블 DOM의 .t-name/.t-crit/.t-spec도 즉시 업데이트
       const _tr = testTableRows[idx];
       if(_tr){
+        const _ni = _tr.querySelector('.t-name'); if(_ni) _ni.value = t.name||'';
         const _ci = _tr.querySelector('.t-crit'); if(_ci) _ci.value = t.crit||'';
         const _si = _tr.querySelector('.t-spec'); if(_si) _si.value = t.spec||'';
       }
@@ -3292,7 +3309,7 @@ function renderPreview(){
     const tests=r.tests;
     // 현재 규격에서 최신 crit/spec 병합
     const _rStds = typeof getStandards === 'function' ? getStandards() : [];
-    (tests||[]).forEach(function(t){ const s=_rStds.find(function(x){return (x.name||'').trim()===(t.name||'').trim();}); if(s){ if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
+    (tests||[]).forEach(function(t){ const s=_rStds.find(function(x){return stdCoreName(x.name)===stdCoreName(t.name);}); if(s){ if(s.name) t.name=s.name; if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
     const lenPct=pct(num(r.lengthBefore),num(r.lengthAfter));
     const widPct=pct(num(r.widthBefore),num(r.widthAfter));
     const lpEl=$('lengthPctDisplay'); if(lpEl) lpEl.textContent=lenPct||'—';
