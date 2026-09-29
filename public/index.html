@@ -1365,9 +1365,6 @@ function normalizeReqItemList(req){
   if(typeof req.items === 'string') return req.items.split('\n').filter(function(l){return l.trim();});
   return [];
 }
-function reqItemLabel(item){
-  return (typeof item === 'object' && item !== null) ? (item.label||'') : String(item).split(' - ')[0].trim();
-}
 function applyItemListToTestTable(itemList, opts){
   opts = opts || {};
   if(!itemList.length) return false;
@@ -1381,15 +1378,17 @@ function applyItemListToTestTable(itemList, opts){
   itemList.forEach(function(item){
     var name, specFromItem;
     if(typeof item === 'object' && item !== null){
-      name = item.label || '';
+      name = (item.label || '').trim();
       specFromItem = item.spec || '';
     } else {
       const parts = String(item).split(' - ');
       name = parts[0].trim();
       specFromItem = parts.slice(1).join(' - ').trim();
     }
-    const stdMatch = stdLib.find(function(s){ return s.name === name; }) || {};
-    addTest({name:name, spec:specFromItem||stdMatch.spec||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
+    const stdMatch = stdLib.find(function(s){ return (s.name||'').trim() === name; }) || {};
+    // 의뢰서에 캐시된 예전 규격(specFromItem)보다, 지금 규격 관리에 등록된 최신 값을 우선한다 —
+    // 안 그러면 규격을 고쳐도(예: 조건 [100kg ,8만회] 추가) 성적서 쪽은 계속 예전 규격으로 남는다.
+    addTest({name:name, spec:stdMatch.spec||specFromItem||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
   });
   window._loadingReport = false;
   // renderDetailSection은 다시 그리기 전에 "세부 데이터" 박스에 지금 남아있는 입력값을
@@ -1411,23 +1410,35 @@ async function applyRequestToReport(req){
   }
   if(existingReport){
     await loadReport(existingReport);
-    // 성적서를 만든 뒤에 의뢰서 항목이 수정됐을 수 있으니(예: 규격 이름에 하중/횟수 추가),
-    // 기존 성적서의 시험 항목과 최신 의뢰서 항목이 다르면 새로고침할지 물어본다.
-    // 안 물어보고 그냥 기존 성적서만 불러오면 의뢰서를 아무리 고쳐도 "불러오기"에
-    // 반영이 안 되는 것처럼 보인다.
+    // 한 번 불러와서 동기화를 확인한 접수번호는 이 세션(페이지를 새로고침하기 전)에서는
+    // 다시 묻지 않는다 — 안 그러면 "성적서 작성" 화면을 열 때마다 매번 같은 확인창이
+    // 반복해서 뜬다.
+    window._syncedReportNos = window._syncedReportNos || new Set();
+    if(window._syncedReportNos.has(req.no)){
+      showToast('기존 성적서 [' + req.no + '] 를 불러왔습니다.');
+      return;
+    }
+    // 성적서를 만든 뒤에 의뢰서 항목(이름 또는 규격)이 수정됐을 수 있으니(예: 규격에
+    // 조건 [100kg ,8만회] 추가), 기존 성적서와 최신 의뢰서 항목이 다르면 새로고침할지
+    // 물어본다. 안 물어보고 그냥 기존 성적서만 불러오면 의뢰서를 아무리 고쳐도
+    // "불러오기"에 반영이 안 되는 것처럼 보인다.
     const latestItems = normalizeReqItemList(req);
-    const latestNames = latestItems.map(reqItemLabel);
-    const existingNames = (existingReport.tests||[]).map(function(t){ return t.name||''; });
-    const itemsChanged = latestNames.length > 0 && (
-      latestNames.length !== existingNames.length ||
-      latestNames.some(function(n, idx){ return n !== existingNames[idx]; })
+    function pairKey(nm, sp){ return (nm||'').trim() + '||' + (sp||'').trim(); }
+    const latestPairs = latestItems.map(function(it){
+      return (typeof it === 'object' && it !== null) ? pairKey(it.label, it.spec) : pairKey(String(it).split(' - ')[0], '');
+    });
+    const existingPairs = (existingReport.tests||[]).map(function(t){ return pairKey(t.name, t.spec); });
+    const itemsChanged = latestPairs.length > 0 && (
+      latestPairs.length !== existingPairs.length ||
+      latestPairs.some(function(p, idx){ return p !== existingPairs[idx]; })
     );
-    if(itemsChanged && confirm('의뢰서의 시험 항목이 수정되었습니다.\n최신 의뢰서 항목으로 새로고침할까요?\n(이미 입력한 세부 데이터는 사라질 수 있습니다)')){
+    if(itemsChanged && confirm('의뢰서의 시험 항목 또는 규격이 수정되었습니다.\n최신 의뢰서 내용으로 새로고침할까요?\n(이미 입력한 세부 데이터는 사라질 수 있습니다)')){
       applyItemListToTestTable(latestItems, {skipConfirm:true});
-      showToast('기존 성적서 [' + req.no + ']를 불러오고 최신 의뢰서 항목으로 갱신했습니다.');
+      showToast('기존 성적서 [' + req.no + ']를 불러오고 최신 의뢰서 내용으로 갱신했습니다.');
     } else {
       showToast('기존 성적서 [' + req.no + '] 를 불러왔습니다.');
     }
+    window._syncedReportNos.add(req.no);
     return;
   }
 
@@ -2152,7 +2163,7 @@ function buildPrintHTML(r){
     const det=r.detailData||{};
     // 현재 규격에서 최신 crit/spec 병합
     const _pStds = typeof getStandards === 'function' ? getStandards() : [];
-    tests.forEach(function(t){ const s=_pStds.find(function(x){return x.name===t.name;}); if(s){ if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
+    tests.forEach(function(t){ const s=_pStds.find(function(x){return (x.name||'').trim()===(t.name||'').trim();}); if(s){ if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
     const iloomsrc=document.getElementById('iloom-logo-src')?.src||'';
     const showKolas=(r.purpose||'').includes('KOLAS용');
@@ -2661,7 +2672,7 @@ function addTest(item){
   const tbody=$('testTable').querySelector('tbody'); const tr=document.createElement('tr');
   const detail = item.detail || {};
   // 현재 규격에서 최신 crit/spec 적용
-  const _aStd = (typeof getStandards==='function' ? getStandards() : []).find(function(s){return s.name===item.name;});
+  const _aStd = (typeof getStandards==='function' ? getStandards() : []).find(function(s){return (s.name||'').trim()===(item.name||'').trim();});
   if(_aStd){ if(_aStd.spec) item.spec=_aStd.spec; if(_aStd.crit!==undefined) item.crit=_aStd.crit; }
   tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><input class="t-spec" value="${esc(item.spec)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><textarea class="t-crit" rows="3" readonly tabindex="-1" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:none;min-height:32px;background:#f9fafb;cursor:default;pointer-events:none">${esc(item.crit||item.result||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td style="text-align:center"><input type="checkbox" class="t-kolasInclude" title="이 항목을 KOLAS 성적서에 포함" ${item.kolasInclude===true?'checked':''}></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
   tbody.appendChild(tr);
@@ -2820,7 +2831,7 @@ function renderDetailSection(externalData){
   // 현재 규격에서 최신 crit/spec 항상 반영 (수동 수정 불가이므로 무조건 덮어씀)
   const _currStds = typeof getStandards === 'function' ? getStandards() : [];
   tests.forEach(function(t, idx){
-    const std = _currStds.find(function(s){ return s.name === t.name; });
+    const std = _currStds.find(function(s){ return (s.name||'').trim() === (t.name||'').trim(); });
     if(std){
       t.spec = std.spec || t.spec;
       t.crit = std.crit !== undefined ? std.crit : t.crit;
@@ -3281,7 +3292,7 @@ function renderPreview(){
     const tests=r.tests;
     // 현재 규격에서 최신 crit/spec 병합
     const _rStds = typeof getStandards === 'function' ? getStandards() : [];
-    (tests||[]).forEach(function(t){ const s=_rStds.find(function(x){return x.name===t.name;}); if(s){ if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
+    (tests||[]).forEach(function(t){ const s=_rStds.find(function(x){return (x.name||'').trim()===(t.name||'').trim();}); if(s){ if(s.spec) t.spec=s.spec; if(s.crit!==undefined) t.crit=s.crit; } });
     const lenPct=pct(num(r.lengthBefore),num(r.lengthAfter));
     const widPct=pct(num(r.widthBefore),num(r.widthAfter));
     const lpEl=$('lengthPctDisplay'); if(lpEl) lpEl.textContent=lenPct||'—';
