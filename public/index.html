@@ -2882,6 +2882,18 @@ function renderDetailSection(externalData){
     lbl.appendChild(inp);
     return lbl;
   }
+  // 판정(합격/불합격, PASS/FAIL) 칸은 검정 글씨라 눈에 잘 안 띄어서 합격은 초록,
+  // 불합격은 빨강으로 배경까지 눈에 띄게 표시한다. 항목별 커스텀 레이아웃(압축줄음률,
+  // 롤링내구성시험 등)에서 직접 만드는 판정 select에도 재사용한다.
+  function _styleJudgeSelect(sel){
+    const v = sel.value;
+    const isPass = v==='합격'||v==='PASS';
+    const isFail = v==='불합격'||v==='FAIL';
+    sel.style.fontWeight = (isPass||isFail) ? '800' : '400';
+    sel.style.color = isPass ? '#008a3d' : isFail ? '#e60012' : '#374151';
+    sel.style.background = isPass ? '#f0fdf4' : isFail ? '#fef2f2' : '#fff';
+    sel.style.borderColor = isPass ? '#bbf7d0' : isFail ? '#fecaca' : 'var(--line)';
+  }
   function _makeSelect(cfg, savedData){
     const lbl = document.createElement('label');
     lbl.style.cssText = 'display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:12px;color:#374151;flex:1;min-width:100px';
@@ -2890,20 +2902,9 @@ function renderDetailSection(externalData){
     sel.dataset.key = cfg.key;
     sel.style.cssText = 'border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;cursor:pointer';
     cfg.options.forEach(function(v){ const o=document.createElement('option'); o.value=v; o.textContent=v||(cfg.placeholder||'선택'); if((savedData[cfg.key]||'')===v) o.selected=true; sel.appendChild(o); });
-    // 판정(합격/불합격, PASS/FAIL) 칸은 검정 글씨라 눈에 잘 안 띄어서 합격은 초록,
-    // 불합격은 빨강으로 배경까지 눈에 띄게 표시한다.
-    function applyJudgeStyle(){
-      if(!cfg.key || cfg.key.indexOf('judge_')!==0) return;
-      const v = sel.value;
-      const isPass = v==='합격'||v==='PASS';
-      const isFail = v==='불합격'||v==='FAIL';
-      sel.style.fontWeight = (isPass||isFail) ? '800' : '400';
-      sel.style.color = isPass ? '#008a3d' : isFail ? '#e60012' : '#374151';
-      sel.style.background = isPass ? '#f0fdf4' : isFail ? '#fef2f2' : '#fff';
-      sel.style.borderColor = isPass ? '#bbf7d0' : isFail ? '#fecaca' : 'var(--line)';
-    }
-    applyJudgeStyle();
-    sel.addEventListener('change', function(){ applyJudgeStyle(); renderPreview(); });
+    const isJudge = cfg.key && cfg.key.indexOf('judge_')===0;
+    if(isJudge) _styleJudgeSelect(sel);
+    sel.addEventListener('change', function(){ if(isJudge) _styleJudgeSelect(sel); renderPreview(); });
     lbl.appendChild(sel);
     return lbl;
   }
@@ -3058,7 +3059,8 @@ function renderDetailSection(externalData){
         inp0.addEventListener('input',calcCs); inp1.addEventListener('input',calcCs);
         var jsSel=document.createElement('select'); jsSel.dataset.key='judge_'+i; jsSel.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer;width:100%;text-align:center;text-align-last:center';
         ['','합격','불합격'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v||'선택'; if((saved['judge_'+i]||'')===v) o.selected=true; jsSel.appendChild(o); });
-        jsSel.addEventListener('change',renderPreview);
+        _styleJudgeSelect(jsSel);
+        jsSel.addEventListener('change',function(){ _styleJudgeSelect(jsSel); renderPreview(); });
         tbody2.appendChild(_makeRow('시험 전 두께 (t₀)',inp0,'-'));
         tbody2.appendChild(_makeRow('시험 후 두께 (t₁)',inp1,'-'));
         tbody2.appendChild(_makeRow('영구압축 줄음률',inp2,'1종 ≤ 10\n2종 ≤ 13'));
@@ -3074,7 +3076,8 @@ function renderDetailSection(externalData){
         var tbR=document.createElement('td'); tbR.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center;vertical-align:middle';
         var selR=document.createElement('select'); selR.dataset.key='judge_'+i; selR.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center;text-align-last:center';
         ['','합격','불합격'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['judge_'+i]||'')===o) opt.selected=true; selR.appendChild(opt); });
-        selR.addEventListener('change',renderPreview); tbR.appendChild(selR);
+        _styleJudgeSelect(selR);
+        selR.addEventListener('change',function(){ _styleJudgeSelect(selR); renderPreview(); }); tbR.appendChild(selR);
         var tcR=document.createElement('td'); tcR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7;vertical-align:middle'; tcR.innerHTML='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
         trR.appendChild(taR); trR.appendChild(tbR); trR.appendChild(tcR); tbodyR.appendChild(trR);
         tblR.appendChild(tbodyR); fieldsWrap.appendChild(tblR);
