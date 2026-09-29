@@ -1418,6 +1418,39 @@ async function applyRequestToReport(req){
     } catch(e){}
   }
   if(existingReport){
+    // 의뢰서 항목(이름/규격)이 저장된 성적서와 다른지 비교하고, 다르면 어떤 항목이
+    // 어떻게 바뀌었는지 사람이 읽을 수 있는 목록도 같이 만든다.
+    const latestItems = normalizeReqItemList(req);
+    function itemLabel(it){ return (typeof it==='object'&&it!==null) ? (it.label||'') : String(it).split(' - ')[0].trim(); }
+    function itemSpec(it){ return (typeof it==='object'&&it!==null) ? (it.spec||'') : ''; }
+    function pairKey(nm, sp){ return (nm||'').trim() + '||' + (sp||'').trim(); }
+    const latestPairs = latestItems.map(function(it){ return pairKey(itemLabel(it), itemSpec(it)); });
+    const existingPairs = (existingReport.tests||[]).map(function(t){ return pairKey(t.name, t.spec); });
+    const maxLen = Math.max(latestPairs.length, existingPairs.length);
+    const diffLines = [];
+    for(let idx=0; idx<maxLen; idx++){
+      if(latestPairs[idx] === existingPairs[idx]) continue;
+      const oldT = existingReport.tests && existingReport.tests[idx];
+      const oldLabel = oldT ? (oldT.name||'') + (oldT.spec?' ('+oldT.spec+')':'') : '(없음)';
+      const newIt = latestItems[idx];
+      const newLabel = newIt ? itemLabel(newIt) + (itemSpec(newIt)?' ('+itemSpec(newIt)+')':'') : '(삭제됨)';
+      diffLines.push((idx+1)+'. '+oldLabel+'  →  '+newLabel);
+    }
+    const itemsChanged = diffLines.length > 0;
+
+    if(currentId === existingReport.id){
+      // 지금 편집 중인 성적서와 같은 걸 다시 불러온 것 — 서명/날짜/이미지 등 이미
+      // 입력한 다른 값은 그대로 두고, 의뢰서에서 바뀐 시험 항목/규격만 반영한다.
+      if(!itemsChanged){ showToast('의뢰서 내용과 이미 같습니다.'); return; }
+      if(confirm('의뢰서 내용이 변경되었습니다:\n\n'+diffLines.join('\n')+'\n\n시험 항목/규격만 최신 내용으로 갱신할까요?\n(서명·날짜 등 다른 입력값은 그대로 유지됩니다)')){
+        applyItemListToTestTable(latestItems, {skipConfirm:true});
+        showToast('시험 항목을 의뢰서 최신 내용으로 갱신했습니다.');
+      }
+      return;
+    }
+
+    // 다른(또는 새) 성적서 화면에서 이미 저장된 성적서를 불러오는 정상적인 경우 —
+    // 이번엔 전체를 그대로 복원한다.
     await loadReport(existingReport);
     // 한 번 불러와서 동기화를 확인한 접수번호는 이 세션(페이지를 새로고침하기 전)에서는
     // 다시 묻지 않는다 — 안 그러면 "성적서 작성" 화면을 열 때마다 매번 같은 확인창이
@@ -1427,21 +1460,7 @@ async function applyRequestToReport(req){
       showToast('기존 성적서 [' + req.no + '] 를 불러왔습니다.');
       return;
     }
-    // 성적서를 만든 뒤에 의뢰서 항목(이름 또는 규격)이 수정됐을 수 있으니(예: 규격에
-    // 조건 [100kg ,8만회] 추가), 기존 성적서와 최신 의뢰서 항목이 다르면 새로고침할지
-    // 물어본다. 안 물어보고 그냥 기존 성적서만 불러오면 의뢰서를 아무리 고쳐도
-    // "불러오기"에 반영이 안 되는 것처럼 보인다.
-    const latestItems = normalizeReqItemList(req);
-    function pairKey(nm, sp){ return (nm||'').trim() + '||' + (sp||'').trim(); }
-    const latestPairs = latestItems.map(function(it){
-      return (typeof it === 'object' && it !== null) ? pairKey(it.label, it.spec) : pairKey(String(it).split(' - ')[0], '');
-    });
-    const existingPairs = (existingReport.tests||[]).map(function(t){ return pairKey(t.name, t.spec); });
-    const itemsChanged = latestPairs.length > 0 && (
-      latestPairs.length !== existingPairs.length ||
-      latestPairs.some(function(p, idx){ return p !== existingPairs[idx]; })
-    );
-    if(itemsChanged && confirm('의뢰서의 시험 항목 또는 규격이 수정되었습니다.\n최신 의뢰서 내용으로 새로고침할까요?\n(이미 입력한 세부 데이터는 사라질 수 있습니다)')){
+    if(itemsChanged && confirm('의뢰서 내용이 변경되었습니다:\n\n'+diffLines.join('\n')+'\n\n최신 의뢰서 내용으로 새로고침할까요?\n(이미 입력한 세부 데이터는 사라질 수 있습니다)')){
       applyItemListToTestTable(latestItems, {skipConfirm:true});
       showToast('기존 성적서 [' + req.no + ']를 불러오고 최신 의뢰서 내용으로 갱신했습니다.');
     } else {
@@ -2503,8 +2522,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
 .kp-stamp{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
 .kp-stamp-small{font-size:13px;font-weight:700}
-.kp-seal-wrap{position:relative;display:inline-block;padding:0 6mm 0 2px}
-.kp-seal-img{position:absolute;top:50%;left:58%;transform:translate(-50%,-50%);height:44px;width:44px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92}
+.kp-seal-wrap{position:relative;display:inline-block;padding:0 26mm 0 2px}
+.kp-seal-img{position:absolute;top:50%;left:100%;transform:translateY(-50%);margin-left:2mm;height:92px;width:92px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92}
 .kp-original-stamp{position:absolute;top:60mm;right:16mm;width:22mm;height:22mm;border-radius:50%;border:2px solid #c81e2c;box-shadow:inset 0 0 0 2.5px #fff,inset 0 0 0 3px #c81e2c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c81e2c;opacity:0.85;transform:rotate(-9deg)}
 .kp-original-stamp .os-title{font-size:13px;font-weight:900;letter-spacing:4px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:12mm;height:1px;background:#c81e2c;margin-bottom:2px}
