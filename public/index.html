@@ -2189,8 +2189,10 @@ function buildPrintHTML(r){
           const vals=[1,2,3,4].map(function(n){ return det[keyPrefix+'_'+n+'_'+i]||''; }).filter(function(v){return v!=='';});
           const result=det[keyPrefix+'_result_'+i]||'';
           const rowCrit=det[keyPrefix+'_crit_'+i]||'';
-          if(!vals.length && !result && !rowCrit) return '';
-          return `<tr><td class="left">${label}</td><td class="rv">${vals.length?e2(vals.join(', '))+' mm':'-'}</td><td class="rv" style="color:#2563eb">${e2(result)}</td><td>${e2(rowCrit)}</td></tr>`;
+          const rowTol=det[keyPrefix+'_tol_'+i]||'';
+          const critText=rowCrit?(rowCrit+(rowTol?(' ± '+rowTol):'')):'';
+          if(!vals.length && !result && !critText) return '';
+          return `<tr><td class="left">${label}</td><td class="rv">${vals.length?e2(vals.join(', '))+' mm':'-'}</td><td class="rv" style="color:#2563eb">${e2(result)}</td><td>${e2(critText)}</td></tr>`;
         };
         let rows=dimRow('길이','dim_len')+dimRow('너비','dim_wid')+dimRow('두께','dim_thk');
         if(!rows) rows='<tr><td colspan="4" style="color:#aaa">입력된 측정값 없음</td></tr>';
@@ -3017,8 +3019,24 @@ function renderDetailSection(externalData){
       if(name.includes('치수의 측정') || name.includes('치수의측정')){
         // 길이/너비/두께 각각 4곳을 재서 (측정값1+측정값2+측정값3+측정값4)/2 로 계산한다.
         var tblDim=document.createElement('table'); tblDim.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px';
-        tblDim.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:12%">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:46%">측정값 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:20%">결과 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:22%">기준값</th></tr></thead>';
+        tblDim.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:12%">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:46%">측정값 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:20%">결과 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700;width:22%">기준값 (오차)</th></tr></thead>';
         var tbodyDim=document.createElement('tbody');
+        // 기준값이 입력된 줄은 |결과-기준값| <= 10mm 이면 합격으로 자동 판정한다.
+        // 기준값이 없는 줄은 판단에서 빼고, 기준값 있는 줄이 하나도 없으면 자동 판정을 안 하고
+        // 사용자가 직접 선택하게 둔다.
+        var dimGroups=[];
+        var judgeSel;
+        function recomputeDimJudge(){
+          if(!judgeSel) return;
+          var verdicts=dimGroups.map(function(g){
+            var critV=parseFloat(g.critInp.value), resV=parseFloat(g.resInp.value), tolV=parseFloat(g.tolInp.value);
+            if(isNaN(critV)||isNaN(resV)||isNaN(tolV)) return null;
+            return Math.abs(resV-critV)<=tolV;
+          }).filter(function(v){ return v!==null; });
+          if(!verdicts.length) return;
+          judgeSel.value = verdicts.every(function(v){ return v; }) ? '합격' : '불합격';
+          _styleJudgeSelect(judgeSel);
+        }
         function makeDimGroupRow(label, keyPrefix){
           var tr=document.createElement('tr');
           var taLabel=document.createElement('td'); taLabel.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taLabel.textContent=label;
@@ -3039,18 +3057,26 @@ function renderDetailSection(externalData){
           resInp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center;background:#f3f4f6;color:#2563eb;font-weight:900';
           tdRes.appendChild(resInp);
           var tdCrit=document.createElement('td'); tdCrit.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-          var critInp=document.createElement('input'); critInp.type='text'; critInp.dataset.key=keyPrefix+'_crit_'+i; critInp.placeholder='예: 200±5'; critInp.value=saved[keyPrefix+'_crit_'+i]||'';
-          critInp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
-          critInp.addEventListener('input',renderPreview);
-          tdCrit.appendChild(critInp);
+          var critWrap=document.createElement('div'); critWrap.style.cssText='display:flex;align-items:center;justify-content:center;gap:4px';
+          var critInp=document.createElement('input'); critInp.type='number'; critInp.step='0.1'; critInp.dataset.key=keyPrefix+'_crit_'+i; critInp.placeholder='기준값'; critInp.value=saved[keyPrefix+'_crit_'+i]||'';
+          critInp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 6px;font:inherit;width:56%;min-width:56px;text-align:center';
+          var pmSpan=document.createElement('span'); pmSpan.textContent='±'; pmSpan.style.cssText='color:#6b7280;font-weight:700;flex-shrink:0';
+          var tolInp=document.createElement('input'); tolInp.type='number'; tolInp.step='0.1'; tolInp.dataset.key=keyPrefix+'_tol_'+i; tolInp.placeholder='오차'; tolInp.value=saved[keyPrefix+'_tol_'+i]||'';
+          tolInp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 6px;font:inherit;width:38%;min-width:48px;text-align:center';
+          critWrap.appendChild(critInp); critWrap.appendChild(pmSpan); critWrap.appendChild(tolInp);
+          critInp.addEventListener('input',function(){ recomputeDimJudge(); renderPreview(); });
+          tolInp.addEventListener('input',function(){ recomputeDimJudge(); renderPreview(); });
+          tdCrit.appendChild(critWrap);
           function calcGroup(){
             var sum=0, any=false;
             inputs.forEach(function(inp){ var v=parseFloat(inp.value); if(!isNaN(v)){ sum+=v; any=true; } });
             resInp.value = any ? String(Math.round((sum/2)*100)/100) : '';
+            recomputeDimJudge();
             renderPreview();
           }
           inputs.forEach(function(inp){ inp.addEventListener('input',calcGroup); });
           if(inputs.some(function(inp){ return inp.value!==''; })) calcGroup();
+          dimGroups.push({resInp:resInp, critInp:critInp, tolInp:tolInp});
           tr.appendChild(taLabel); tr.appendChild(tdVals); tr.appendChild(tdRes); tr.appendChild(tdCrit);
           return tr;
         }
@@ -3059,8 +3085,11 @@ function renderDetailSection(externalData){
         tbodyDim.appendChild(makeDimGroupRow('두께','dim_thk'));
         tblDim.appendChild(tbodyDim); fieldsWrap.appendChild(tblDim);
         var dimJWrap=document.createElement('div'); dimJWrap.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
-        dimJWrap.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        var dimJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved);
+        judgeSel=dimJLbl.querySelector('select');
+        dimJWrap.appendChild(dimJLbl);
         fieldsWrap.appendChild(dimJWrap);
+        recomputeDimJudge();
 
       } else if(name.includes('압축줄음률') || name.includes('줄음률')){
         var tbl2=document.createElement('table'); tbl2.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px';
@@ -3397,8 +3426,10 @@ function renderPreview(){
               const vals = [1,2,3,4].map(function(n){ return detail[keyPrefix+'_'+n+'_'+i]||''; }).filter(function(v){ return v!==''; });
               const result = detail[keyPrefix+'_result_'+i]||'';
               const rowCrit = detail[keyPrefix+'_crit_'+i]||'';
-              if(!vals.length && !result && !rowCrit) return '';
-              return '<tr><td class="left">'+esc(label)+'</td><td class="result-val">'+(vals.length?esc(vals.join(', '))+' mm':'-')+'</td><td class="result-val">'+esc(result)+'</td><td>'+esc(rowCrit)+'</td></tr>';
+              const rowTol = detail[keyPrefix+'_tol_'+i]||'';
+              const critText = rowCrit?(rowCrit+(rowTol?(' ± '+rowTol):'')):'';
+              if(!vals.length && !result && !critText) return '';
+              return '<tr><td class="left">'+esc(label)+'</td><td class="result-val">'+(vals.length?esc(vals.join(', '))+' mm':'-')+'</td><td class="result-val">'+esc(result)+'</td><td>'+esc(critText)+'</td></tr>';
             };
             let rows = dimRow2('길이','dim_len') + dimRow2('너비','dim_wid') + dimRow2('두께','dim_thk');
             if(!rows) rows = '<tr><td colspan="4" style="color:#aaa">입력된 측정값 없음</td></tr>';
