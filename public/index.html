@@ -4114,8 +4114,10 @@ function propagateStandardChange(oldName, newStd){
         t.name=newStd.name; t.spec=newStd.spec; t.crit=newStd.crit; repChanged=true;
       }
     });
-    // detailData의 crit_edit도 초기화 (수동 편집값 덮어쓰기)
-    if(r.detailData) Object.keys(r.detailData).forEach(function(k){ if(k.startsWith('crit_edit_')) delete r.detailData[k]; });
+    // detailData의 crit_edit, name_edit도 초기화 (수동 편집값 덮어쓰기) —
+    // name_edit을 안 지우면 규격 이름을 바꿔도(예: "[100kg ,8만회]" 추가) 이미 저장된
+    // 성적서의 세부 데이터 제목은 예전 이름 그대로 남아있게 된다.
+    if(r.detailData) Object.keys(r.detailData).forEach(function(k){ if(k.startsWith('crit_edit_') || k.startsWith('name_edit_')) delete r.detailData[k]; });
   });
   if(repChanged){
     setReports(allReports);
