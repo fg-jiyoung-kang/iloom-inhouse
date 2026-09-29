@@ -2425,7 +2425,7 @@ function deriveKolasResult(t, i, det){
     const parts=[['길이','dim_len'],['너비','dim_wid'],['두께','dim_thk']]
       .map(function(p){ const v=det[p[1]+'_result_'+i]; return v?(p[0]+'='+v):''; })
       .filter(Boolean);
-    return { unit:'mm', value: parts.join(' ') };
+    return { unit:'mm', value: parts.join('\n') };
   }
   if(nm.includes('견뢰도')){
     return { unit:'급', value: det['genResult_'+i]||det['appearance_'+i]||'' };
@@ -2454,7 +2454,7 @@ function buildKolasPrintHTML(r){
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
       const jColor = (judge==='합격'||judge==='PASS') ? '#008a3d' : (judge ? '#e60012' : '#999');
-      return `<tr><td>${i+1}</td><td class="left">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td>${e2(unit)}</td><td>${e2(resultValue)}</td><td style="font-weight:800;color:${jColor}">${e2(judge||'-')}</td><td></td></tr>`;
+      return `<tr><td>${i+1}</td><td class="left">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td>${e2(unit)}</td><td style="white-space:pre-line">${e2(resultValue)}</td><td style="font-weight:800;color:${jColor}">${e2(judge||'-')}</td><td></td></tr>`;
     }).join('') : '<tr><td colspan="7" style="color:#999;padding:14px">시험 항목 없음</td></tr>';
 
     const CSS = `
@@ -2486,16 +2486,16 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-table td.left{text-align:left}
 .kp-blank{text-align:center;font-size:10.5px;color:#555;letter-spacing:1px;margin-top:6mm;margin-bottom:5mm}
 .kp-note{font-size:9.5px;color:#444;line-height:1.8;margin-top:3mm;border-top:1px solid #ccc;padding-top:3.5mm}
-.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:6mm;font-size:11px}
+.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:6mm;font-size:11px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-confirm-table th,.kp-confirm-table td{border:1px solid #999;padding:6px 10px;text-align:center;vertical-align:middle}
 .kp-confirm-table th{background:#f2f2f2;font-weight:900}
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
-.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:3mm;gap:12px}
+.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:3mm;gap:12px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-acc{font-size:10.5px;line-height:1.4;color:#333;flex:1;text-align:center}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
-.kp-footer{text-align:center;margin-top:8mm}
+.kp-footer{text-align:center;margin-top:8mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
 .kp-stamp{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
 .kp-stamp-small{font-size:13px;font-weight:700}
@@ -2505,7 +2505,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-original-stamp .os-title{font-size:13px;font-weight:900;letter-spacing:4px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:12mm;height:1px;background:#c81e2c;margin-bottom:2px}
 .kp-original-stamp .os-date{font-size:6px;font-weight:700;line-height:1.3;text-align:center;letter-spacing:0.2px}
-.kp-sign-group{break-inside:avoid;page-break-inside:avoid}
+.kp-sign-group{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-note{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-photo-box{border:1px solid #dfe3e8;border-radius:4px;min-height:60mm;display:grid;place-items:center;margin-top:2mm;background:#fcfcfc;break-inside:avoid;page-break-inside:avoid}
 .kp-photo-box img{max-width:100%;max-height:80mm;object-fit:contain}
 `;
@@ -2598,7 +2599,7 @@ function buildKolasWordHTML(r){
       const auto = deriveKolasResult(t, origIdx, det);
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
-      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td>&nbsp;</td></tr>`;
+      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center" style="white-space:pre-line">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td>&nbsp;</td></tr>`;
     }).join('') : '<tr><td colspan="7" align="center">시험 항목 없음</td></tr>';
 
     // 워드 HTML 렌더러는 큰 이미지·flex 레이아웃을 불안정하게 처리하므로
@@ -4002,6 +4003,10 @@ async function printStoredKolasReport(id){
     const full = (rows||[]).find(x=>x.id===id);
     if(full && full.data) r = full.data;
   } catch(e){}
+  // 시료 사진은 용량 때문에 Supabase 동기화 데이터에는 안 실리고 이 브라우저의
+  // 로컬 캐시에만 있을 수 있어서, 없으면 로컬 캐시에서 보충한다.
+  const fallbackImage = r.image || getImageLocally(r.id);
+  if(!r.image && fallbackImage){ r = Object.assign({}, r, {image: fallbackImage}); }
   if(r.issued && !r.verifyToken && r.receiptNo){
     r = Object.assign({}, r);
     r.issuedAt = r.issuedAt || r.savedAt || new Date().toISOString();
