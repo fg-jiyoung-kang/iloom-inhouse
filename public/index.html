@@ -2481,10 +2481,10 @@ function buildKolasPrintHTML(r){
     }).join('') : '<tr><td colspan="7" style="color:#999;padding:14px">시험 항목 없음</td></tr>';
 
     const CSS = `
-@page{size:A4;margin:0}
+@page{size:A4;margin:20mm 14mm}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;color:#111}
-.kp{width:210mm;min-height:297mm;padding:12mm 14mm;position:relative;background:#fff}
+.kp{width:100%;position:relative;background:#fff}
 .kp-title{text-align:center;font-size:25px;font-weight:900;letter-spacing:6px;margin:0 0 5mm;padding-bottom:3mm;border-bottom:2px solid #111}
 .kp-head{border-bottom:2px solid #111;padding-bottom:5mm;margin-bottom:4mm}
 .kp-org-logo{height:26px;object-fit:contain;object-position:left center;align-self:flex-start;margin-bottom:0}
@@ -2528,7 +2528,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-original-stamp .os-title{font-size:13px;font-weight:900;letter-spacing:4px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:12mm;height:1px;background:#c81e2c;margin-bottom:2px}
 .kp-original-stamp .os-date{font-size:6px;font-weight:700;line-height:1.3;text-align:center;letter-spacing:0.2px}
-.kp-sign-group{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid;break-before:page;page-break-before:always}
+.kp-sign-group{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-note{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-photo-sec{margin-top:10mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-photo-title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:13px;margin-bottom:8mm}
@@ -2556,7 +2556,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
         <div class="kp-divider"></div>
         <div class="kp-head-mid">
           <div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div>
-          <div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 2)</span></div>
+          <div class="kp-row"><span class="kp-row-lbl">페이지</span><span>: (1) / (총 1)</span></div>
         </div>
       </div>
       <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
