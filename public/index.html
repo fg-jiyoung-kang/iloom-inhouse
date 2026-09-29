@@ -2911,7 +2911,7 @@ function renderDetailSection(externalData){
       secBtnWrap.style.cssText = 'display:flex;gap:6px;flex-shrink:0';
       const secEditBtn = document.createElement('button');
       secEditBtn.type='button'; secEditBtn.textContent='수정';
-      secEditBtn.style.cssText='background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;display:none';
+      secEditBtn.style.cssText='background:#eff6ff;border:1px solid #bfdbfe;color:#2563eb;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;display:'+(_reportIsIssued?'none':'inline-block');
       const secSaveBtn = document.createElement('button');
       secSaveBtn.type='button'; secSaveBtn.textContent='저장';
       secSaveBtn.style.cssText='background:#e60012;border:none;color:#fff;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;display:none';
