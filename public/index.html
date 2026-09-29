@@ -2505,6 +2505,9 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-original-stamp .os-title{font-size:13px;font-weight:900;letter-spacing:4px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:12mm;height:1px;background:#c81e2c;margin-bottom:2px}
 .kp-original-stamp .os-date{font-size:6px;font-weight:700;line-height:1.3;text-align:center;letter-spacing:0.2px}
+.kp-sign-group{break-inside:avoid;page-break-inside:avoid}
+.kp-photo-box{border:1px solid #dfe3e8;border-radius:4px;min-height:60mm;display:grid;place-items:center;margin-top:2mm;background:#fcfcfc;break-inside:avoid;page-break-inside:avoid}
+.kp-photo-box img{max-width:100%;max-height:80mm;object-fit:contain}
 `;
 
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
@@ -2542,31 +2545,38 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     </table>
   </div>
 
+  ${(r.image||sampleImageData)?`<div class="kp-sec">
+    <div class="kp-sec-num">7. 시료 사진</div>
+    <div class="kp-photo-box"><img src="${r.image||sampleImageData}"></div>
+  </div>`:''}
+
   <div class="kp-blank">- 이 하 여 백 -</div>
 
-  <div class="kp-note">
-    ※ 이 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 결과로서 전체 제품에 대한 품질을 보증하지는 않습니다.<br>
-    ※ 이 성적서는 홍보,선전, 광고 및 소송용으로 사용될 수 없으며, 용도 이외의 사용을 금합니다.
-  </div>
-
-  <table class="kp-confirm-table">
-    <tr><th class="confirm-label" rowspan="2">확 인</th><th>작성자</th><th>기술책임자</th></tr>
-    <tr>
-      <td><div class="name-cell">성명 : ${e2(r.tester)}${r.testerSign?`<img src="${r.testerSign}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:''}</div></td>
-      <td><div class="name-cell">성명 : ${e2(r.techManager)}<img src="${JY_SIGN_DATA}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></td>
-    </tr>
-  </table>
-
-  <div class="kp-bottom">
-    <div class="kp-acc">
-      위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에 서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
+  <div class="kp-sign-group">
+    <div class="kp-note">
+      ※ 이 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 결과로서 전체 제품에 대한 품질을 보증하지는 않습니다.<br>
+      ※ 이 성적서는 홍보,선전, 광고 및 소송용으로 사용될 수 없으며, 용도 이외의 사용을 금합니다.
     </div>
-    ${_vUrl?`<div class="kp-qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(_vUrl)}" width="64" height="64" style="display:block;border:0.5px solid #e5e7eb"><div class="lbl">위변조방지 QR</div></div>`:''}
-  </div>
 
-  <div class="kp-footer">
-    <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
-    <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
+    <table class="kp-confirm-table">
+      <tr><th class="confirm-label" rowspan="2">확 인</th><th>작성자</th><th>기술책임자</th></tr>
+      <tr>
+        <td><div class="name-cell">성명 : ${e2(r.tester)}${r.testerSign?`<img src="${r.testerSign}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:''}</div></td>
+        <td><div class="name-cell">성명 : ${e2(r.techManager)}<img src="${JY_SIGN_DATA}" style="height:28px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></td>
+      </tr>
+    </table>
+
+    <div class="kp-bottom">
+      <div class="kp-acc">
+        위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에 서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
+      </div>
+      ${_vUrl?`<div class="kp-qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(_vUrl)}" width="64" height="64" style="display:block;border:0.5px solid #e5e7eb"><div class="lbl">위변조방지 QR</div></div>`:''}
+    </div>
+
+    <div class="kp-footer">
+      <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
+      <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
+    </div>
   </div>
 </div>
 <script>window.addEventListener('load',function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>
