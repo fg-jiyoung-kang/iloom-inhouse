@@ -3098,16 +3098,31 @@ function renderDetailSection(externalData){
         var inp0=document.createElement('input'); inp0.type='number'; inp0.step='0.01'; inp0.dataset.key='t0_'+i; inp0.placeholder='0.00'; inp0.value=saved['t0_'+i]||''; inp0.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;width:100%;text-align:center';
         var inp1=document.createElement('input'); inp1.type='number'; inp1.step='0.01'; inp1.dataset.key='t1_'+i; inp1.placeholder='0.00'; inp1.value=saved['t1_'+i]||''; inp1.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;width:100%;text-align:center';
         var inp2=document.createElement('input'); inp2.type='text'; inp2.dataset.key='cs_pct_'+i; inp2.placeholder='자동계산'; inp2.value=saved['cs_pct_'+i]||''; inp2.readOnly=true; inp2.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;width:100%;text-align:center;background:#f3f4f6;color:#2563eb;font-weight:900';
-        function calcCs(){ var t0v=parseFloat(inp0.value||''); var t1v=parseFloat(inp1.value||''); if(!isNaN(t0v)&&!isNaN(t1v)&&t0v!==0) inp2.value=((t0v-t1v)/t0v*100).toFixed(2)+'%'; else inp2.value=''; renderPreview(); }
-        inp0.addEventListener('input',calcCs); inp1.addEventListener('input',calcCs);
+        var csTypeSel=document.createElement('select'); csTypeSel.dataset.key='cs_type_'+i; csTypeSel.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer;width:100%;text-align:center;text-align-last:center';
+        ['','1종 (≤10)','2종 (≤13)'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v||'선택'; if((saved['cs_type_'+i]||'')===v) o.selected=true; csTypeSel.appendChild(o); });
         var jsSel=document.createElement('select'); jsSel.dataset.key='judge_'+i; jsSel.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer;width:100%;text-align:center;text-align-last:center';
         ['','합격','불합격'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v||'선택'; if((saved['judge_'+i]||'')===v) o.selected=true; jsSel.appendChild(o); });
         _styleJudgeSelect(jsSel);
+        // 종류를 골라야 몇 %까지 합격인지(1종 10, 2종 13) 정해지므로, 종류+줄음률이 둘 다
+        // 있을 때만 자동으로 판정한다.
+        function recomputeCsJudge(){
+          var typeV=csTypeSel.value;
+          var pctV=parseFloat((inp2.value||'').replace('%',''));
+          if(!typeV || isNaN(pctV)) return;
+          var limit = typeV.indexOf('1종')===0 ? 10 : 13;
+          jsSel.value = pctV<=limit ? '합격' : '불합격';
+          _styleJudgeSelect(jsSel);
+        }
+        function calcCs(){ var t0v=parseFloat(inp0.value||''); var t1v=parseFloat(inp1.value||''); if(!isNaN(t0v)&&!isNaN(t1v)&&t0v!==0) inp2.value=((t0v-t1v)/t0v*100).toFixed(2)+'%'; else inp2.value=''; recomputeCsJudge(); renderPreview(); }
+        inp0.addEventListener('input',calcCs); inp1.addEventListener('input',calcCs);
+        csTypeSel.addEventListener('change',function(){ recomputeCsJudge(); renderPreview(); });
         jsSel.addEventListener('change',function(){ _styleJudgeSelect(jsSel); renderPreview(); });
         tbody2.appendChild(_makeRow('시험 전 두께 (t₀)',inp0,'-'));
         tbody2.appendChild(_makeRow('시험 후 두께 (t₁)',inp1,'-'));
+        tbody2.appendChild(_makeRow('종류',csTypeSel,'1종 ≤ 10\n2종 ≤ 13'));
         tbody2.appendChild(_makeRow('영구압축 줄음률',inp2,'1종 ≤ 10\n2종 ≤ 13'));
         tbody2.appendChild(_makeRow('판정',jsSel,'KS G 4300 기준 만족'));
+        recomputeCsJudge();
         tbl2.appendChild(tbody2); fieldsWrap.appendChild(tbl2);
 
       } else if(name.includes('롤링')){
@@ -3130,12 +3145,32 @@ function renderDetailSection(externalData){
         var tblD=document.createElement('table'); tblD.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px';
         tblD.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">측정값 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
         var tbodyD=document.createElement('tbody');
+        var durJudgeSel;
+        var dInputs=[];
+        // D1~D4가 전부 40mm 이하이고 외관도 합격이면 자동으로 합격, 하나라도 40mm를 넘거나
+        // 외관이 불합격이면 자동으로 불합격 처리한다.
+        function recomputeDurabilityJudge(){
+          if(!durJudgeSel) return;
+          var anyEntered=false, anyFail=false;
+          dInputs.forEach(function(el){
+            if(el===inpD4 && trD4.style.display==='none') return; // D4 미포함 상태면 제외
+            if(el.value==='') return;
+            anyEntered=true;
+            var v=parseFloat(el.value);
+            if(!isNaN(v) && v>40) anyFail=true;
+          });
+          var appVal=selApp.value;
+          if(appVal==='불합격') anyFail=true;
+          if(anyFail){ durJudgeSel.value='불합격'; _styleJudgeSelect(durJudgeSel); }
+          else if(anyEntered && appVal==='합격'){ durJudgeSel.value='합격'; _styleJudgeSelect(durJudgeSel); }
+        }
         [['D1 (200회)','d1'],['D2 (10,000회)','d2'],['D3 (80,000회)','d3']].forEach(function(cv){
           var tr=document.createElement('tr');
           var ta=document.createElement('td'); ta.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta.textContent=cv[0];
           var tb=document.createElement('td'); tb.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
           var inp=document.createElement('input'); inp.type='number'; inp.step='0.01'; inp.dataset.key=cv[1]+'_'+i; inp.placeholder='0.00'; inp.value=saved[cv[1]+'_'+i]||''; inp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
-          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v>40;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();renderPreview();});_chk();})(inp);
+          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v>40;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();recomputeDurabilityJudge();renderPreview();});_chk();})(inp);
+          dInputs.push(inp);
           tb.appendChild(inp);
           var tc=document.createElement('td'); tc.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px'; tc.textContent='≤ 40 mm';
           tr.appendChild(ta); tr.appendChild(tb); tr.appendChild(tc); tbodyD.appendChild(tr);
@@ -3144,7 +3179,8 @@ function renderDetailSection(externalData){
         var trD4=document.createElement('tr'); trD4.style.display=hasD4?'':'none';
         var taD4=document.createElement('td'); taD4.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taD4.textContent='D4 (560,000회)';
         var tbD4=document.createElement('td'); tbD4.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-        var inpD4=document.createElement('input'); inpD4.type='number'; inpD4.step='0.01'; inpD4.dataset.key='d4_'+i; inpD4.placeholder='0.00'; inpD4.value=saved['d4_'+i]||''; inpD4.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; inpD4.addEventListener('input',renderPreview); tbD4.appendChild(inpD4);
+        var inpD4=document.createElement('input'); inpD4.type='number'; inpD4.step='0.01'; inpD4.dataset.key='d4_'+i; inpD4.placeholder='0.00'; inpD4.value=saved['d4_'+i]||''; inpD4.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; inpD4.addEventListener('input',function(){recomputeDurabilityJudge();renderPreview();}); tbD4.appendChild(inpD4);
+        dInputs.push(inpD4);
         var tcD4=document.createElement('td'); tcD4.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px'; tcD4.textContent='-';
         trD4.appendChild(taD4); trD4.appendChild(tbD4); trD4.appendChild(tcD4); tbodyD.appendChild(trD4);
         // 외관 행 (D4 다음, 항상 표시)
@@ -3153,7 +3189,7 @@ function renderDetailSection(externalData){
         var tbApp=document.createElement('td'); tbApp.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
         var selApp=document.createElement('select'); selApp.dataset.key='appearance_'+i; selApp.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center;text-align-last:center';
         ['','합격','불합격'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['appearance_'+i]||'')===o) opt.selected=true; selApp.appendChild(opt); });
-        selApp.addEventListener('change',renderPreview); tbApp.appendChild(selApp);
+        selApp.addEventListener('change',function(){ recomputeDurabilityJudge(); renderPreview(); }); tbApp.appendChild(selApp);
         var tcApp=document.createElement('td'); tcApp.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7'; tcApp.innerHTML='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
         trApp.appendChild(taApp); trApp.appendChild(tbApp); trApp.appendChild(tcApp); tbodyD.appendChild(trApp);
         tblD.appendChild(tbodyD); fieldsWrap.appendChild(tblD);
@@ -3163,30 +3199,52 @@ function renderDetailSection(externalData){
         d4Chk.style.cssText='cursor:pointer;accent-color:#e60012;width:14px;height:14px';
         var d4Lbl=document.createElement('label'); d4Lbl.htmlFor='d4chk_'+i;
         d4Lbl.style.cssText='font-size:12px;font-weight:600;color:#374151;cursor:pointer'; d4Lbl.textContent='D4 포함';
-        d4Chk.addEventListener('change',function(){ trD4.style.display=this.checked?'':'none'; if(!this.checked){inpD4.value='';inpD4.dispatchEvent(new Event('input'));} });
+        d4Chk.addEventListener('change',function(){ trD4.style.display=this.checked?'':'none'; if(!this.checked){inpD4.value='';inpD4.dispatchEvent(new Event('input'));} recomputeDurabilityJudge(); });
         d4ToggleWrap.appendChild(d4Chk); d4ToggleWrap.appendChild(d4Lbl); fieldsWrap.appendChild(d4ToggleWrap);
         var jWrap=document.createElement('div'); jWrap.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
-        jWrap.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        var durJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved);
+        durJudgeSel=durJLbl.querySelector('select');
+        jWrap.appendChild(durJLbl);
         fieldsWrap.appendChild(jWrap);
+        recomputeDurabilityJudge();
 
       } else if(name.includes('수직하중')||name.includes('하중')){
         var tbl3=document.createElement('table'); tbl3.style.cssText='width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px';
         tbl3.innerHTML='<thead><tr style="background:#f4f5f7"><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">구분</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">D1 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">D2 (mm)</th><th style="border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700">기준</th></tr></thead>';
         var tbody3=document.createElement('tbody');
+        var loadJudgeSel;
+        var loadPairs=[];
+        // 입력된 회차 중 D1 ≤ 45mm 이면서 D2 ≥ 5mm 인 게 전부면 자동 합격, 하나라도
+        // 기준을 벗어나면 자동 불합격으로 판정한다.
+        function recomputeLoadJudge(){
+          if(!loadJudgeSel) return;
+          var anyEntered=false, anyFail=false;
+          loadPairs.forEach(function(p){
+            if(p.row.style.display==='none') return;
+            var v1=parseFloat(p.d1.value), v2=parseFloat(p.d2.value);
+            if(p.d1.value===''&&p.d2.value==='') return;
+            anyEntered=true;
+            if(!isNaN(v1)&&v1>45) anyFail=true;
+            if(!isNaN(v2)&&v2<5) anyFail=true;
+          });
+          if(anyFail){ loadJudgeSel.value='불합격'; _styleJudgeSelect(loadJudgeSel); }
+          else if(anyEntered){ loadJudgeSel.value='합격'; _styleJudgeSelect(loadJudgeSel); }
+        }
         // 기본 4개 행 (0회~8만회)
         [['0회','0'],['200회','200'],['10,000회','10000'],['80,000회','80000']].forEach(function(cv){
           var tr3=document.createElement('tr');
           var ta3=document.createElement('td'); ta3.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta3.textContent=cv[0];
           var tbD1=document.createElement('td'); tbD1.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
           var d1i=document.createElement('input'); d1i.type='number'; d1i.step='0.1'; d1i.dataset.key='load_'+cv[1]+'_d1_'+i; d1i.placeholder='0.0'; d1i.value=saved['load_'+cv[1]+'_d1_'+i]||''; d1i.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
-          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v>45;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();renderPreview();});_chk();})(d1i);
+          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v>45;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();recomputeLoadJudge();renderPreview();});_chk();})(d1i);
           tbD1.appendChild(d1i);
           var tbD2=document.createElement('td'); tbD2.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
           var d2i=document.createElement('input'); d2i.type='number'; d2i.step='0.1'; d2i.dataset.key='load_'+cv[1]+'_d2_'+i; d2i.placeholder='0.0'; d2i.value=saved['load_'+cv[1]+'_d2_'+i]||''; d2i.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center';
-          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v<5;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();renderPreview();});_chk();})(d2i);
+          (function(el){function _chk(){var v=parseFloat(el.value);var fail=el.value!==''&&!isNaN(v)&&v<5;el.style.background=fail?'#fff0f0':'';el.style.borderColor=fail?'#fca5a5':'';}el.addEventListener('input',function(){_chk();recomputeLoadJudge();renderPreview();});_chk();})(d2i);
           tbD2.appendChild(d2i);
           var tc3=document.createElement('td'); tc3.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px;line-height:1.7'; tc3.innerHTML='D1 ≤ 45 mm<br>D2 ≥ 5 mm';
           tr3.appendChild(ta3); tr3.appendChild(tbD1); tr3.appendChild(tbD2); tr3.appendChild(tc3); tbody3.appendChild(tr3);
+          loadPairs.push({row:tr3, d1:d1i, d2:d2i});
         });
         // 56만회 행 (토글)
         var tr560=document.createElement('tr');
@@ -3194,21 +3252,25 @@ function renderDetailSection(externalData){
         tr560.style.display=show560?'':'none';
         var ta560=document.createElement('td'); ta560.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; ta560.textContent='560000회';
         var tbD1_560=document.createElement('td'); tbD1_560.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-        var d1i560=document.createElement('input'); d1i560.type='number'; d1i560.step='0.1'; d1i560.dataset.key='load_560000_d1_'+i; d1i560.placeholder='0.0'; d1i560.value=saved['load_560000_d1_'+i]||''; d1i560.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; d1i560.addEventListener('input',renderPreview); tbD1_560.appendChild(d1i560);
+        var d1i560=document.createElement('input'); d1i560.type='number'; d1i560.step='0.1'; d1i560.dataset.key='load_560000_d1_'+i; d1i560.placeholder='0.0'; d1i560.value=saved['load_560000_d1_'+i]||''; d1i560.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; d1i560.addEventListener('input',function(){recomputeLoadJudge();renderPreview();}); tbD1_560.appendChild(d1i560);
         var tbD2_560=document.createElement('td'); tbD2_560.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center';
-        var d2i560=document.createElement('input'); d2i560.type='number'; d2i560.step='0.1'; d2i560.dataset.key='load_560000_d2_'+i; d2i560.placeholder='0.0'; d2i560.value=saved['load_560000_d2_'+i]||''; d2i560.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; d2i560.addEventListener('input',renderPreview); tbD2_560.appendChild(d2i560);
+        var d2i560=document.createElement('input'); d2i560.type='number'; d2i560.step='0.1'; d2i560.dataset.key='load_560000_d2_'+i; d2i560.placeholder='0.0'; d2i560.value=saved['load_560000_d2_'+i]||''; d2i560.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center'; d2i560.addEventListener('input',function(){recomputeLoadJudge();renderPreview();}); tbD2_560.appendChild(d2i560);
         var tc560=document.createElement('td'); tc560.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:11px'; tc560.textContent='-';
         tr560.appendChild(ta560); tr560.appendChild(tbD1_560); tr560.appendChild(tbD2_560); tr560.appendChild(tc560); tbody3.appendChild(tr560);
+        loadPairs.push({row:tr560, d1:d1i560, d2:d2i560});
         tbl3.appendChild(tbody3); fieldsWrap.appendChild(tbl3);
         // 56만회 토글 체크박스
         var chk560Wrap=document.createElement('label');
         chk560Wrap.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#374151;font-weight:600;cursor:pointer;margin-bottom:10px;padding:4px 10px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px';
         var chk560=document.createElement('input'); chk560.type='checkbox'; chk560.dataset.key='load_show560_'+i; chk560.checked=show560; chk560.style.cssText='width:15px;height:15px;accent-color:var(--red);cursor:pointer';
-        chk560.addEventListener('change',function(){ tr560.style.display=chk560.checked?'':'none'; renderPreview(); markUnsaved(); });
+        chk560.addEventListener('change',function(){ tr560.style.display=chk560.checked?'':'none'; recomputeLoadJudge(); renderPreview(); markUnsaved(); });
         chk560Wrap.appendChild(chk560); chk560Wrap.appendChild(document.createTextNode('560,000회 포함')); fieldsWrap.appendChild(chk560Wrap);
         var jRow3=document.createElement('div'); jRow3.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-        jRow3.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        var loadJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved);
+        loadJudgeSel=loadJLbl.querySelector('select');
+        jRow3.appendChild(loadJLbl);
         fieldsWrap.appendChild(jRow3);
+        recomputeLoadJudge();
 
       } else if(name.includes('치수') || name.includes('수축') || name.includes('변화율')){
         var grid2=document.createElement('div'); grid2.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:10px';
