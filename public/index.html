@@ -2862,7 +2862,20 @@ function renderDetailSection(externalData){
     sel.dataset.key = cfg.key;
     sel.style.cssText = 'border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;cursor:pointer';
     cfg.options.forEach(function(v){ const o=document.createElement('option'); o.value=v; o.textContent=v||(cfg.placeholder||'선택'); if((savedData[cfg.key]||'')===v) o.selected=true; sel.appendChild(o); });
-    sel.addEventListener('change', renderPreview);
+    // 판정(합격/불합격, PASS/FAIL) 칸은 검정 글씨라 눈에 잘 안 띄어서 합격은 초록,
+    // 불합격은 빨강으로 배경까지 눈에 띄게 표시한다.
+    function applyJudgeStyle(){
+      if(!cfg.key || cfg.key.indexOf('judge_')!==0) return;
+      const v = sel.value;
+      const isPass = v==='합격'||v==='PASS';
+      const isFail = v==='불합격'||v==='FAIL';
+      sel.style.fontWeight = (isPass||isFail) ? '800' : '400';
+      sel.style.color = isPass ? '#008a3d' : isFail ? '#e60012' : '#374151';
+      sel.style.background = isPass ? '#f0fdf4' : isFail ? '#fef2f2' : '#fff';
+      sel.style.borderColor = isPass ? '#bbf7d0' : isFail ? '#fecaca' : 'var(--line)';
+    }
+    applyJudgeStyle();
+    sel.addEventListener('change', function(){ applyJudgeStyle(); renderPreview(); });
     lbl.appendChild(sel);
     return lbl;
   }
