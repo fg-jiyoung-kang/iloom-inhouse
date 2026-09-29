@@ -2406,10 +2406,13 @@ window.addEventListener('load',function(){
     return HTML;
 }
 function deriveKolasResult(t, i, det){
+  // 여러 줄인 결과는 배열로 돌려준다 — 문자열로 합쳐서 공백/줄바꿈 문자에
+  // 기대면 좁은 칸에서 한글이 글자 단위로 쪼개지며 깨져 보이는 문제가 있어서,
+  // 호출하는 쪽에서 각 줄을 <br>로 확실하게 끊어서 그린다.
   const nm = (t.name||'').toLowerCase();
   if(nm.includes('내구성')){
     const d1=det['d1_'+i]||'', d2=det['d2_'+i]||'', d3=det['d3_'+i]||'';
-    return { unit:'mm', value: [d1&&('D1:'+d1),d2&&('D2:'+d2),d3&&('D3:'+d3)].filter(Boolean).join(' ') };
+    return { unit:'mm', value: [d1&&('D1:'+d1),d2&&('D2:'+d2),d3&&('D3:'+d3)].filter(Boolean) };
   }
   if(nm.includes('압축줄음률')||nm.includes('줄음률')){
     return { unit:'%', value: det['cs_pct_'+i]||'' };
@@ -2419,13 +2422,13 @@ function deriveKolasResult(t, i, det){
   }
   if(nm.includes('수직하중')||nm.includes('하중')){
     const d1=det['load_0_d1_'+i]||'', d2=det['load_0_d2_'+i]||'';
-    return { unit:'mm', value: [d1&&('D1:'+d1),d2&&('D2:'+d2)].filter(Boolean).join(' ') };
+    return { unit:'mm', value: [d1&&('D1:'+d1),d2&&('D2:'+d2)].filter(Boolean) };
   }
   if(nm.includes('치수의 측정')||nm.includes('치수의측정')){
     const parts=[['길이','dim_len'],['너비','dim_wid'],['두께','dim_thk']]
       .map(function(p){ const v=det[p[1]+'_result_'+i]; return v?(p[0]+'='+v):''; })
       .filter(Boolean);
-    return { unit:'mm', value: parts.join('\n') };
+    return { unit:'mm', value: parts };
   }
   if(nm.includes('견뢰도')){
     return { unit:'급', value: det['genResult_'+i]||det['appearance_'+i]||'' };
@@ -2453,8 +2456,9 @@ function buildKolasPrintHTML(r){
       const auto = deriveKolasResult(t, origIdx, det);
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
+      const resultHtml = Array.isArray(resultValue) ? resultValue.map(e2).join('<br>') : e2(resultValue);
       const jColor = (judge==='합격'||judge==='PASS') ? '#008a3d' : (judge ? '#e60012' : '#999');
-      return `<tr><td>${i+1}</td><td class="left">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td>${e2(unit)}</td><td style="white-space:pre-line">${e2(resultValue)}</td><td style="font-weight:800;color:${jColor}">${e2(judge||'-')}</td><td></td></tr>`;
+      return `<tr><td>${i+1}</td><td class="left">${e2(t.name||'')}</td><td class="left">${e2(t.spec||'')}</td><td>${e2(unit)}</td><td style="word-break:keep-all">${resultHtml}</td><td style="font-weight:800;color:${jColor}">${e2(judge||'-')}</td><td></td></tr>`;
     }).join('') : '<tr><td colspan="7" style="color:#999;padding:14px">시험 항목 없음</td></tr>';
 
     const CSS = `
@@ -2507,6 +2511,13 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-original-stamp .os-date{font-size:6px;font-weight:700;line-height:1.3;text-align:center;letter-spacing:0.2px}
 .kp-sign-group{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-note{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-photo-sec{margin-top:10mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-photo-title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:13px;margin-bottom:8mm}
+.kp-photo-title::before{content:"";display:inline-block;width:4px;height:28px;background:#c81e2c;border-radius:2px;flex-shrink:0}
+.kp-photo-box{border:1px solid #dfe3e8;border-radius:4px;padding:14mm 10mm;display:flex;flex-direction:column;align-items:center;gap:8mm;background:#fcfcfc}
+.kp-photo-box .frame{width:80mm;height:65mm;border:1px solid #ccc;display:grid;place-items:center;text-align:center;color:#6b7280;background:#fff;overflow:hidden;padding:8px}
+.kp-photo-box .frame img{width:100%;height:100%;object-fit:contain}
+.kp-photo-cap{text-align:center;font-weight:800;font-size:11px}
 .kp-photo-box{border:1px solid #dfe3e8;border-radius:4px;min-height:60mm;display:grid;place-items:center;margin-top:2mm;background:#fcfcfc;break-inside:avoid;page-break-inside:avoid}
 .kp-photo-box img{max-width:100%;max-height:80mm;object-fit:contain}
 `;
@@ -2546,11 +2557,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     </table>
   </div>
 
-  ${(r.image||sampleImageData)?`<div class="kp-sec">
-    <div class="kp-sec-num">7. 시료 사진</div>
-    <div class="kp-photo-box"><img src="${r.image||sampleImageData}"></div>
-  </div>`:''}
-
   <div class="kp-blank">- 이 하 여 백 -</div>
 
   <div class="kp-sign-group">
@@ -2579,6 +2585,14 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
     </div>
   </div>
+
+  ${(r.image||sampleImageData)?`<div class="kp-photo-sec">
+    <div class="kp-photo-title">첨부 이미지 (Test Sample Photo)</div>
+    <div class="kp-photo-box">
+      <div class="frame"><img src="${r.image||sampleImageData}"></div>
+      <div class="kp-photo-cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div>
+    </div>
+  </div>`:''}
 </div>
 <script>window.addEventListener('load',function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>
 </body></html>`;
@@ -2599,7 +2613,8 @@ function buildKolasWordHTML(r){
       const auto = deriveKolasResult(t, origIdx, det);
       const unit = auto ? auto.unit : ((t.detail && t.detail.unit) || '');
       const resultValue = auto ? auto.value : ((t.detail && t.detail.resultValue) || '');
-      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center" style="white-space:pre-line">${e2(resultValue)}</td><td align="center"><b>${e2(judge||'-')}</b></td><td>&nbsp;</td></tr>`;
+      const resultHtml = Array.isArray(resultValue) ? resultValue.map(e2).join('<br>') : e2(resultValue);
+      return `<tr><td align="center">${i+1}</td><td>${e2(t.name||'')}</td><td>${e2(t.spec||'')}</td><td align="center">${e2(unit)}</td><td align="center" style="word-break:keep-all">${resultHtml}</td><td align="center"><b>${e2(judge||'-')}</b></td><td>&nbsp;</td></tr>`;
     }).join('') : '<tr><td colspan="7" align="center">시험 항목 없음</td></tr>';
 
     // 워드 HTML 렌더러는 큰 이미지·flex 레이아웃을 불안정하게 처리하므로
