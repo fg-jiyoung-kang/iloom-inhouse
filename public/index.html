@@ -1392,6 +1392,10 @@ function applyItemListToTestTable(itemList, opts){
     addTest({name:name, spec:specFromItem||stdMatch.spec||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
   });
   window._loadingReport = false;
+  // renderDetailSection은 다시 그리기 전에 "세부 데이터" 박스에 지금 남아있는 입력값을
+  // 그대로 옮겨 담아버려서(사용자가 손으로 고친 항목명 등을 유지하려는 것), 이 박스를
+  // 안 비우면 방금 새로 불러온 시험명이 아니라 예전 항목명이 계속 남는다.
+  const _dBox = document.getElementById('detailDataSection'); if(_dBox) _dBox.innerHTML = '';
   renderDetailSection();
   return true;
 }
