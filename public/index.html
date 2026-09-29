@@ -1360,6 +1360,41 @@ async function importFromRequest(){
   }, reqList);
 }
 
+function normalizeReqItemList(req){
+  if(Array.isArray(req.items)) return req.items;
+  if(typeof req.items === 'string') return req.items.split('\n').filter(function(l){return l.trim();});
+  return [];
+}
+function reqItemLabel(item){
+  return (typeof item === 'object' && item !== null) ? (item.label||'') : String(item).split(' - ')[0].trim();
+}
+function applyItemListToTestTable(itemList, opts){
+  opts = opts || {};
+  if(!itemList.length) return false;
+  const tbody = document.querySelector('#testTable tbody');
+  if(!opts.skipConfirm && tbody && tbody.children.length > 0){
+    if(!confirm('기존 시험 항목을 모두 지우고 의뢰서 항목으로 교체할까요?')) return false;
+  }
+  if(tbody) tbody.innerHTML = '';
+  window._loadingReport = true;
+  const stdLib = getStandards();
+  itemList.forEach(function(item){
+    var name, specFromItem;
+    if(typeof item === 'object' && item !== null){
+      name = item.label || '';
+      specFromItem = item.spec || '';
+    } else {
+      const parts = String(item).split(' - ');
+      name = parts[0].trim();
+      specFromItem = parts.slice(1).join(' - ').trim();
+    }
+    const stdMatch = stdLib.find(function(s){ return s.name === name; }) || {};
+    addTest({name:name, spec:specFromItem||stdMatch.spec||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
+  });
+  window._loadingReport = false;
+  renderDetailSection();
+  return true;
+}
 async function applyRequestToReport(req){
   // ── 1. 기존 성적서가 있으면 loadReport로 완전 복원 ──
   let existingReport = getReports().find(function(r){ return r.receiptNo === (req.no||''); });
@@ -1372,7 +1407,23 @@ async function applyRequestToReport(req){
   }
   if(existingReport){
     await loadReport(existingReport);
-    showToast('기존 성적서 [' + req.no + '] 를 불러왔습니다.');
+    // 성적서를 만든 뒤에 의뢰서 항목이 수정됐을 수 있으니(예: 규격 이름에 하중/횟수 추가),
+    // 기존 성적서의 시험 항목과 최신 의뢰서 항목이 다르면 새로고침할지 물어본다.
+    // 안 물어보고 그냥 기존 성적서만 불러오면 의뢰서를 아무리 고쳐도 "불러오기"에
+    // 반영이 안 되는 것처럼 보인다.
+    const latestItems = normalizeReqItemList(req);
+    const latestNames = latestItems.map(reqItemLabel);
+    const existingNames = (existingReport.tests||[]).map(function(t){ return t.name||''; });
+    const itemsChanged = latestNames.length > 0 && (
+      latestNames.length !== existingNames.length ||
+      latestNames.some(function(n, idx){ return n !== existingNames[idx]; })
+    );
+    if(itemsChanged && confirm('의뢰서의 시험 항목이 수정되었습니다.\n최신 의뢰서 항목으로 새로고침할까요?\n(이미 입력한 세부 데이터는 사라질 수 있습니다)')){
+      applyItemListToTestTable(latestItems, {skipConfirm:true});
+      showToast('기존 성적서 [' + req.no + ']를 불러오고 최신 의뢰서 항목으로 갱신했습니다.');
+    } else {
+      showToast('기존 성적서 [' + req.no + '] 를 불러왔습니다.');
+    }
     return;
   }
 
@@ -1381,37 +1432,7 @@ async function applyRequestToReport(req){
   _hasUnsaved = false;
 
   // 시험 항목 채우기
-  let itemList = [];
-  if(Array.isArray(req.items)){
-    itemList = req.items;
-  } else if(typeof req.items === 'string'){
-    itemList = req.items.split('\n').filter(function(l){return l.trim();});
-  }
-
-  if(itemList.length > 0){
-    const tbody = document.querySelector('#testTable tbody');
-    if(tbody && tbody.children.length > 0){
-      if(!confirm('기존 시험 항목을 모두 지우고 의뢰서 항목으로 교체할까요?')) return;
-    }
-    if(tbody) tbody.innerHTML = '';
-    window._loadingReport = true;
-    const stdLib = getStandards();
-    itemList.forEach(function(item){
-      var name, specFromItem;
-      if(typeof item === 'object' && item !== null){
-        name = item.label || '';
-        specFromItem = item.spec || '';
-      } else {
-        const parts = String(item).split(' - ');
-        name = parts[0].trim();
-        specFromItem = parts.slice(1).join(' - ').trim();
-      }
-      const stdMatch = stdLib.find(function(s){ return s.name === name; }) || {};
-      addTest({name:name, spec:specFromItem||stdMatch.spec||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
-    });
-    window._loadingReport = false;
-    renderDetailSection();
-  }
+  applyItemListToTestTable(normalizeReqItemList(req));
 
   // 기본 정보 채우기
   setVal('receiptNo',    req.no      || '');
