@@ -2520,14 +2520,14 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
 .kp-footer{text-align:center;margin-top:5mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
-.kp-stamp{display:flex;align-items:center;justify-content:center;gap:3mm;font-size:20px;font-weight:900}
+.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
 .kp-stamp-small{font-size:13px;font-weight:700}
-.kp-seal-img{height:70px;width:70px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92;flex-shrink:0}
+.kp-seal-img{height:80px;width:80px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92;flex-shrink:0;margin-left:-28px}
 .kp-original-stamp{position:absolute;top:60mm;right:16mm;width:22mm;height:22mm;border-radius:50%;border:2px solid #c81e2c;box-shadow:inset 0 0 0 2.5px #fff,inset 0 0 0 3px #c81e2c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c81e2c;opacity:0.85;transform:rotate(-9deg)}
 .kp-original-stamp .os-title{font-size:13px;font-weight:900;letter-spacing:4px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:12mm;height:1px;background:#c81e2c;margin-bottom:2px}
 .kp-original-stamp .os-date{font-size:6px;font-weight:700;line-height:1.3;text-align:center;letter-spacing:0.2px}
-.kp-sign-group{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-final-group{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-note{break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-photo-sec{margin-top:10mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-photo-title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:13px;margin-bottom:8mm}
@@ -2591,6 +2591,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       </tr>
     </table>
 
+    <div class="kp-final-group">
     <div class="kp-bottom">
       <div class="kp-acc">
         위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에 서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
@@ -2601,6 +2602,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     <div class="kp-footer">
       <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
       <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')} (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></div>
+    </div>
     </div>
   </div>
 
