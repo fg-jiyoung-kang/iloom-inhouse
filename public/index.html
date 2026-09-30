@@ -2562,7 +2562,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     </div>
   </div>
 
-  <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기&nbsp;관&nbsp;명 : ${e2(r.requestDept||'-')}</div></div>
+  <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기관명 또는 의뢰자 : ${e2(r.requestDept||'-')}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">2. 시험대상품목</div><div class="kp-sec-body">제&nbsp;품&nbsp;명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재&nbsp;&nbsp;&nbsp;&nbsp;질 : '+e2(r.sampleMaterial):''}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">3. 시험기간</div><div class="kp-sec-body">${f2(r.testPeriodStart)||'-'} ~ ${f2(r.testPeriodEnd)||'-'}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">4. 시험장소</div><div class="kp-sec-body">${e2(r.testLocation||'-')}</div></div>
@@ -2671,7 +2671,7 @@ table.plain td{border:none;padding:0;vertical-align:top}
   </tr>
 </table>
 <hr>
-<div class="secnum">1. 의뢰자</div><div class="secbody">기관명 : ${e2(r.requestDept||'-')}</div>
+<div class="secnum">1. 의뢰자</div><div class="secbody">기관명 또는 의뢰자 : ${e2(r.requestDept||'-')}</div>
 <div class="secnum">2. 시험대상품목</div><div class="secbody">제품명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재질 : '+e2(r.sampleMaterial):''}</div>
 <div class="secnum">3. 시험기간</div><div class="secbody">${f2(r.testPeriodStart)||'-'} ~ ${f2(r.testPeriodEnd)||'-'}</div>
 <div class="secnum">4. 시험장소</div><div class="secbody">${e2(r.testLocation||'-')}</div>
