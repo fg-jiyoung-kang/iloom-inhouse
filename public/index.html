@@ -1480,7 +1480,7 @@ async function applyRequestToReport(req){
   // 기본 정보 채우기
   setVal('receiptNo',    req.no      || '');
   setVal('receivedDate', req.date    || '');
-  setVal('requestDept',  req.person  || req.dept || '');
+  setVal('requestDept',  req.company || req.person || req.dept || '');
   setVal('sampleName',     req.product       || '');
   setVal('brand',          req.brand         || '');
   setVal('colorInfo',      req.color         || '');
@@ -5063,6 +5063,13 @@ function renderReqMgmt(){
         +'</div>'
         +'<button style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:9px;padding:8px 0;font-size:12px;font-weight:700;color:#374151;width:128px;cursor:default" disabled>미리보기</button>'
         +'<button style="background:#e60012;border:none;border-radius:9px;padding:8px 0;font-size:12px;font-weight:700;color:#fff;width:128px;cursor:default" disabled>성적서 작성</button>'
+        +'</div>';
+    } else if(cs === 'writing'){
+      // 이미 성적서 작성이 시작된 의뢰는 "성적서 작성" 버튼을 다시 보여주지 않는다 —
+      // 성적서 작성 탭(성적서 조회)에서 이어서 편집하면 되고, 여기서 또 누르면
+      // 새로 시작하는 것처럼 헷갈린다.
+      actionArea = '<div style="display:flex;flex-direction:column;gap:7px;min-width:128px">'
+        +'<button onclick="reqMgmtPreview(\''+escAttr(r.no)+'\')" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:9px;padding:8px 0;font-size:12px;font-weight:700;cursor:pointer;color:#374151;width:128px">미리보기</button>'
         +'</div>';
     } else {
       actionArea = '<div style="display:flex;flex-direction:column;gap:7px;min-width:128px">'
