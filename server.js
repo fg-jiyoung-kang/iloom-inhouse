@@ -400,17 +400,21 @@ app.post('/api/accounts', requireLogin, requireAdmin, async (req, res) => {
   if (!id) return res.status(400).json({ error: 'MISSING', message: '아이디가 필요합니다.' });
   try {
     const existing = await getAccountRow(id);
+    const prevData = (existing && existing.data) || {};
     const data = {
       id: id,
-      name: String(incoming.name || id),
-      role: String(incoming.role || '시험원'),
+      name: String(incoming.name || prevData.name || id),
+      role: String(incoming.role || prevData.role || '시험원'),
     };
+    // 서명 이미지: 명시적으로 온 값(빈 문자열 포함, 즉 삭제)을 우선하고, 안 왔으면 기존 값을 보존한다
+    if (incoming.signature !== undefined) data.signature = incoming.signature;
+    else if (prevData.signature !== undefined) data.signature = prevData.signature;
     // 기존 비밀번호는 보존 — 새 값이 왔을 때만 바꾼다
     if (newPw) {
       if (newPw.length < 4) return res.status(400).json({ error: 'TOO_SHORT', message: '비밀번호는 4자 이상이어야 합니다.' });
       data.pw = hashPw(newPw);
-    } else if (existing && existing.data && existing.data.pw) {
-      data.pw = existing.data.pw;
+    } else if (prevData.pw) {
+      data.pw = prevData.pw;
     }
     await saveAccount(id, data);
     res.json({ ok: true, created: !existing });
@@ -439,6 +443,8 @@ app.put('/api/accounts', requireLogin, requireAdmin, async (req, res) => {
         name: String(item.name || prev.name || id),
         role: String(item.role || prev.role || '시험원'),
       };
+      if (item.signature !== undefined) data.signature = item.signature;
+      else if (prev.signature !== undefined) data.signature = prev.signature;
       if (prev.pw) data.pw = prev.pw;
       await saveAccount(id, data);
     }
