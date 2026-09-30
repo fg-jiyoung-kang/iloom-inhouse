@@ -2507,23 +2507,22 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-table th,.kp-table td{border:1px solid #999;padding:6px 7px;text-align:center}
 .kp-table th{background:#f2f2f2;font-weight:700}
 .kp-table td.left{text-align:left}
-.kp-blank{text-align:center;font-size:10.5px;color:#555;letter-spacing:1px;margin-top:6mm;margin-bottom:8mm}
-.kp-note{font-size:9.5px;color:#444;line-height:1.8;margin-top:3mm;border-top:1px solid #ccc;padding-top:3.5mm}
-.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:6mm;font-size:11px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-blank{text-align:center;font-size:10.5px;color:#555;letter-spacing:1px;margin-top:4mm;margin-bottom:4mm}
+.kp-note{font-size:9.5px;color:#444;line-height:1.8;margin-top:2mm;border-top:1px solid #ccc;padding-top:2mm}
+.kp-confirm-table{width:100%;border-collapse:collapse;margin-top:4mm;font-size:11px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-confirm-table th,.kp-confirm-table td{border:1px solid #999;padding:6px 10px;text-align:center;vertical-align:middle}
 .kp-confirm-table th{background:#f2f2f2;font-weight:900}
 .kp-confirm-table .confirm-label{width:8%}
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
-.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:3mm;gap:12px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:2mm;gap:12px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-acc{font-size:10.5px;line-height:1.4;color:#333;flex:1;text-align:center}
 .kp-qr{text-align:center;flex-shrink:0}
 .kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
-.kp-footer{text-align:center;margin-top:8mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
+.kp-footer{text-align:center;margin-top:5mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
-.kp-stamp{display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
+.kp-stamp{display:flex;align-items:center;justify-content:center;gap:3mm;font-size:20px;font-weight:900}
 .kp-stamp-small{font-size:13px;font-weight:700}
-.kp-seal-wrap{position:relative;display:inline-block;padding:0 26mm 0 2px}
-.kp-seal-img{position:absolute;top:50%;left:100%;transform:translateY(-50%);margin-left:2mm;height:92px;width:92px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92}
+.kp-seal-img{height:70px;width:70px;object-fit:contain;mix-blend-mode:multiply;opacity:0.92;flex-shrink:0}
 .kp-original-stamp{position:absolute;top:60mm;right:16mm;width:22mm;height:22mm;border-radius:50%;border:2px solid #c81e2c;box-shadow:inset 0 0 0 2.5px #fff,inset 0 0 0 3px #c81e2c;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#c81e2c;opacity:0.85;transform:rotate(-9deg)}
 .kp-original-stamp .os-title{font-size:13px;font-weight:900;letter-spacing:4px;margin-bottom:2px}
 .kp-original-stamp .os-line{width:12mm;height:1px;background:#c81e2c;margin-bottom:2px}
@@ -2601,7 +2600,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 
     <div class="kp-footer">
       <div class="kp-date">${f2(r.issuedDate)||f2(r.savedAt?r.savedAt.slice(0,10):'')}</div>
-      <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')}<span class="kp-seal-wrap"> (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></span></div>
+      <div class="kp-stamp"><span class="kp-stamp-small">한국인정기구 인정</span> &nbsp;${e2(r.companyName||'일룸수면과학연구소')} (인)<img class="kp-seal-img" src="${ILOOM_SIGN_DATA}"></div>
     </div>
   </div>
 
