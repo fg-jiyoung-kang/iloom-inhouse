@@ -1381,6 +1381,15 @@ function applyItemListToTestTable(itemList, opts){
   if(!opts.skipConfirm && tbody && tbody.children.length > 0){
     if(!confirm('기존 시험 항목을 모두 지우고 의뢰서 항목으로 교체할까요?')) return false;
   }
+  // 치수의측정처럼 제품마다 직접 적는 기준값은 의뢰서/규격 어디에도 없어서, 표를
+  // 다시 그리기 전에 지금 화면에 남아있는 값을 미리 챙겨뒀다가 그대로 이어붙인다.
+  const oldCritByName = {};
+  if(tbody){
+    tbody.querySelectorAll('tr:not(.t-detail-row)').forEach(function(tr){
+      const ni = tr.querySelector('.t-name'); const ci = tr.querySelector('.t-crit');
+      if(ni && ci && ci.value) oldCritByName[stdCoreName(ni.value)] = ci.value;
+    });
+  }
   if(tbody) tbody.innerHTML = '';
   window._loadingReport = true;
   const stdLib = getStandards();
@@ -1395,9 +1404,11 @@ function applyItemListToTestTable(itemList, opts){
       specFromItem = parts.slice(1).join(' - ').trim();
     }
     const stdMatch = stdLib.find(function(s){ return stdCoreName(s.name) === stdCoreName(name); }) || {};
+    const _isDimTest = name.includes('치수의 측정') || name.includes('치수의측정');
+    const crit = _isDimTest ? (oldCritByName[stdCoreName(name)] || '') : (stdMatch.crit||'');
     // 의뢰서에 캐시된 예전 이름/규격보다, 지금 규격 관리에 등록된 최신 값을 우선한다 —
     // 안 그러면 규격을 고쳐도(예: 조건 [100kg ,8만회] 추가/이동) 성적서 쪽은 계속 예전 값으로 남는다.
-    addTest({name:stdMatch.name||name, spec:stdMatch.spec||specFromItem||'', crit:stdMatch.crit||'', result:'', category:stdMatch.category||'물성시험'});
+    addTest({name:stdMatch.name||name, spec:stdMatch.spec||specFromItem||'', crit:crit, result:'', category:stdMatch.category||'물성시험'});
   });
   window._loadingReport = false;
   // renderDetailSection은 다시 그리기 전에 "세부 데이터" 박스에 지금 남아있는 입력값을
@@ -2730,7 +2741,9 @@ function addTest(item){
   const detail = item.detail || {};
   // 현재 규격에서 최신 crit/spec 적용
   const _aStd = (typeof getStandards==='function' ? getStandards() : []).find(function(s){return stdCoreName(s.name)===stdCoreName(item.name);});
-  if(_aStd){ if(_aStd.name) item.name=_aStd.name; if(_aStd.spec) item.spec=_aStd.spec; if(_aStd.crit!==undefined) item.crit=_aStd.crit; }
+  // 치수의측정은 제품마다 사이즈가 달라서 규격에 등록된 공통 기준으로 덮어쓰면 안 된다.
+  const _isDimTestAT = (item.name||'').includes('치수의 측정') || (item.name||'').includes('치수의측정');
+  if(_aStd){ if(_aStd.name) item.name=_aStd.name; if(_aStd.spec) item.spec=_aStd.spec; if(!_isDimTestAT && _aStd.crit!==undefined) item.crit=_aStd.crit; }
   tr.innerHTML=`<td class="rowno"></td><td><input class="t-name" value="${esc(item.name)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><input class="t-spec" value="${esc(item.spec)}" readonly tabindex="-1" style="background:#f9fafb;cursor:default;pointer-events:none"></td><td><textarea class="t-crit" rows="3" readonly tabindex="-1" style="width:100%;border:1px solid #e5e7eb;border-radius:6px;padding:4px 6px;font:inherit;font-size:12px;resize:none;min-height:32px;background:#f9fafb;cursor:default;pointer-events:none">${esc(item.crit||item.result||'')}</textarea></td><td><select class="t-cat"><option>내구성시험</option><option>치수/외관</option><option>성능시험</option><option>물성시험</option><option>견뢰도</option><option>유해물질</option></select></td><td style="text-align:center"><input type="checkbox" class="t-kolasInclude" title="이 항목을 KOLAS 성적서에 포함" ${item.kolasInclude===true?'checked':''}></td><td><button class="btn ghost t-detail-btn" style="font-size:11px;padding:4px 8px;white-space:nowrap">세부 입력</button></td><td><button class="icon-btn">삭제</button></td>`;
   tbody.appendChild(tr);
   tr.querySelector('.t-cat').value=item.category||'기타';
