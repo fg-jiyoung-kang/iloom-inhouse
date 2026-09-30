@@ -2227,7 +2227,7 @@ function buildPrintHTML(r){
         let rows=dimRow('길이','dim_len')+dimRow('너비','dim_wid')+dimRow('두께','dim_thk');
         if(!rows) rows='<tr><td colspan="4" style="color:#aaa">입력된 측정값 없음</td></tr>';
         const dimJudge=jg?`<tr><td class="left" style="font-weight:800">판정</td><td class="rv" colspan="3" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td></tr>`:'';
-        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:12%">구분</th><th style="width:38%">측정값</th><th style="width:20%">결과 (mm)</th><th>기준값</th></tr>${rows}${dimJudge}</table></div>`;
+        blocks+=`<div class="rb">${th}${crit?`<div class="dc"><b>기준</b><br>${e2(crit)}</div>`:''}<table class="rt"><tr><th style="width:12%">구분</th><th style="width:38%">측정값</th><th style="width:20%">결과 (mm)</th><th>기준값</th></tr>${rows}${dimJudge}</table></div>`;
       } else if(nm.includes('압축줄음률') || nm.includes('영구압축') || nm.includes('줄음률')){
         const t0=det['t0_'+i]||'';
         const t1=det['t1_'+i]||'';
@@ -2262,7 +2262,9 @@ function buildPrintHTML(r){
         const lJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>${jg==='합격'||jg==='PASS'?'KS G 4300 기준 만족':'KS G 4300 기준 미달'}</td></tr>` : '';
         blocks+=`<div class="rb">${th}${dc2?`<div class="dc"><b>기준</b><br>${e2(dc2)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:35%">시험 결과</th><th>기준</th></tr>${rows}${lJudge}</table></div>`;
       } else {
-        blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:35%">구분</th><th>시험 결과</th><th style="width:20%">기준</th></tr><tr><td class="left">결과</td><td class="rv">${e2(det['genResult_'+i]||'')}</td><td>${e2(crit||t.result||'')}</td></tr>${jr}</table></div>`;
+        const genRes = det['result_'+i] || det['appearance_'+i] || '';
+        const genCritVal = det['crit_val_'+i] || '';
+        blocks+=`<div class="rb">${th}${crit?`<div class="dc"><b>기준</b><br>${e2(crit)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:35%">시험 결과</th><th>기준</th></tr><tr><td class="left">시험 결과</td><td class="rv">${e2(genRes)}</td><td>${e2(genCritVal||crit)}</td></tr>${jr}</table></div>`;
       }
     });
     const imgSrc = r.image || sampleImageData || '';
@@ -3559,7 +3561,7 @@ function renderPreview(){
             if(!rows) rows = '<tr><td colspan="4" style="color:#aaa">입력된 측정값 없음</td></tr>';
             const dimJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" colspan="3" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
-              +'<table class="result-table"><tr><th style="width:12%">구분</th><th style="width:38%">측정값</th><th style="width:20%">결과 (mm)</th><th>기준값</th></tr>'
+              +critBox+'<table class="result-table"><tr><th style="width:12%">구분</th><th style="width:38%">측정값</th><th style="width:20%">결과 (mm)</th><th>기준값</th></tr>'
               +rows+dimJudgeRow+'</table></div>';
 
           // 영구압축줄음률
