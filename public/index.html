@@ -3954,12 +3954,23 @@ function updateUnlockBadge(){
   if(badge){ badge.textContent = pending; badge.style.display = pending>0 ? '' : 'none'; }
 }
 
+// 분리발행본(예: IM_202600401)은 접수번호만 보고 숫자로 정렬하면 원본(IM_2026004)
+// 접수번호에 두 자리가 그냥 덧붙는 형태라 훨씬 큰 숫자로 취급되어 목록 맨 뒤로
+// 밀려난다. 분리발행본은 자기 접수번호가 아니라 부모(원본) 접수번호를 기준으로
+// 묶어서, 원본 바로 뒤에 나란히 나오게 한다.
+function compareReportsGrouped(a, b){
+  const ka = (a.isSubReport && a.parentReceiptNo) ? a.parentReceiptNo : (a.receiptNo||'');
+  const kb = (b.isSubReport && b.parentReceiptNo) ? b.parentReceiptNo : (b.receiptNo||'');
+  const cmp = ka.localeCompare(kb, undefined, {numeric:true, sensitivity:'base'});
+  if(cmp !== 0) return cmp;
+  const an = a.isSubReport ? 1 : 0, bn = b.isSubReport ? 1 : 0;
+  if(an !== bn) return an - bn;
+  return (a.receiptNo||'').localeCompare(b.receiptNo||'', undefined, {numeric:true, sensitivity:'base'});
+}
 function renderPdfStore(){
   const box = document.getElementById('pdfStoreList');
   if(!box) return;
-  const issued = getReports().filter(r=>r.issued).slice().sort(function(a,b){
-    return (a.receiptNo||'').localeCompare(b.receiptNo||'', undefined, {numeric:true, sensitivity:'base'});
-  });
+  const issued = getReports().filter(r=>r.issued).slice().sort(compareReportsGrouped);
   if(!issued.length){
     box.innerHTML='<p style="color:#9ca3af;text-align:center;padding:24px 0">발행완료된 성적서가 없습니다.</p>';
     return;
@@ -4165,9 +4176,7 @@ function renderList(page){
   if(page) _listPage = page;
   const q=($('searchReport')?.value||'').toLowerCase();
   const box=$('reportList'); if(!box) return;
-  const all=getReports().filter(r=>[r.receiptNo,r.sampleName,r.requestDept].join(' ').toLowerCase().includes(q)).sort(function(a,b){
-    return (a.receiptNo||'').localeCompare(b.receiptNo||'', undefined, {numeric:true, sensitivity:'base'});
-  });
+  const all=getReports().filter(r=>[r.receiptNo,r.sampleName,r.requestDept].join(' ').toLowerCase().includes(q)).sort(compareReportsGrouped);
   const totalPages = Math.max(1, Math.ceil(all.length / LIST_PAGE_SIZE));
   if(_listPage > totalPages) _listPage = totalPages;
   const list = all.slice((_listPage-1)*LIST_PAGE_SIZE, _listPage*LIST_PAGE_SIZE);
