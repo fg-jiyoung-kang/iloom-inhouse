@@ -2637,11 +2637,21 @@ function _paginateKolas(){
       body.appendChild(node);
     }
   });
-  // 원본 스탬프는 맨 첫 페이지에만 붙인다
+  // 원본 스탬프는 맨 첫 페이지에만, 머리말 바로 아래(실제 렌더된 위치 기준)에 붙인다 — 줄과 겹치지 않도록
   var stampHolder=document.getElementById('kpStampHolder');
-  var firstBody=target.querySelector('.kp-page .kp-page-content');
+  var firstPage=target.querySelector('.kp-page');
+  var firstBody=firstPage?firstPage.querySelector('.kp-page-content'):null;
   if(stampHolder && stampHolder.firstElementChild && firstBody){
-    firstBody.insertBefore(stampHolder.firstElementChild.cloneNode(true), firstBody.firstChild);
+    var stampEl=stampHolder.firstElementChild.cloneNode(true);
+    firstBody.insertBefore(stampEl, firstBody.firstChild);
+    var headEl=firstBody.querySelector('.kp-head');
+    if(headEl){
+      var pageRect=firstPage.getBoundingClientRect();
+      var headRect=headEl.getBoundingClientRect();
+      var clearanceMM=8;
+      var offsetPx=(headRect.bottom-pageRect.top)+(clearanceMM*96/25.4);
+      stampEl.style.top=offsetPx+'px';
+    }
   }
   var pages=Array.from(document.querySelectorAll('#kpPages .kp-page'));
   var total=pages.length;
