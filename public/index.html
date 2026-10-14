@@ -391,7 +391,8 @@ button,input,select{font:inherit}
           <button class="btn primary" id="printBtn" style="font-size:13px">PDF 출력</button>
           <button class="btn" id="kolasPrintBtn" style="font-size:13px;background:#fff;color:#4c51bf;border-color:#c7d2fe">KOLAS 성적서 출력</button>
           <button class="btn" id="kolasWordBtn" style="font-size:13px;background:#fff;color:#1d4ed8;border-color:#bfdbfe">KOLAS 워드파일 저장</button>
-          <button class="btn" id="finalizeBtn" style="display:none;font-size:13px;background:#fff;color:#16a34a;border-color:#bbf7d0" onclick="finalizeReport()">최종작성완료</button>
+          <button class="btn" id="finalizeBtn" style="display:none;font-size:13px;background:#fff;color:#16a34a;border-color:#bbf7d0" onclick="issueReport()">발행완료</button>
+          <button class="btn" id="finalLockBtn" style="display:none;font-size:13px;background:#fff;color:#dc2626;border-color:#fecaca" onclick="finalLockReport()">최종발행완료</button>
           <button class="btn" id="requestUnlockBtn" style="display:none;font-size:13px;background:#fff;color:#b45309;border-color:#fde68a" onclick="requestUnlock()">수정 작성 요청하기</button>
           <button class="btn" id="splitIssueBtn" style="display:none;font-size:13px;background:#fff;color:#7c3aed;border-color:#ddd6fe" onclick="openSplitModal(null)">분리발행</button>
         </div>
@@ -573,11 +574,11 @@ button,input,select{font:inherit}
       </section>
 
       <section class="tab-panel" id="tab-write">
-        <!-- 발행완료 잠금 배너 -->
+        <!-- 최종발행완료 잠금 배너 -->
         <div id="issuedLockBanner" style="display:none;background:#dcfce7;border:1.5px solid #16a34a;border-radius:12px;padding:14px 20px;margin-bottom:12px;align-items:center;gap:12px">
           <span style="font-size:22px">🔒</span>
           <div style="flex:1">
-            <div style="font-weight:800;font-size:14px;color:#15803d">발행 처리된 성적서입니다</div>
+            <div style="font-weight:800;font-size:14px;color:#15803d">최종발행완료된 성적서입니다</div>
             <div style="font-size:12px;color:#166534;margin-top:2px">수정이 잠겨 있습니다. 수정이 필요한 경우 <b>수정 작성 요청하기</b> 버튼을 눌러주세요.</div>
           </div>
           <span id="unlockPendingLabel" style="display:none;font-size:12px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:8px;padding:4px 10px;font-weight:700">요청 검토 중...</span>
@@ -1006,6 +1007,7 @@ const storeKey = 'iloom_inhouse_reports_v1';
 const standardsKey = 'iloom_test_standards_v1';
 let currentId = null;
 let _reportIsIssued = false;
+let _reportIsLocked = false;
 let _reportIsSubReport = false;
 let sampleImageData = '';
 let testerSignData = '';
@@ -2138,12 +2140,6 @@ function bindInputs(){
       alert('의뢰서 번호가 없습니다.\n의뢰서를 먼저 불러온 후 출력해주세요.');
       return;
     }
-    if(r.issued && !r.verifyToken && r.receiptNo){
-      r.issuedAt = r.issuedAt || r.savedAt || new Date().toISOString();
-      r.verifyToken = await generateVerifyToken(r);
-      const _reps=getReports(); const _ri=_reps.findIndex(function(x){return x.id===r.id;});
-      if(_ri>=0){ _reps[_ri].verifyToken=r.verifyToken; _reps[_ri].issuedAt=r.issuedAt; setReports(_reps); supaFetch('reports','POST',{id:r.id,data:_reps[_ri],updated_at:new Date().toISOString()}).catch(function(){}); }
-    }
     const pw2=window.open('','_blank');
     if(!pw2){ alert('팝업이 차단되었습니다.\n브라우저 주소창 우측의 팝업 허용 버튼을 클릭한 후 다시 시도해주세요.'); return; }
     try {
@@ -2476,8 +2472,6 @@ function buildKolasPrintHTML(r){
     const iloomLogoSrc=document.getElementById('iloom-logo-src')?.src||'';
     const tests=r.tests||[];
     const det=r.detailData||{};
-    const _vBase=(function(){ try{ var h=window.location.href; return h.substring(0,h.lastIndexOf('/')+1)+'verify.html'; }catch(e){ return 'verify.html'; } })();
-    const _vUrl=(r.verifyToken&&r.receiptNo)?(_vBase+'?id='+encodeURIComponent(r.receiptNo)+'&t='+encodeURIComponent(r.verifyToken)):'';
     const _now=new Date();
     const _pad=n=>String(n).padStart(2,'0');
     const _printedDate=`${_now.getFullYear()}/${_pad(_now.getMonth()+1)}/${_pad(_now.getDate())}`;
@@ -2531,8 +2525,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 .kp-confirm-table .name-cell{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:700}
 .kp-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:2mm;gap:12px;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-acc{font-size:10.5px;line-height:1.4;color:#333;flex:1;text-align:center}
-.kp-qr{text-align:center;flex-shrink:0}
-.kp-qr .lbl{font-size:7px;color:#e60012;font-weight:800;margin-top:2px}
 .kp-footer{text-align:center;margin-top:5mm;break-inside:avoid;break-inside:avoid-page;page-break-inside:avoid}
 .kp-page-no{text-align:center;font-size:9px;color:#888;margin-top:3mm}
 .kp-date{font-size:17px;font-weight:700;margin-bottom:6px}
@@ -2610,7 +2602,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="kp-acc">
         위 시험성적서는 국제시험기관인정협력체(International Laboratory Accreditation Cooperation) 상호인정협정(Mutual Recognition Arrangement)에 서명한 한국인정기구(KOLAS)로부터 공인받은 범위 내에 대한 시험결과입니다. (KOLAS ACC.NO KT1333)
       </div>
-      ${_vUrl?`<div class="kp-qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&margin=2&data=${encodeURIComponent(_vUrl)}" width="64" height="64" style="display:block;border:0.5px solid #e5e7eb"><div class="lbl">위변조방지 QR</div></div>`:''}
     </div>
 
     <div class="kp-footer">
@@ -2738,7 +2729,7 @@ function newReport(){
   const dCard = document.getElementById('detailDataCard'); if(dCard) dCard.style.display='none';
   // 시험 항목은 의뢰서에서 불러오거나 직접 추가
   renderDetailSection(); renderImage(); renderPreview();
-  setIssuedLockUI(false, null);
+  setIssuedLockUI(false, false, null);
 }
 function addTest(item){
   const tbody=$('testTable').querySelector('tbody'); const tr=document.createElement('tr');
@@ -3811,11 +3802,14 @@ function toggleReportIssued(id, issued){
   updateUnlockBadge();
 }
 
-// ── 최종작성완료 / 잠금 UI ──
-function setIssuedLockUI(issued, unlockRequest){
+// ── 발행완료(QR 생성) / 최종발행완료(잠금) UI ──
+// issued: 발행완료 여부(QR 생성, 계속 수정 가능) / locked: 최종발행완료 여부(수정 잠금)
+function setIssuedLockUI(issued, locked, unlockRequest){
   _reportIsIssued = !!issued;
+  _reportIsLocked = !!locked;
   const banner = document.getElementById('issuedLockBanner');
   const finalizeBtn = document.getElementById('finalizeBtn');
+  const finalLockBtn = document.getElementById('finalLockBtn');
   const requestUnlockBtn = document.getElementById('requestUnlockBtn');
   const saveBtn = document.getElementById('saveBtn');
   const deleteBtn = document.getElementById('deleteBtn');
@@ -3823,12 +3817,13 @@ function setIssuedLockUI(issued, unlockRequest){
   if(!banner) return;
   const printBtn2 = document.getElementById('printBtn');
   const splitBtn = document.getElementById('splitIssueBtn');
-  if(issued){
+  if(finalizeBtn) finalizeBtn.style.display = (!_reportIsIssued) ? '' : 'none';
+  if(finalLockBtn) finalLockBtn.style.display = (_reportIsIssued && !_reportIsLocked) ? '' : 'none';
+  if(requestUnlockBtn) requestUnlockBtn.style.display = _reportIsLocked ? '' : 'none';
+  if(splitBtn) splitBtn.style.display = (currentId && !_reportIsSubReport) ? '' : 'none';
+  if(_reportIsLocked){
     banner.style.display = 'flex';
-    if(finalizeBtn) finalizeBtn.style.display = 'none';
-    if(requestUnlockBtn) requestUnlockBtn.style.display = '';
     if(printBtn2){ printBtn2.style.display = 'none'; }
-    if(splitBtn) splitBtn.style.display = (currentId && !_reportIsSubReport) ? '' : 'none';
     saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; saveBtn.style.cursor = 'not-allowed';
     deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; deleteBtn.style.cursor = 'not-allowed';
     if(pendingLabel) pendingLabel.style.display = unlockRequest && unlockRequest.status==='pending' ? '' : 'none';
@@ -3839,10 +3834,7 @@ function setIssuedLockUI(issued, unlockRequest){
     });
   } else {
     banner.style.display = 'none';
-    if(finalizeBtn) finalizeBtn.style.display = '';
-    if(requestUnlockBtn) requestUnlockBtn.style.display = 'none';
     if(printBtn2){ printBtn2.style.display = ''; }
-    if(splitBtn) splitBtn.style.display = (currentId && !_reportIsSubReport) ? '' : 'none';
     saveBtn.disabled = false; saveBtn.style.opacity = ''; saveBtn.style.cursor = '';
     deleteBtn.disabled = false; deleteBtn.style.opacity = ''; deleteBtn.style.cursor = '';
     document.querySelectorAll('#tab-write input, #tab-write textarea, #tab-write select').forEach(el=>{
@@ -3856,9 +3848,10 @@ async function generateVerifyToken(r){
   const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,24);
 }
-async function finalizeReport(){
+// 1단계: 발행완료 — 위변조방지 QR이 생성되지만 계속 수정할 수 있다
+async function issueReport(){
   if(!currentId){ alert('저장된 성적서가 없습니다. 먼저 저장해주세요.'); return; }
-  if(!confirm('최종작성완료 처리하면 더 이상 수정할 수 없습니다.\n계속하시겠습니까?')) return;
+  if(!confirm('발행완료 처리하면 위변조방지 QR이 생성됩니다.\n내용은 계속 수정할 수 있어요. 계속하시겠습니까?')) return;
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
@@ -3866,7 +3859,6 @@ async function finalizeReport(){
   reports[idx].issued = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
-  reports[idx].unlockRequest = null;
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
   setReports(reports);
   await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:issuedAt}).catch(e=>{});
@@ -3882,8 +3874,25 @@ async function finalizeReport(){
     }
   }
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
-  setIssuedLockUI(true, null);
-  showToast('✔ 최종작성완료 처리되었습니다.');
+  setIssuedLockUI(true, !!reports[idx].locked, null);
+  showToast('✔ 발행완료 처리되었습니다. (QR 생성)');
+}
+// 2단계: 최종발행완료 — 더 이상 수정할 수 없도록 잠근다
+async function finalLockReport(){
+  if(!currentId){ alert('저장된 성적서가 없습니다. 먼저 저장해주세요.'); return; }
+  if(!confirm('최종발행완료 처리하면 더 이상 수정할 수 없습니다.\n계속하시겠습니까?')) return;
+  const reports = getReports();
+  const idx = reports.findIndex(r=>r.id===currentId);
+  if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
+  if(!reports[idx].issued){ alert('먼저 발행완료 처리를 해주세요.'); return; }
+  reports[idx].locked = true;
+  reports[idx].reportStatus = reports[idx].reportStatus==='submitted' ? reports[idx].reportStatus : 'completed';
+  reports[idx].unlockRequest = null;
+  setReports(reports);
+  await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
+  renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
+  setIssuedLockUI(true, true, null);
+  showToast('✔ 최종발행완료 처리되었습니다.');
 }
 
 async function requestUnlock(){
@@ -3915,6 +3924,7 @@ async function approveUnlock(id){
     for(let i=hist.length-1;i>=0;i--){ if(hist[i].status==='pending'){ hist[i].status='approved'; hist[i].resolvedAt=new Date().toISOString(); hist[i].resolvedBy=admin.name||admin.id||''; break; } }
   }
   reports[idx].issued = false;
+  reports[idx].locked = false;
   reports[idx].reportStatus = 'draft';
   reports[idx].unlockRequest = null;
   setReports(reports);
@@ -4073,13 +4083,6 @@ async function printStoredKolasReport(id){
   // 로컬 캐시에만 있을 수 있어서, 없으면 로컬 캐시에서 보충한다.
   const fallbackImage = r.image || getImageLocally(r.id);
   if(!r.image && fallbackImage){ r = Object.assign({}, r, {image: fallbackImage}); }
-  if(r.issued && !r.verifyToken && r.receiptNo){
-    r = Object.assign({}, r);
-    r.issuedAt = r.issuedAt || r.savedAt || new Date().toISOString();
-    r.verifyToken = await generateVerifyToken(r);
-    const _reps=getReports(); const _ri=_reps.findIndex(function(x){return x.id===r.id;});
-    if(_ri>=0){ _reps[_ri].verifyToken=r.verifyToken; _reps[_ri].issuedAt=r.issuedAt; setReports(_reps); supaFetch('reports','POST',{id:r.id,data:_reps[_ri],updated_at:new Date().toISOString()}).catch(function(){}); }
-  }
   pw.document.open();
   pw.document.write(window.buildKolasPrintHTML(r));
   pw.document.close();
@@ -4220,7 +4223,7 @@ function renderList(page){
     // 관리자 잠금/해제 버튼
     if(_listIsAdmin){
       const lockBtn=document.createElement('button');
-      lockBtn.textContent=isIssued?'잠금해제':'발행완료';
+      lockBtn.textContent=isIssued?'발행취소':'발행완료';
       lockBtn.style.cssText='font-size:11px;padding:4px 10px;flex-shrink:0;border-radius:8px;cursor:pointer;font-weight:700;border:1px solid '
         +(isIssued?'#fca5a5;background:#fee2e2;color:#dc2626':'#6ee7b7;background:#d1fae5;color:#059669');
       lockBtn.onclick=(e)=>{e.stopPropagation();toggleReportIssued(r.id,!isIssued);};
@@ -5458,7 +5461,7 @@ async function loadReport(r){
     }, 100);
   }, 50);
   // 잠금 상태 UI 적용
-  setTimeout(()=>setIssuedLockUI(!!r.issued, r.unlockRequest||null), 150);
+  setTimeout(()=>setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null), 150);
   // 발행 성적서에 verifyToken 없으면 자동 생성 및 Supabase 저장
   if(r.issued && !r.verifyToken && r.receiptNo){
     generateVerifyToken(r).then(function(tok){
@@ -5474,10 +5477,10 @@ async function loadReport(r){
   document.querySelector('[data-tab="write"]').click();
 }
 async function saveReport(silent=false){
-  // 발행완료 잠금 체크
+  // 최종발행완료 잠금 체크 (발행완료 단계는 계속 수정 가능)
   if(currentId){
     const existing = getReports().find(r=>r.id===currentId);
-    if(existing && existing.issued){ if(!silent) alert('발행완료된 성적서는 수정할 수 없습니다.'); return; }
+    if(existing && existing.locked){ if(!silent) alert('최종발행완료된 성적서는 수정할 수 없습니다.'); return; }
   }
   const receiptNo = val('receiptNo');
 
@@ -5526,6 +5529,14 @@ async function saveReport(silent=false){
   try {
     const r = collectReport(silent);
     currentId = r.id;
+    // collectReport()는 form값만 수집 → 기존에 저장된 발행/잠금 상태를 그대로 이어받는다
+    // (발행완료 단계는 계속 수정 가능하므로, 저장할 때 issued/verifyToken 등이 사라지면 안 된다)
+    const _existing = getReports().find(x=>x.id===r.id);
+    if(_existing){
+      r.issued = _existing.issued; r.locked = _existing.locked; r.verifyToken = _existing.verifyToken;
+      r.issuedAt = _existing.issuedAt; r.reportStatus = _existing.reportStatus;
+      r.unlockRequest = _existing.unlockRequest; r.unlockHistory = _existing.unlockHistory;
+    }
     // 이미지 별도 localStorage 저장 (Supabase 실패 시 fallback용)
     if(r.image) saveImageLocally(r.id, r.image);
     // Supabase에 저장 (같은 id면 항상 UPDATE)
@@ -5537,7 +5548,7 @@ async function saveReport(silent=false){
     setReports(list);
     await renderListAsync();
     clearUnsaved();
-    setIssuedLockUI(false, null);
+    setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null);
     if(!silent){ showSaveToast(); }
   } catch(e) {
     console.error('saveReport error:', e);
