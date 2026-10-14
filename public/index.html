@@ -2548,8 +2548,8 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 `;
 
     const HTML=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
-<div class="kp-page" id="kpPage1">
-  <div class="kp-original-stamp"><div class="os-title">원&nbsp;본</div><div class="os-line"></div><div class="os-date">${_printedDate}<br>${_printedTime}</div></div>
+<div id="kpStampHolder" style="display:none"><div class="kp-original-stamp"><div class="os-title">원&nbsp;본</div><div class="os-line"></div><div class="os-date">${_printedDate}<br>${_printedTime}</div></div></div>
+<div id="kpSource" style="display:none">
   <div class="kp-title">시&nbsp;험&nbsp;성&nbsp;적&nbsp;서</div>
   <div class="kp-head">
     <div class="kp-head-info">
@@ -2567,7 +2567,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
     </div>
   </div>
-
   <div class="kp-sec"><div class="kp-sec-num">1. 의뢰자</div><div class="kp-sec-body">기관명 또는 의뢰자 : ${e2(r.requestDept||'-')}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">2. 시험대상품목</div><div class="kp-sec-body">제&nbsp;품&nbsp;명 : ${e2(r.sampleName||'-')}${r.sampleMaterial?'<br>재&nbsp;&nbsp;&nbsp;&nbsp;질 : '+e2(r.sampleMaterial):''}</div></div>
   <div class="kp-sec"><div class="kp-sec-num">3. 시험기간</div><div class="kp-sec-body">${f2(r.testPeriodStart)||'-'} ~ ${f2(r.testPeriodEnd)||'-'}</div></div>
@@ -2580,9 +2579,6 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       ${rows}
     </table>
   </div>
-  <div class="kp-pn" id="kpPn1"></div>
-</div>
-<div id="kpSource" style="display:none">
   <div class="kp-blank">- 이 하 여 백 -</div>
   <div class="kp-note">
     ※ 이 성적서는 의뢰자가 제시한 시료 및 시료명으로 시험한 결과로서 전체 제품에 대한 품질을 보증하지는 않습니다.<br>
@@ -2641,9 +2637,15 @@ function _paginateKolas(){
       body.appendChild(node);
     }
   });
-  var allPages=[document.getElementById('kpPage1')].concat(Array.from(document.querySelectorAll('#kpPages .kp-page')));
-  var total=allPages.length;
-  allPages.forEach(function(pg,idx){
+  // 원본 스탬프는 맨 첫 페이지에만 붙인다
+  var stampHolder=document.getElementById('kpStampHolder');
+  var firstBody=target.querySelector('.kp-page .kp-page-content');
+  if(stampHolder && stampHolder.firstElementChild && firstBody){
+    firstBody.insertBefore(stampHolder.firstElementChild.cloneNode(true), firstBody.firstChild);
+  }
+  var pages=Array.from(document.querySelectorAll('#kpPages .kp-page'));
+  var total=pages.length;
+  pages.forEach(function(pg,idx){
     var pn=pg.querySelector('.kp-pn');
     if(pn) pn.textContent=(idx+1)+'/'+total;
   });
