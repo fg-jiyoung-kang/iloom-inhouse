@@ -26,6 +26,7 @@ types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
 const TABLES = ['reports', 'requests', 'accounts', 'settings', 'extcerts'];
+const ADMIN_ID = 'jiyoung_kang'; // index.html의 ADMIN_ID와 동일 — 성적서 삭제·잠금해제 등 최종권한 기준
 const SIGNKEY_ROW_ID = '__session_secret';   // 서명키를 보관하는 설정 행 이름(값 자체는 실행 중에 자동 생성)
 const SESSION_COOKIE = 'iloom_sess';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
@@ -545,7 +546,16 @@ app.post('/api/:table(reports|requests|settings|extcerts)', requireLogin, async 
   const id = String(body.id || '').trim();
   if (!id) return res.status(400).json({ error: 'MISSING_ID' });
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
+  const isOwner = req.user.id === ADMIN_ID;
   try {
+    // 성적서가 "최종발행완료(잠금)" 상태면, 최종관리자가 아닌 한 서버에서도 덮어쓰기를 막는다
+    // (화면에서만 막던 걸 뒷단으로 직접 요청을 보내는 경우까지 막음, 화면 쪽 ADMIN_ID 기준과 동일)
+    if (table === 'reports' && !isOwner) {
+      const existing = await pool.query('SELECT data FROM reports WHERE id = $1', [id]);
+      if (existing.rows[0] && existing.rows[0].data && existing.rows[0].data.locked) {
+        return res.status(403).json({ error: 'LOCKED', message: '최종발행완료된 성적서는 수정할 수 없습니다.' });
+      }
+    }
     await pool.query(
       `INSERT INTO ${table} (id, data, updated_at) VALUES ($1, $2, now())
        ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = now()`,
@@ -565,6 +575,10 @@ app.delete('/api/:table(reports|requests|settings|extcerts)', requireLogin, asyn
   const id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: 'MISSING_ID' });
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
+  // 성적서 삭제는 최종관리자만 (화면 쪽 ADMIN_ID 기준과 동일)
+  if (table === 'reports' && req.user.id !== ADMIN_ID) {
+    return res.status(403).json({ error: 'FORBIDDEN', message: '성적서 삭제는 관리자만 할 수 있습니다.' });
+  }
   try {
     await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
     res.json({ ok: true });

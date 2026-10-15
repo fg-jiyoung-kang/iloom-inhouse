@@ -1197,8 +1197,8 @@ function makeReqItemRow(item, isCustom){
   const txt = document.createElement('span');
   txt.style.cssText = 'display:flex;align-items:center;gap:4px;flex-wrap:wrap';
   txt.innerHTML = (isCustom ? '<span style="font-weight:700;color:#e60012;font-size:11px">+</span> ' : '')
-    + '<span style="font-weight:700;color:#1f2937">'+item.label+'</span>'
-    + (item.spec ? '<span style="color:#9ca3af;font-size:10px;margin-left:2px">'+item.spec+'</span>' : '')
+    + '<span style="font-weight:700;color:#1f2937">'+esc(item.label)+'</span>'
+    + (item.spec ? '<span style="color:#9ca3af;font-size:10px;margin-left:2px">'+esc(item.spec)+'</span>' : '')
     + (isPending ? '<span style="background:#f3f4f6;border:1px solid #d1d5db;color:#6b7280;font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px;margin-left:4px">준비중</span>' : '');
 
   lbl.appendChild(chk);
@@ -1912,7 +1912,7 @@ async function init(){
     if(el && u.id){
       const isAdmin = u.role==='관리자' || u.id===ADMIN_ID;
       const crown = isAdmin ? '<span title="관리자" style="margin-right:5px;font-size:15px" aria-label="관리자">👑</span>' : '';
-      const nameText = u.name ? u.name+' ('+u.id+')' : u.id;
+      const nameText = u.name ? esc(u.name)+' ('+esc(u.id)+')' : esc(u.id);
       el.innerHTML = crown + nameText;
     }
     if(u.id) applyRoleTabControl(u);
@@ -2209,7 +2209,7 @@ function bindInputs(){
 }
 
 function buildPrintHTML(r){
-    const e2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const e2=s=>String(s||'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
     const f2=s=>s?String(s).replace(/-/g,'.') :'';
     // 위변조방지 QR 검증 URL 생성
     const _vBase=(function(){ try{ var h=window.location.href; return h.substring(0,h.lastIndexOf('/')+1)+'verify.html'; }catch(e){ return 'verify.html'; } })();
@@ -2484,7 +2484,7 @@ function deriveKolasResult(t, i, det){
   return null;
 }
 function buildKolasPrintHTML(r){
-    const e2=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const e2=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
     const f2=s=>s?String(s).replace(/-/g,'.'):'';
     const ksrc=document.getElementById('kolas-logo-src')?.src||'';
     const iloomLogoSrc=document.getElementById('iloom-logo-src')?.src||'';
@@ -2691,7 +2691,7 @@ window.addEventListener('load',function(){
     return HTML;
 }
 function buildKolasWordHTML(r){
-    const e2=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const e2=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
     const f2=s=>s?String(s).replace(/-/g,'.'):'';
     const tests=r.tests||[];
     const det=r.detailData||{};
@@ -4193,8 +4193,8 @@ function renderUnlockRequests(){
         +'<div style="font-size:11px;color:#9ca3af;margin-top:3px">'+new Date(req.at).toLocaleString('ko-KR')+'</div>'
         +'</div>'
         +'<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'
-        +'<button onclick="approveUnlock(\''+r.id+'\')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer">✔ 승인</button>'
-        +'<button onclick="rejectUnlock(\''+r.id+'\')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer">✗ 거부</button>'
+        +'<button onclick="approveUnlock(\''+escAttr(r.id)+'\')" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:800;cursor:pointer">✔ 승인</button>'
+        +'<button onclick="rejectUnlock(\''+escAttr(r.id)+'\')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:800;cursor:pointer">✗ 거부</button>'
         +'</div></div>';
     });
   }
@@ -4672,8 +4672,8 @@ function renderReqList(){
     chk.style.cssText = 'width:15px;height:15px;accent-color:#e60012;cursor:pointer;flex-shrink:0';
     chk.onchange = updateReqDelBtn;
     const info = document.createElement('div'); info.style.cssText = 'flex:1;min-width:0';
-    info.innerHTML = '<div style="font-weight:800;font-size:14px">'+r.no+'</div>'
-      +'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+(r.product||'')+(r.date?' · '+r.date:'')+'</div>';
+    info.innerHTML = '<div style="font-weight:800;font-size:14px">'+esc(r.no)+'</div>'
+      +'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+esc(r.product||'')+(r.date?' · '+esc(r.date):'')+'</div>';
     const loadBtn = document.createElement('button');
     loadBtn.className = 'btn ghost'; loadBtn.textContent = '불러오기';
     loadBtn.style.cssText = 'font-size:12px;padding:6px 14px;flex-shrink:0';
@@ -4808,8 +4808,8 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     var spec = item.spec||'';
     return '<tr>'
       +'<td style="border:1px solid #ddd;padding:8px 11px;text-align:center;font-size:12px;color:#555;font-weight:700">'+(idx+1)+'</td>'
-      +'<td style="border:1px solid #ddd;padding:8px 12px;font-size:12px;font-weight:700;color:#1f2937">'+name+'</td>'
-      +'<td style="border:1px solid #ddd;padding:8px 11px;font-size:11px;color:#444">'+spec+'</td>'
+      +'<td style="border:1px solid #ddd;padding:8px 12px;font-size:12px;font-weight:700;color:#1f2937">'+esc(name)+'</td>'
+      +'<td style="border:1px solid #ddd;padding:8px 11px;font-size:11px;color:#444">'+esc(spec)+'</td>'
       +'<td style="border:1px solid #ddd;padding:7px 10px"></td>'
       +'</tr>';
   }).join('');
@@ -4827,23 +4827,23 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'</div>'
     +'</div>'
     +'<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px">'
-    +'<div style="font-size:14px;color:#111;font-weight:900;letter-spacing:0.3px">신청일: '+data.date+' &nbsp;&nbsp; 의뢰번호: '+data.no+'</div>'
+    +'<div style="font-size:14px;color:#111;font-weight:900;letter-spacing:0.3px">신청일: '+esc(data.date)+' &nbsp;&nbsp; 의뢰번호: '+esc(data.no)+'</div>'
     +'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
     +'<tr><th '+th+' rowspan="2" style="background:#f4f5f7;border:1px solid #bbb;padding:8px 10px;text-align:center;width:8%;font-size:12px">신청자</th>'
-    +'<th '+th+' style="width:10%">회 사 명</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;width:22%;font-weight:700">'+data.company+'</td>'
-    +'<th '+th+' style="width:10%">담 당 자</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;font-weight:700">'+data.person+'</td></tr>'
-    +'<tr><th '+th+'>H.P</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;width:22%">'+data.hp+'</td>'
-    +'<th '+th+'>E-mail</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;word-break:break-all">'+data.email+'</td></tr>'
+    +'<th '+th+' style="width:10%">회 사 명</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;width:22%;font-weight:700">'+esc(data.company)+'</td>'
+    +'<th '+th+' style="width:10%">담 당 자</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;font-weight:700">'+esc(data.person)+'</td></tr>'
+    +'<tr><th '+th+'>H.P</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;width:22%">'+esc(data.hp)+'</td>'
+    +'<th '+th+'>E-mail</th><td style="border:1px solid #bbb;padding:8px 11px;font-size:12px;word-break:break-all">'+esc(data.email)+'</td></tr>'
     +'</table>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
-    +'<tr><th '+th+'>색 상</th><td '+td+'>'+data.color+'</td>'
-    +'<th '+th+'>브 랜 드</th><td '+td+'>'+data.brand+'</td></tr>'
-    +'<tr><th '+th+'>시 료 명</th><td '+td+' colspan="3" style="font-weight:700">'+data.product+(data.materials&&data.materials.length?' <span style="font-weight:900;color:#e60012;font-size:11px">['+data.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+']</span>':'')+'</td></tr>'
+    +'<tr><th '+th+'>색 상</th><td '+td+'>'+esc(data.color)+'</td>'
+    +'<th '+th+'>브 랜 드</th><td '+td+'>'+esc(data.brand)+'</td></tr>'
+    +'<tr><th '+th+'>시 료 명</th><td '+td+' colspan="3" style="font-weight:700">'+esc(data.product)+(data.materials&&data.materials.length?' <span style="font-weight:900;color:#e60012;font-size:11px">['+data.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+']</span>':'')+'</td></tr>'
     +(data.return_type||data.qty||data.material_desc
-      ? '<tr><th '+th+'>시료반환여부</th><td '+td+'>'+((data.return_type)||'-')+'</td>'
-        +'<th '+th+'>시료수량</th><td '+td+'>'+((data.qty)||'-')+' 개</td></tr>'
-        +'<tr><th '+th+'>시 료 재 질</th><td '+td+' colspan="3">'+((data.material_desc)||'-')+'</td></tr>'
+      ? '<tr><th '+th+'>시료반환여부</th><td '+td+'>'+esc((data.return_type)||'-')+'</td>'
+        +'<th '+th+'>시료수량</th><td '+td+'>'+esc((data.qty)||'-')+' 개</td></tr>'
+        +'<tr><th '+th+'>시 료 재 질</th><td '+td+' colspan="3">'+esc((data.material_desc)||'-')+'</td></tr>'
       : '')
     +'</table>'
     +'<div style="font-weight:900;font-size:13px;color:#e60012;border-bottom:2px solid #e60012;padding-bottom:4px;margin-bottom:6px;letter-spacing:.3px">■ 의뢰 시험 항목</div>'
@@ -4857,7 +4857,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +itemRows+'</table>'
     +'<div style="font-weight:900;font-size:13px;color:#e60012;border-bottom:2px solid #e60012;padding-bottom:4px;margin-bottom:6px">■ 비고</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
-    +'<tr><td style="border:1px solid #bbb;padding:12px;min-height:60px;height:auto;vertical-align:top;white-space:pre-wrap;font-size:12px">'+data.note+'</td></tr></table>'
+    +'<tr><td style="border:1px solid #bbb;padding:12px;min-height:60px;height:auto;vertical-align:top;white-space:pre-wrap;font-size:12px">'+esc(data.note)+'</td></tr></table>'
     +'<div id="reqSigSection" style="margin-top:auto">'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px">'
     +'<tr><th style="background:#f4f5f7;border:1px solid #bbb;padding:7px;text-align:center;font-size:12px" colspan="2">확인 (서명)</th></tr>'
@@ -5189,7 +5189,7 @@ function renderReqMgmt(){
       +'<div style="flex:1;min-width:220px">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
       +'<span style="background:'+st.bg+';color:'+st.color+';border:1px solid '+st.border+';border-radius:9999px;padding:2px 10px;font-size:11px;font-weight:800">'+st.label+'</span>'
-      +'<span style="font-size:12px;color:#9ca3af">'+r.no+'</span>'
+      +'<span style="font-size:12px;color:#9ca3af">'+escHtml(r.no)+'</span>'
       +'<span style="font-size:11px;color:#9ca3af">'+dateStr+'</span>'
       +(r.savedBy?'<span style="font-size:10px;color:#6b7280;background:#f3f4f6;border-radius:4px;padding:1px 6px">✏ '+escHtml(r.savedBy)+'</span>':'')
       +'</div>'
@@ -5202,8 +5202,9 @@ function renderReqMgmt(){
   }).join('');
 }
 
-function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escAttr(s){ return String(s||'').replace(/'/g,"\\'"); }
+function escHtml(s){ return String(s||'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])); }
+// onclick="fn('...')" 같은 패턴에서 쓰므로, HTML 속성 쪽("), JS 문자열 쪽(') 둘 다 깨지지 않게 이스케이프한다
+function escAttr(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 
 function reqMgmtPreview(no){
@@ -5857,8 +5858,8 @@ function renderSideMemberList(){
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:3px;background:#0f1923;border-radius:6px;padding:5px 8px';
     const info = document.createElement('div');
-    info.innerHTML = '<div style="font-size:11px;font-weight:700;color:#fff">' + acc.id + '</div>'
-      + '<div style="font-size:10px;color:#aab2c0">' + (acc.name||'-') + ' · ' + acc.role + '</div>';
+    info.innerHTML = '<div style="font-size:11px;font-weight:700;color:#fff">' + esc(acc.id) + '</div>'
+      + '<div style="font-size:10px;color:#aab2c0">' + esc(acc.name||'-') + ' · ' + esc(acc.role) + '</div>';
     const delBtn = document.createElement('button');
     delBtn.textContent = '삭제';
     delBtn.style.cssText = 'background:#7f1d1d;border:none;color:#fca5a5;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0';
@@ -6548,15 +6549,15 @@ async function ec_renderList(){
   let list = [];
   try { list = await getExtCertsAsync(); } catch(e){ box.innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px 0">목록을 불러오지 못했습니다.</p>'; return; }
   if(!list.length){ box.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:24px 0">저장된 제품사용확인서가 없습니다.</p>'; return; }
-  const e2 = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const e2 = s => String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
   const u = getCurUser();
   box.innerHTML = '<div class="table-wrap"><table class="input-table"><thead><tr><th>문서번호</th><th>작성일</th><th>대상 원단</th><th>작성자</th><th>상태</th><th style="width:140px"></th></tr></thead><tbody>' +
     list.map(r => {
       const canManage = !r.issued || u.id === ADMIN_ID;
       const status = r.issued ? `🔒 발행완료 (${e2(r.issuedBy||'')})` : '작성중';
       return `<tr><td>${e2(r.docNo)}</td><td>${e2(r.createdDate)}</td><td>${e2(r.targetFabric)}</td><td>${e2(r.author)}</td><td style="font-size:12px;${r.issued?'color:#16a34a;font-weight:700':'color:#9ca3af'}">${status}</td><td>
-      <button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px" onclick="ec_loadRecord('${r.id}')">불러오기</button>
-      ${canManage ? `<button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px;color:#dc2626" onclick="ec_deleteRecord('${r.id}')">삭제</button>` : ''}
+      <button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px" onclick="ec_loadRecord('${escAttr(r.id)}')">불러오기</button>
+      ${canManage ? `<button type="button" class="btn ghost" style="padding:4px 8px;font-size:12px;color:#dc2626" onclick="ec_deleteRecord('${escAttr(r.id)}')">삭제</button>` : ''}
     </td></tr>`;
     }).join('') + '</tbody></table></div>';
 }
@@ -6575,7 +6576,7 @@ async function ec_deleteRecord(id){
 }
 
 function ec_buildPrintHTML(f){
-  const e2 = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  const e2 = s => String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])).replace(/\n/g,'<br>');
   const bad = f.items.filter(it => String(it.verdict||'').trim() === '부적합').length;
   const overall = !f.items.length ? '판정 항목 없음' : (bad > 0 ? `부적합 ${bad}건 있음` : '적합 (Pass)');
   const fabric = f.targetFabric || '해당 원단/자재';
