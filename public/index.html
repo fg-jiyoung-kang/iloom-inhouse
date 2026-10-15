@@ -997,6 +997,24 @@ button,input,select{font:inherit}
             <tbody id="accTableBody"></tbody>
           </table>
         </div>
+
+        <div class="card" style="margin-top:16px">
+          <h2>로그인 기록</h2>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:16px">최근 300건의 로그인 시도(성공·실패)를 보여줍니다.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb">
+                <th style="padding:10px 12px;text-align:left;font-weight:700">시간</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">아이디</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">이름</th>
+                <th style="padding:10px 12px;text-align:center;font-weight:700">결과</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">IP</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">기기</th>
+              </tr>
+            </thead>
+            <tbody id="loginLogTableBody"></tbody>
+          </table>
+        </div>
       </section>
     </main>
   </div>
@@ -1948,7 +1966,7 @@ function navInit(){
     btn.classList.add('active'); $('tab-'+btn.dataset.tab).classList.add('active');
     renderList(); renderStandards();
     updateTopbar(btn.dataset.tab);
-    if(btn.dataset.tab === 'accounts') renderAccounts();
+    if(btn.dataset.tab === 'accounts'){ renderAccounts(); renderLoginLog(); }
     if(btn.dataset.tab === 'admin'){ renderAccounts(); initAdminRegTab(); }
     if(btn.dataset.tab === 'request'){ initRequestTab(); renderReqListAsync(); }
     if(btn.dataset.tab === 'reqview'){ renderReqMgmt(); updateReqBadge(); }
@@ -5757,6 +5775,44 @@ function getAccounts(){
     localStorage.removeItem(ACCOUNTS_KEY);
   }
   return [];
+}
+
+async function renderLoginLog(){
+  const tbody = document.getElementById('loginLogTableBody');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#9ca3af">불러오는 중...</td></tr>';
+  try {
+    const res = await fetch('/api/login-log', { credentials: 'same-origin' });
+    if(!res.ok){
+      tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#9ca3af">조회 권한이 없거나 불러오지 못했습니다.</td></tr>';
+      return;
+    }
+    const rows = await res.json();
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#9ca3af">기록이 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    rows.forEach(function(r){
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #f3f4f6';
+      let timeStr = r.created_at || '-';
+      try{ timeStr = new Date(r.created_at).toLocaleString('ko-KR'); }catch(e){}
+      const okColor = r.success ? '#16a34a' : '#e60012';
+      const okBg = r.success ? '#f0fdf4' : '#fef2f2';
+      // user_agent/ip는 요청 헤더로 들어오는 값이라 이스케이프 없이 넣으면 안 된다(esc() 필수)
+      tr.innerHTML =
+        '<td style="padding:8px 12px;white-space:nowrap">'+esc(timeStr)+'</td>'+
+        '<td style="padding:8px 12px;font-weight:700">'+esc(r.account_id||'-')+'</td>'+
+        '<td style="padding:8px 12px">'+esc(r.account_name||'-')+'</td>'+
+        '<td style="padding:8px 12px;text-align:center"><span style="border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;background:'+okBg+';color:'+okColor+'">'+(r.success?'성공':'실패')+'</span></td>'+
+        '<td style="padding:8px 12px">'+esc(r.ip||'-')+'</td>'+
+        '<td style="padding:8px 12px;font-size:11px;color:#6b7280;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(r.user_agent||'')+'">'+esc(r.user_agent||'-')+'</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e){
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#9ca3af">불러오지 못했습니다.</td></tr>';
+  }
 }
 
 // 비밀번호 보관 방식은 서버가 관리한다(예전 형식은 로그인 성공 시 서버가 자동으로 올려준다)

@@ -45,8 +45,13 @@ app.use((req, res, next) => {
 const LOGIN_MAX_FAILS = 10;
 const LOGIN_LOCK_MS = 5 * 60 * 1000;
 const loginFails = new Map();
+function clientIp(req) {
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd) return String(fwd).split(',')[0].trim();
+  return req.socket.remoteAddress || '';
+}
 function loginKey(req, id) {
-  return String(id) + '|' + (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '');
+  return String(id) + '|' + clientIp(req);
 }
 function loginLocked(key) {
   const e = loginFails.get(key);
@@ -247,6 +252,17 @@ async function saveAccount(id, data) {
     [id, toJsonParam(data)]
   );
 }
+// 로그인 시도 기록 (성공/실패 모두). 기록 실패는 로그인 자체를 막지 않는다.
+async function recordLogin(accountId, success, ip, userAgent) {
+  try {
+    await pool.query(
+      'INSERT INTO login_log (account_id, success, ip, user_agent) VALUES ($1, $2, $3, $4)',
+      [accountId || null, !!success, ip || null, userAgent || null]
+    );
+  } catch (e) {
+    console.warn('[login_log] 기록 실패:', e.message);
+  }
+}
 // 비밀번호를 뺀 형태로만 브라우저에 보낸다
 function publicAccount(data) {
   const out = Object.assign({}, data || {});
@@ -274,6 +290,8 @@ app.post('/api/login', async (req, res) => {
   const id = String((req.body && req.body.id) || '').trim();
   const pw = String((req.body && req.body.pw) || '');
   if (!id || !pw) return res.status(400).json({ error: 'MISSING', message: '아이디와 비밀번호를 입력해주세요.' });
+  const ip = clientIp(req);
+  const ua = req.headers['user-agent'] || '';
   const key = loginKey(req, id);
   const wait = loginLocked(key);
   if (wait) {
@@ -286,12 +304,14 @@ app.post('/api/login', async (req, res) => {
     const row = await getAccountRow(id);
     if (!row) {
       loginFailed(key);
+      recordLogin(id, false, ip, ua);
       return res.status(401).json({ error: 'BAD_CREDENTIALS', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
     const data = row.data || {};
     const v = verifyPw(pw, data.pw);
     if (!v.ok) {
       loginFailed(key);
+      recordLogin(id, false, ip, ua);
       return res.status(401).json({ error: 'BAD_CREDENTIALS', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
     if (v.needsUpgrade) {
@@ -299,6 +319,7 @@ app.post('/api/login', async (req, res) => {
       await saveAccount(id, data);
     }
     loginSucceeded(key);
+    recordLogin(id, true, ip, ua);
     const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
@@ -386,6 +407,24 @@ app.get('/api/accounts', requireLogin, async (req, res) => {
     res.json(rows.map((r) => ({ id: r.id, data: publicAccount(r.data), updated_at: r.updated_at })));
   } catch (e) {
     console.error('[accounts:get]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR' });
+  }
+});
+
+// 로그인 기록 조회 (관리자만) — 최근 300건
+app.get('/api/login-log', requireLogin, requireAdmin, async (req, res) => {
+  if (!dbReady(res)) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT l.id, l.account_id, l.success, l.ip, l.user_agent, l.created_at, a.data->>'name' AS account_name
+       FROM login_log l
+       LEFT JOIN accounts a ON a.id = l.account_id
+       ORDER BY l.created_at DESC
+       LIMIT 300`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('[login-log:get]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR' });
   }
 });

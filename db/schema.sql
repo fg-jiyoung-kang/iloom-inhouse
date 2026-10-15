@@ -32,3 +32,14 @@ CREATE TABLE IF NOT EXISTS extcerts (
   data       jsonb,
   updated_at timestamptz DEFAULT now()
 );
+
+-- 로그인 시도 기록(성공/실패 모두) — 접속 추적용, 추가만 하고 수정하지 않는 로그
+CREATE TABLE IF NOT EXISTS login_log (
+  id         bigserial PRIMARY KEY,
+  account_id text,
+  success    boolean NOT NULL,
+  ip         text,
+  user_agent text,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_login_log_created_at ON login_log (created_at DESC);
