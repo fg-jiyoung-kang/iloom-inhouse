@@ -917,7 +917,7 @@ button,input,select{font:inherit}
               </label>
               <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#374151">
                 비밀번호
-                <input id="adminRegPw" type="password" style="border:1px solid #d1d5db;border-radius:9px;padding:10px 13px;font-size:13px;outline:none" placeholder="비밀번호 입력 (4자 이상)">
+                <input id="adminRegPw" type="password" style="border:1px solid #d1d5db;border-radius:9px;padding:10px 13px;font-size:13px;outline:none" placeholder="비밀번호 입력 (10자 이상)">
               </label>
               <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#374151">
                 이름
@@ -1755,7 +1755,7 @@ function openMyPage(){
           <input type="password" id="myPageCurPw" style="border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;font-size:13px;outline:none" placeholder="현재 비밀번호 입력">
         </label>
         <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#374151">새 비밀번호
-          <input type="password" id="myPageNewPw" style="border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;font-size:13px;outline:none" placeholder="새 비밀번호 입력 (4자 이상)">
+          <input type="password" id="myPageNewPw" style="border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;font-size:13px;outline:none" placeholder="새 비밀번호 입력 (10자 이상)">
         </label>
         <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#374151">새 비밀번호 확인
           <input type="password" id="myPageNewPw2" style="border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;font-size:13px;outline:none" placeholder="새 비밀번호 재입력">
@@ -1779,7 +1779,7 @@ async function changeMyPassword(){
   const err    = document.getElementById('myPageErr');
 
   if(!curPw){ err.textContent='현재 비밀번호를 입력해주세요.'; return; }
-  if(newPw.length < 4){ err.textContent='새 비밀번호는 4자 이상이어야 합니다.'; return; }
+  if(newPw.length < 10){ err.textContent='새 비밀번호는 10자 이상이어야 합니다.'; return; }
   if(newPw !== newPw2){ err.textContent='새 비밀번호가 일치하지 않습니다.'; return; }
 
   // 현재 비밀번호 확인과 저장은 모두 서버에서 한다
@@ -6009,9 +6009,9 @@ function renderAccounts(){
             var newPwRaw = '';
             var changePw = confirm('"'+origId+'" 비밀번호도 변경하시겠습니까?\n(아니오 선택 시 기존 비밀번호 유지)');
             if(changePw){
-              newPwRaw = prompt('새 비밀번호를 입력하세요 (4자 이상):', '');
+              newPwRaw = prompt('새 비밀번호를 입력하세요 (10자 이상):', '');
               if(newPwRaw===null) return;
-              if(newPwRaw.length < 4){ alert('비밀번호는 4자 이상이어야 합니다.'); return; }
+              if(newPwRaw.length < 10){ alert('비밀번호는 10자 이상이어야 합니다.'); return; }
             }
             var idx = list2.findIndex(function(x){ return x.id===origId; });
             if(idx > -1){
@@ -6048,9 +6048,9 @@ function renderAccounts(){
       resetBtn.textContent = '비번 초기화';
       resetBtn.style.cssText = 'background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;color:#2563eb;cursor:pointer;font-size:11px;font-weight:700;padding:4px 10px;white-space:nowrap';
       resetBtn.onclick = (function(a){ return async function(){
-        var newPw = prompt('"'+a.id+'" 계정의 새 비밀번호를 입력하세요 (4자 이상):', '');
+        var newPw = prompt('"'+a.id+'" 계정의 새 비밀번호를 입력하세요 (10자 이상):', '');
         if(!newPw) return;
-        if(newPw.length < 4){ alert('비밀번호는 4자 이상이어야 합니다.'); return; }
+        if(newPw.length < 10){ alert('비밀번호는 10자 이상이어야 합니다.'); return; }
         try {
           await setAccountPasswordAsync(a.id, newPw);
           alert('"'+a.id+'" 비밀번호가 초기화되었습니다.');
@@ -6104,7 +6104,7 @@ function initAdminRegTab(){
       var err  = document.getElementById('adminRegErr');
       if(!id){ err.textContent='아이디를 입력해주세요.'; return; }
       if(!pw){ err.textContent='비밀번호를 입력해주세요.'; return; }
-      if(pw.length < 4){ err.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
+      if(pw.length < 10){ err.textContent='비밀번호는 10자 이상이어야 합니다.'; return; }
       var list = getAccounts();
       if(list.find(function(a){ return a.id===id; })){ err.textContent='이미 존재하는 아이디입니다.'; return; }
       var role = (document.getElementById('adminRegRole').value||'시험원');

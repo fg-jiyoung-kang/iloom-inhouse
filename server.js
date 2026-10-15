@@ -340,7 +340,7 @@ app.post('/api/setup-admin', async (req, res) => {
   const id = String((req.body && req.body.id) || '').trim();
   const pw = String((req.body && req.body.pw) || '');
   const name = String((req.body && req.body.name) || '').trim() || id;
-  if (!id || pw.length < 4) return res.status(400).json({ error: 'MISSING', message: '아이디와 4자 이상 비밀번호가 필요합니다.' });
+  if (!id || pw.length < 10) return res.status(400).json({ error: 'MISSING', message: '아이디와 10자 이상 비밀번호가 필요합니다.' });
   try {
     if ((await countAccounts()) > 0) {
       return res.status(409).json({ error: 'ALREADY_SETUP', message: '이미 계정이 있어 최초 설정을 할 수 없습니다.' });
@@ -361,7 +361,7 @@ app.post('/api/change-password', requireLogin, async (req, res) => {
   if (!dbReady(res)) return;
   const curPw = String((req.body && req.body.curPw) || '');
   const newPw = String((req.body && req.body.newPw) || '');
-  if (newPw.length < 4) return res.status(400).json({ error: 'TOO_SHORT', message: '새 비밀번호는 4자 이상이어야 합니다.' });
+  if (newPw.length < 10) return res.status(400).json({ error: 'TOO_SHORT', message: '새 비밀번호는 10자 이상이어야 합니다.' });
   try {
     const row = await getAccountRow(req.user.id);
     if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
@@ -383,7 +383,7 @@ app.post('/api/accounts/set-password', requireLogin, requireAdmin, async (req, r
   if (!dbReady(res)) return;
   const id = String((req.body && req.body.id) || '').trim();
   const newPw = String((req.body && req.body.newPw) || '');
-  if (!id || newPw.length < 4) return res.status(400).json({ error: 'MISSING', message: '아이디와 4자 이상 비밀번호가 필요합니다.' });
+  if (!id || newPw.length < 10) return res.status(400).json({ error: 'MISSING', message: '아이디와 10자 이상 비밀번호가 필요합니다.' });
   try {
     const row = await getAccountRow(id);
     if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
@@ -450,7 +450,7 @@ app.post('/api/accounts', requireLogin, requireAdmin, async (req, res) => {
     else if (prevData.signature !== undefined) data.signature = prevData.signature;
     // 기존 비밀번호는 보존 — 새 값이 왔을 때만 바꾼다
     if (newPw) {
-      if (newPw.length < 4) return res.status(400).json({ error: 'TOO_SHORT', message: '비밀번호는 4자 이상이어야 합니다.' });
+      if (newPw.length < 10) return res.status(400).json({ error: 'TOO_SHORT', message: '비밀번호는 10자 이상이어야 합니다.' });
       data.pw = hashPw(newPw);
     } else if (prevData.pw) {
       data.pw = prevData.pw;
