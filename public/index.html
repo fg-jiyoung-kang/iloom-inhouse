@@ -1525,11 +1525,19 @@ async function applyRequestToReport(req){
   setVal('sampleQty',      req.qty           || '');
   setVal('sampleMaterial', req.material_desc || '');
 
-  // 용도 자동 설정
+  // 용도 자동 설정 (의뢰서에서 고른 KOLAS/내부 품질용 선택을 그대로 반영 — 둘 다 고른 경우도 반영)
   var purposeEl = document.getElementById('purpose');
   if(purposeEl){
-    if(req.chk_kolas) purposeEl.value = 'KOLAS용 (KT1333)';
+    if(req.chk_kolas && req.chk_internal) purposeEl.value = 'KOLAS용 (KT1333) + 내부 품질 관리용';
+    else if(req.chk_kolas) purposeEl.value = 'KOLAS용 (KT1333)';
     else if(req.chk_internal) purposeEl.value = '내부 품질 관리용';
+  }
+  // 의뢰서에서 "KOLAS 성적서"를 골랐으면, 성적서 작성 단계에서도 KOLAS 전용 양식을 자동으로 켜준다
+  // (일반 성적서는 원래 항상 출력 가능하므로, 체크해두면 KOLAS 성적서도 "추가로" 출력할 수 있게 되는 것)
+  var kolasChkEl = document.getElementById('kolasFormatChk');
+  if(kolasChkEl){
+    kolasChkEl.checked = !!req.chk_kolas;
+    toggleKolasFields();
   }
 
   // 재질 체크박스
