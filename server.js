@@ -425,6 +425,11 @@ app.post('/api/login', async (req, res) => {
       await create2faCode(id, data.name);
       return res.json({ need2fa: true });
     }
+    // 이메일 2차 인증이 꺼져있는 배포(예: 사내 서버 — 환경변수 설정 권한이 없음)에서는
+    // 대신 비밀번호를 1회용으로 취급한다. 로그인은 이번엔 성공하지만 비밀번호는 즉시
+    // 무효화되어, 관리자가 "비번 초기화"로 다음 비밀번호를 다시 내려줘야만 재로그인 가능.
+    data.pw = null;
+    await saveAccount(id, data);
     const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
