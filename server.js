@@ -274,8 +274,12 @@ function publicAccount(data) {
 }
 
 // ── 로그인 2차 인증 (이메일) ─────────────────────────────
+// 모든 계정의 로그인 인증번호를 전부 관리자(강지영) 이메일 한 곳으로만 보낸다.
+// 본인이 코드를 받아서 로그인 시도한 사람에게 직접 알려주는 방식 — 관리자 승인 없이는
+// 어떤 계정으로도 로그인할 수 없다.
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const ADMIN_2FA_EMAIL = process.env.ADMIN_2FA_EMAIL || '';
 const TWOFA_TTL_MS = 5 * 60 * 1000; // 5분
 const TWOFA_MAX_ATTEMPTS = 5;
 
@@ -305,7 +309,7 @@ function hashCode(code) {
   return crypto.createHash('sha256').update(String(code)).digest('hex');
 }
 
-async function create2faCode(accountId, email) {
+async function create2faCode(accountId, accountName) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   const expiresAt = new Date(Date.now() + TWOFA_TTL_MS);
   await pool.query(
@@ -315,9 +319,11 @@ async function create2faCode(accountId, email) {
     [accountId, hashCode(code), expiresAt]
   );
   await sendEmail(
-    email,
-    '[일룸수면과학연구소] 로그인 인증번호',
-    '<p>로그인 인증번호는 <b style="font-size:20px">' + code + '</b> 입니다.</p><p>5분 이내에 입력해주세요. 본인이 요청하지 않았다면 이 메일을 무시하세요.</p>'
+    ADMIN_2FA_EMAIL,
+    '[일룸수면과학연구소] 로그인 시도: ' + accountId,
+    '<p><b>' + accountId + '</b>(' + (accountName || '') + ') 계정으로 로그인 시도가 있었습니다.</p>'
+      + '<p>인증번호는 <b style="font-size:20px">' + code + '</b> 입니다.</p>'
+      + '<p>본인이 확인한 로그인 시도일 때만 이 코드를 알려주세요. 5분 후 만료됩니다.</p>'
   );
 }
 
@@ -369,9 +375,10 @@ app.post('/api/login', async (req, res) => {
     }
     loginSucceeded(key);
     recordLogin(id, true, ip, ua);
-    // 이메일이 등록된 계정은 비밀번호만으로 바로 로그인시키지 않고, 2차 인증 코드를 보낸다
-    if (data.email) {
-      await create2faCode(id, data.email);
+    // 비밀번호만으로 바로 로그인시키지 않고, 관리자 이메일로 인증번호를 보낸 뒤
+    // 관리자가 알려준 코드를 입력해야 로그인이 완료된다 (ADMIN_2FA_EMAIL 설정 시에만).
+    if (ADMIN_2FA_EMAIL) {
+      await create2faCode(id, data.name);
       return res.json({ need2fa: true });
     }
     const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };

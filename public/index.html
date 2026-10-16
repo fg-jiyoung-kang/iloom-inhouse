@@ -6073,25 +6073,6 @@ function renderAccounts(){
       };})(acc);
       tdAct.appendChild(resetBtn);
 
-      const emailBtn = document.createElement('button');
-      emailBtn.textContent = acc.email ? '이메일: '+acc.email : '이메일 설정 (2차인증)';
-      emailBtn.title = '로그인 2차 인증 코드를 받을 이메일 주소';
-      emailBtn.style.cssText = 'display:block;margin-top:4px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;color:#6d28d9;cursor:pointer;font-size:11px;font-weight:700;padding:4px 10px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis';
-      emailBtn.onclick = (function(a){ return async function(){
-        var newEmail = prompt('"'+a.id+'" 계정의 2차 인증용 이메일 주소를 입력하세요.\n(비워두면 2차 인증 없이 비밀번호만으로 로그인합니다)', a.email||'');
-        if(newEmail===null) return;
-        newEmail = newEmail.trim();
-        try {
-          await setAccountEmailAsync(a.id, newEmail);
-          a.email = newEmail;
-          renderAccounts();
-          showToast('"'+a.id+'" 이메일이 설정되었습니다.');
-        } catch(e){
-          alert('이메일을 저장하지 못했습니다: '+e.message);
-        }
-      };})(acc);
-      tdAct.appendChild(emailBtn);
-
       // 삭제 버튼
       const tdDel = document.createElement('td'); tdDel.style.cssText='padding:10px 12px;text-align:center';
       if(acc.id===ADMIN_ID){
@@ -6329,7 +6310,7 @@ window.addEventListener('DOMContentLoaded', function(){
       if(loginPwEl) loginPwEl.disabled = true;
       if(loginIdEl) loginIdEl.disabled = true;
       if(loginBtnEl) loginBtnEl.textContent = '인증번호 확인';
-      if(errEl) errEl.textContent = '등록된 이메일로 인증번호를 보냈습니다.';
+      if(errEl) errEl.textContent = '관리자에게 인증번호가 발송되었습니다. 관리자에게 문의해 인증번호를 전달받으세요.';
       var codeEl = document.getElementById('login2faCode');
       if(codeEl) codeEl.focus();
       return;
