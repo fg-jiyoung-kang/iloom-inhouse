@@ -273,6 +273,54 @@ function publicAccount(data) {
   return out;
 }
 
+// ── 로그인 2차 인증 (이메일) ─────────────────────────────
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const TWOFA_TTL_MS = 5 * 60 * 1000; // 5분
+const TWOFA_MAX_ATTEMPTS = 5;
+
+async function sendEmail(to, subject, html) {
+  if (!RESEND_API_KEY) {
+    console.warn('[2fa] RESEND_API_KEY가 없어 이메일을 보내지 못했습니다.');
+    return false;
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject: subject, html: html }),
+    });
+    if (!res.ok) {
+      console.error('[2fa] 이메일 발송 실패:', res.status, await res.text().catch(() => ''));
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[2fa] 이메일 발송 오류:', e.message);
+    return false;
+  }
+}
+
+function hashCode(code) {
+  return crypto.createHash('sha256').update(String(code)).digest('hex');
+}
+
+async function create2faCode(accountId, email) {
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  const expiresAt = new Date(Date.now() + TWOFA_TTL_MS);
+  await pool.query(
+    `INSERT INTO login_2fa (account_id, code_hash, expires_at, attempts)
+     VALUES ($1, $2, $3, 0)
+     ON CONFLICT (account_id) DO UPDATE SET code_hash = $2, expires_at = $3, attempts = 0`,
+    [accountId, hashCode(code), expiresAt]
+  );
+  await sendEmail(
+    email,
+    '[일룸수면과학연구소] 로그인 인증번호',
+    '<p>로그인 인증번호는 <b style="font-size:20px">' + code + '</b> 입니다.</p><p>5분 이내에 입력해주세요. 본인이 요청하지 않았다면 이 메일을 무시하세요.</p>'
+  );
+}
+
 // ══════════════════════════════════════════════════════════
 // API — 인증
 // ══════════════════════════════════════════════════════════
@@ -321,12 +369,52 @@ app.post('/api/login', async (req, res) => {
     }
     loginSucceeded(key);
     recordLogin(id, true, ip, ua);
+    // 이메일이 등록된 계정은 비밀번호만으로 바로 로그인시키지 않고, 2차 인증 코드를 보낸다
+    if (data.email) {
+      await create2faCode(id, data.email);
+      return res.json({ need2fa: true });
+    }
     const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
   } catch (e) {
     console.error('[login]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: '로그인 처리 중 오류가 났습니다.' });
+  }
+});
+
+// 2차 인증 코드 확인 — 성공하면 그제서야 세션 쿠키 발급
+app.post('/api/login/verify-code', async (req, res) => {
+  if (!dbReady(res)) return;
+  const id = String((req.body && req.body.id) || '').trim();
+  const code = String((req.body && req.body.code) || '').trim();
+  if (!id || !code) return res.status(400).json({ error: 'MISSING', message: '인증번호를 입력해주세요.' });
+  try {
+    const { rows } = await pool.query('SELECT * FROM login_2fa WHERE account_id = $1', [id]);
+    const rec = rows[0];
+    if (!rec) return res.status(400).json({ error: 'NOT_FOUND', message: '인증번호를 먼저 요청해주세요.' });
+    if (new Date(rec.expires_at).getTime() < Date.now()) {
+      await pool.query('DELETE FROM login_2fa WHERE account_id = $1', [id]);
+      return res.status(400).json({ error: 'EXPIRED', message: '인증번호가 만료되었습니다. 다시 로그인해주세요.' });
+    }
+    if (rec.attempts >= TWOFA_MAX_ATTEMPTS) {
+      await pool.query('DELETE FROM login_2fa WHERE account_id = $1', [id]);
+      return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS', message: '시도 횟수를 초과했습니다. 다시 로그인해주세요.' });
+    }
+    if (!eq(hashCode(code), rec.code_hash)) {
+      await pool.query('UPDATE login_2fa SET attempts = attempts + 1 WHERE account_id = $1', [id]);
+      return res.status(401).json({ error: 'BAD_CODE', message: '인증번호가 올바르지 않습니다.' });
+    }
+    await pool.query('DELETE FROM login_2fa WHERE account_id = $1', [id]);
+    const row = await getAccountRow(id);
+    if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
+    const data = row.data || {};
+    const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
+    setSessionCookie(res, user);
+    res.json({ user: user });
+  } catch (e) {
+    console.error('[verify-code]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: '인증 처리 중 오류가 났습니다.' });
   }
 });
 
@@ -394,6 +482,29 @@ app.post('/api/accounts/set-password', requireLogin, requireAdmin, async (req, r
     res.json({ ok: true });
   } catch (e) {
     console.error('[set-password]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR', message: '변경 중 오류가 났습니다.' });
+  }
+});
+
+// 로그인 2차 인증용 이메일 지정 (관리자만). 빈 값으로 보내면 2차 인증을 끈다.
+app.post('/api/accounts/set-email', requireLogin, requireAdmin, async (req, res) => {
+  if (!dbReady(res)) return;
+  const id = String((req.body && req.body.id) || '').trim();
+  const email = String((req.body && req.body.email) || '').trim();
+  if (!id) return res.status(400).json({ error: 'MISSING', message: '아이디가 필요합니다.' });
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'BAD_EMAIL', message: '이메일 형식이 올바르지 않습니다.' });
+  }
+  try {
+    const row = await getAccountRow(id);
+    if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
+    const data = row.data || {};
+    if (email) data.email = email;
+    else delete data.email;
+    await saveAccount(id, data);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[set-email]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: '변경 중 오류가 났습니다.' });
   }
 });

@@ -43,3 +43,12 @@ CREATE TABLE IF NOT EXISTS login_log (
   created_at timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_login_log_created_at ON login_log (created_at DESC);
+
+-- 로그인 2차 인증(이메일) 대기 코드 — 계정당 1개, 새로 요청하면 덮어쓴다
+CREATE TABLE IF NOT EXISTS login_2fa (
+  account_id text PRIMARY KEY,
+  code_hash  text NOT NULL,
+  expires_at timestamptz NOT NULL,
+  attempts   integer NOT NULL DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);

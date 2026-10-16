@@ -308,6 +308,10 @@ button,input,select{font:inherit}
     <input id="loginId" class="login-input" type="text" placeholder="아이디를 입력하세요" autocomplete="username">
     <label class="login-label">비밀번호</label>
     <input id="loginPw" class="login-input" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+    <div id="login2faSection" style="display:none;margin-top:10px">
+      <label class="login-label">이메일로 받은 인증번호 (6자리)</label>
+      <input id="login2faCode" class="login-input" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" autocomplete="one-time-code">
+    </div>
     <div class="login-err" id="loginErr"></div>
     <div style="display:flex;align-items:center;gap:6px;margin-top:14px;text-align:left">
       <input type="checkbox" id="saveIdCheck" style="width:15px;height:15px;accent-color:#e60012;cursor:pointer">
@@ -6061,6 +6065,25 @@ function renderAccounts(){
       };})(acc);
       tdAct.appendChild(resetBtn);
 
+      const emailBtn = document.createElement('button');
+      emailBtn.textContent = acc.email ? '이메일: '+acc.email : '이메일 설정 (2차인증)';
+      emailBtn.title = '로그인 2차 인증 코드를 받을 이메일 주소';
+      emailBtn.style.cssText = 'display:block;margin-top:4px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;color:#6d28d9;cursor:pointer;font-size:11px;font-weight:700;padding:4px 10px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis';
+      emailBtn.onclick = (function(a){ return async function(){
+        var newEmail = prompt('"'+a.id+'" 계정의 2차 인증용 이메일 주소를 입력하세요.\n(비워두면 2차 인증 없이 비밀번호만으로 로그인합니다)', a.email||'');
+        if(newEmail===null) return;
+        newEmail = newEmail.trim();
+        try {
+          await setAccountEmailAsync(a.id, newEmail);
+          a.email = newEmail;
+          renderAccounts();
+          showToast('"'+a.id+'" 이메일이 설정되었습니다.');
+        } catch(e){
+          alert('이메일을 저장하지 못했습니다: '+e.message);
+        }
+      };})(acc);
+      tdAct.appendChild(emailBtn);
+
       // 삭제 버튼
       const tdDel = document.createElement('td'); tdDel.style.cssText='padding:10px 12px;text-align:center';
       if(acc.id===ADMIN_ID){
@@ -6210,7 +6233,44 @@ window.addEventListener('DOMContentLoaded', function(){
     if(saveIdEl) saveIdEl.checked = true;
   }
 
+  var pending2faId = null; // 2차 인증 대기 중인 아이디 (비밀번호는 다시 들고 있지 않음)
+
+  function finishLogin(matched, id, saveId){
+    sessionStorage.setItem('iloom_auth','ok');
+    sessionStorage.setItem('iloom_user', JSON.stringify(matched));
+    if(saveId) localStorage.setItem('iloom_saved_id', id);
+    else localStorage.removeItem('iloom_saved_id');
+    startApp(matched);
+  }
+
+  async function submit2faCode(){
+    var codeEl = document.getElementById('login2faCode');
+    var code = (codeEl && codeEl.value || '').trim();
+    var saveId = !!(saveIdEl && saveIdEl.checked);
+    if(errEl) errEl.textContent = '';
+    if(!code){ if(errEl) errEl.textContent='인증번호를 입력해주세요.'; return; }
+    if(loginBtnEl){ loginBtnEl.disabled = true; loginBtnEl.textContent = '확인 중...'; }
+    try {
+      var res = await fetch('/api/login/verify-code', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: pending2faId, code: code })
+      });
+      var data = await res.json().catch(function(){ return {}; });
+      if(!res.ok || !data.user){
+        if(errEl) errEl.textContent = data.message || '인증번호가 올바르지 않습니다.';
+        return;
+      }
+      finishLogin(data.user, pending2faId, saveId);
+    } catch(e){
+      if(errEl) errEl.textContent='서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+    } finally {
+      if(loginBtnEl){ loginBtnEl.disabled = false; loginBtnEl.textContent = '인증번호 확인'; }
+    }
+  }
+
   async function doLogin(){
+    if(pending2faId){ return submit2faCode(); }
     var id = (loginIdEl && loginIdEl.value || '').trim();
     var pw = (loginPwEl && loginPwEl.value || '').trim();
     var saveId = !!(saveIdEl && saveIdEl.checked);
@@ -6235,7 +6295,7 @@ window.addEventListener('DOMContentLoaded', function(){
       if(errEl) errEl.textContent='서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
       return;
     } finally {
-      if(loginBtnEl){ loginBtnEl.disabled = false; loginBtnEl.textContent = '로그인'; }
+      if(loginBtnEl){ loginBtnEl.disabled = false; loginBtnEl.textContent = pending2faId ? '인증번호 확인' : '로그인'; }
     }
 
     // 계정이 하나도 없는 최초 상태 — 첫 관리자 계정을 만든다
@@ -6253,20 +6313,27 @@ window.addEventListener('DOMContentLoaded', function(){
       result = sdata; status = 200;
     }
 
+    // 비밀번호는 맞았고, 이메일로 보낸 인증번호 입력을 기다려야 하는 경우
+    if(status === 200 && result && result.need2fa){
+      pending2faId = id;
+      var sec = document.getElementById('login2faSection');
+      if(sec) sec.style.display = '';
+      if(loginPwEl) loginPwEl.disabled = true;
+      if(loginIdEl) loginIdEl.disabled = true;
+      if(loginBtnEl) loginBtnEl.textContent = '인증번호 확인';
+      if(errEl) errEl.textContent = '등록된 이메일로 인증번호를 보냈습니다.';
+      var codeEl = document.getElementById('login2faCode');
+      if(codeEl) codeEl.focus();
+      return;
+    }
+
     if(status !== 200 || !result || !result.user){
       if(errEl) errEl.textContent = (result && result.message) || '아이디 또는 비밀번호가 올바르지 않습니다.';
       if(loginPwEl){ loginPwEl.value=''; loginPwEl.focus(); }
       return;
     }
 
-    var matched = result.user;   // 비밀번호는 포함되지 않는다
-    sessionStorage.setItem('iloom_auth','ok');
-    sessionStorage.setItem('iloom_user', JSON.stringify(matched));
-
-    if(saveId) localStorage.setItem('iloom_saved_id', id);
-    else localStorage.removeItem('iloom_saved_id');
-
-    startApp(matched);
+    finishLogin(result.user, id, saveId);
   }
 
   if(loginBtnEl) loginBtnEl.onclick = doLogin;
@@ -6816,6 +6883,19 @@ async function setAccountsAsync(list) {
 }
 
 // 비밀번호 지정(관리자) — 값은 서버에서만 해싱해 보관한다
+async function setAccountEmailAsync(id, email) {
+  const res = await fetch('/api/accounts/set-email', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id, email: email })
+  });
+  if(!res.ok){
+    const msg = await res.json().catch(function(){ return {}; });
+    throw new Error(msg.message || '이메일 저장 실패');
+  }
+  return true;
+}
 async function setAccountPasswordAsync(id, newPw) {
   const res = await fetch('/api/accounts/set-password', {
     method: 'POST',
