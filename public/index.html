@@ -4876,6 +4876,11 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
   var th = 'style="background:#f4f5f7;border:1px solid #bbb;padding:8px 11px;text-align:center;white-space:nowrap;width:16%;font-size:12px"';
   var td = 'style="border:1px solid #bbb;padding:8px 11px;width:34%;font-size:12px"';
 
+  // 발급받을 성적서 종류 배지 — 저장된 chk_kolas/chk_internal이 실제로 반영됐는지 미리보기에서 바로 확인 가능하게
+  var certBadges = '';
+  if(data.chk_kolas) certBadges += '<span style="display:inline-block;margin-left:8px;background:#fef2f2;color:#e60012;border:1px solid #fecaca;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:800">KOLAS 성적서</span>';
+  if(data.chk_internal) certBadges += '<span style="display:inline-block;margin-left:8px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:800">내부 품질용</span>';
+
   preview.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #e60012;padding-bottom:6px;margin-bottom:10px">'
     +'<img src="'+iloomSrc+'" style="height:26px">'
@@ -4885,7 +4890,7 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'</div>'
     +'</div>'
     +'<div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px">'
-    +'<div style="font-size:14px;color:#111;font-weight:900;letter-spacing:0.3px">신청일: '+esc(data.date)+' &nbsp;&nbsp; 의뢰번호: '+esc(data.no)+'</div>'
+    +'<div style="font-size:14px;color:#111;font-weight:900;letter-spacing:0.3px">신청일: '+esc(data.date)+' &nbsp;&nbsp; 의뢰번호: '+esc(data.no)+certBadges+'</div>'
     +'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">'
     +'<tr><th '+th+' rowspan="2" style="background:#f4f5f7;border:1px solid #bbb;padding:8px 10px;text-align:center;width:8%;font-size:12px">신청자</th>'
