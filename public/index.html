@@ -4746,7 +4746,8 @@ function renderReqList(){
           var el = document.getElementById('req_'+k); if(el) el.value = r[k]||'';
         });
         var retEl2=document.getElementById('req_return'); if(retEl2) retEl2.value=r.return_type||'';
-          var dateEl2=document.getElementById('req_date'); if(dateEl2) dateEl2.value=(function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+        // 저장된 신청일을 그대로 복원한다 (예전엔 오늘 날짜로 덮어써서, 저장해도 불러올 때마다 날짜가 바뀌어 보였음)
+        var dateEl2=document.getElementById('req_date'); if(dateEl2) dateEl2.value=r.date||'';
         // KOLAS/내부 체크박스
         if(r.chk_kolas !== undefined){
           var kEl = document.getElementById('req_chk_kolas'); if(kEl) kEl.checked = r.chk_kolas;
