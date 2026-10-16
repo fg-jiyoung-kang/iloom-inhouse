@@ -419,6 +419,19 @@ button,input,select{font:inherit}
               신청일
               <input id="req_date" type="date" style="border:1px solid #d1d5db;border-radius:9px;padding:9px 13px;font-size:13px;outline:none">
             </label>
+            <div style="grid-column:1/-1;background:#fff5f5;border:1.5px solid #fecaca;border-radius:9px;padding:12px 14px">
+              <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:8px">발급받을 성적서 종류 (하나만 또는 둘 다 선택 가능)</div>
+              <div style="display:flex;gap:22px;flex-wrap:wrap">
+                <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#374151;cursor:pointer">
+                  <input type="checkbox" id="req_chk_kolas" style="width:17px;height:17px;accent-color:#e60012;cursor:pointer">
+                  KOLAS 성적서
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#374151;cursor:pointer">
+                  <input type="checkbox" id="req_chk_internal" style="width:17px;height:17px;accent-color:#e60012;cursor:pointer">
+                  내부 품질용 (일반 성적서)
+                </label>
+              </div>
+            </div>
             <div style="grid-column:1/-1;background:#f1f5f9;border-left:3px solid #e60012;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;color:#374151;margin-top:4px;letter-spacing:0.3px">신청자 정보</div>
             <label style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:#374151">
               회사명
@@ -1017,6 +1030,23 @@ button,input,select{font:inherit}
               </tr>
             </thead>
             <tbody id="loginLogTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h2>활동 기록</h2>
+          <p style="font-size:13px;color:#6b7280;margin-bottom:16px">누가 성적서를 생성·수정·발행·잠금해제요청·삭제·출력했는지 최근 500건을 보여줍니다.</p>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb">
+                <th style="padding:10px 12px;text-align:left;font-weight:700">시간</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">아이디</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">이름</th>
+                <th style="padding:10px 12px;text-align:center;font-weight:700">동작</th>
+                <th style="padding:10px 12px;text-align:left;font-weight:700">대상</th>
+              </tr>
+            </thead>
+            <tbody id="activityLogTableBody"></tbody>
           </table>
         </div>
       </section>
@@ -1676,6 +1706,16 @@ async function migrateLocalToSupabase(){
   }
 }
 
+// 성적서 PDF/워드 출력을 활동 기록에 남긴다 (실패해도 출력 자체는 막지 않는다)
+function trackPrint(kind, targetId, label){
+  try {
+    fetch('/api/track-print', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ kind: kind, targetId: targetId||'', label: label||'' })
+    }).catch(function(){});
+  } catch(e){}
+}
 function showToast(msg){
   const t = document.createElement('div');
   t.style.cssText = 'position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3)';
@@ -1978,7 +2018,7 @@ function navInit(){
     btn.classList.add('active'); $('tab-'+btn.dataset.tab).classList.add('active');
     renderList(); renderStandards();
     updateTopbar(btn.dataset.tab);
-    if(btn.dataset.tab === 'accounts'){ renderAccounts(); renderLoginLog(); }
+    if(btn.dataset.tab === 'accounts'){ renderAccounts(); renderLoginLog(); renderActivityLog(); }
     if(btn.dataset.tab === 'admin'){ renderAccounts(); initAdminRegTab(); }
     if(btn.dataset.tab === 'request'){ initRequestTab(); renderReqListAsync(); }
     if(btn.dataset.tab === 'reqview'){ renderReqMgmt(); updateReqBadge(); }
@@ -2142,6 +2182,7 @@ function bindInputs(){
     }
     const pw=window.open('','_blank');
     if(!pw){ alert('팝업이 차단되었습니다.\n브라우저 주소창 우측의 팝업 허용 버튼을 클릭한 후 다시 시도해주세요.'); return; }
+    trackPrint('pdf', r.id||r.receiptNo, r.sampleName);
     try {
       const html = buildPrintHTML(r);
       pw.document.write(html);
@@ -2172,6 +2213,7 @@ function bindInputs(){
     }
     const pw2=window.open('','_blank');
     if(!pw2){ alert('팝업이 차단되었습니다.\n브라우저 주소창 우측의 팝업 허용 버튼을 클릭한 후 다시 시도해주세요.'); return; }
+    trackPrint('kolas', r.id||r.receiptNo, r.sampleName);
     try {
       const html2 = buildKolasPrintHTML(r);
       pw2.document.write(html2);
@@ -2200,6 +2242,7 @@ function bindInputs(){
       alert('의뢰서 번호가 없습니다.\n의뢰서를 먼저 불러온 후 출력해주세요.');
       return;
     }
+    trackPrint('kolas-word', r.id||r.receiptNo, r.sampleName);
     try {
       const wordHtml = buildKolasWordHTML(r);
       const blob = new Blob(['﻿', wordHtml], { type: 'application/msword' });
@@ -4138,6 +4181,7 @@ async function printStoredReport(id){
     const _reps=getReports(); const _ri=_reps.findIndex(function(x){return x.id===r.id;});
     if(_ri>=0){ _reps[_ri].verifyToken=r.verifyToken; _reps[_ri].issuedAt=r.issuedAt; setReports(_reps); supaFetch('reports','POST',{id:r.id,data:_reps[_ri],updated_at:new Date().toISOString()}).catch(function(){}); }
   }
+  trackPrint('pdf', r.id||r.receiptNo, r.sampleName);
   pw.document.open();
   pw.document.write(window.buildPrintHTML(r));
   pw.document.close();
@@ -4160,6 +4204,7 @@ async function printStoredKolasReport(id){
   // 로컬 캐시에만 있을 수 있어서, 없으면 로컬 캐시에서 보충한다.
   const fallbackImage = r.image || getImageLocally(r.id);
   if(!r.image && fallbackImage){ r = Object.assign({}, r, {image: fallbackImage}); }
+  trackPrint('kolas', r.id||r.receiptNo, r.sampleName);
   pw.document.open();
   pw.document.write(window.buildKolasPrintHTML(r));
   pw.document.close();
@@ -5825,6 +5870,48 @@ async function renderLoginLog(){
     });
   } catch(e){
     tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#9ca3af">불러오지 못했습니다.</td></tr>';
+  }
+}
+
+const ACTIVITY_ACTION_LABELS = {
+  report_create: '성적서 생성', report_update: '성적서 수정', report_issue: '발행완료',
+  report_finalize: '최종발행완료(잠금)', unlock_request: '수정 요청', unlock_approve: '수정 승인(잠금해제)',
+  delete: '삭제', create: '생성', update: '수정',
+  print_pdf: 'PDF 출력', print_kolas: 'KOLAS 출력', 'print_kolas-word': 'KOLAS 워드 출력',
+};
+async function renderActivityLog(){
+  const tbody = document.getElementById('activityLogTableBody');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;text-align:center;color:#9ca3af">불러오는 중...</td></tr>';
+  try {
+    const res = await fetch('/api/activity-log', { credentials: 'same-origin' });
+    if(!res.ok){
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;text-align:center;color:#9ca3af">조회 권한이 없거나 불러오지 못했습니다.</td></tr>';
+      return;
+    }
+    const rows = await res.json();
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;text-align:center;color:#9ca3af">기록이 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = '';
+    rows.forEach(function(r){
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #f3f4f6';
+      let timeStr = r.created_at || '-';
+      try{ timeStr = new Date(r.created_at).toLocaleString('ko-KR'); }catch(e){}
+      const actionLabel = ACTIVITY_ACTION_LABELS[r.action] || r.action || '-';
+      const target = [r.target_id, r.detail].filter(Boolean).join(' · ');
+      tr.innerHTML =
+        '<td style="padding:8px 12px;white-space:nowrap">'+esc(timeStr)+'</td>'+
+        '<td style="padding:8px 12px;font-weight:700">'+esc(r.account_id||'-')+'</td>'+
+        '<td style="padding:8px 12px">'+esc(r.account_name||'-')+'</td>'+
+        '<td style="padding:8px 12px;text-align:center"><span style="border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;background:#eff6ff;color:#1d4ed8">'+esc(actionLabel)+'</span></td>'+
+        '<td style="padding:8px 12px;font-size:12px;color:#374151">'+esc(target||'-')+'</td>';
+      tbody.appendChild(tr);
+    });
+  } catch(e){
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:14px;text-align:center;color:#9ca3af">불러오지 못했습니다.</td></tr>';
   }
 }
 

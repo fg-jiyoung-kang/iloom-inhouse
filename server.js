@@ -309,6 +309,35 @@ function hashCode(code) {
   return crypto.createHash('sha256').update(String(code)).digest('hex');
 }
 
+// ── 활동 기록 (생성·수정·발행·잠금·수정요청·삭제·출력) ──────
+async function logActivity(accountId, action, targetTable, targetId, detail) {
+  try {
+    await pool.query(
+      'INSERT INTO activity_log (account_id, action, target_table, target_id, detail) VALUES ($1,$2,$3,$4,$5)',
+      [accountId || null, action, targetTable || null, targetId || null, detail || null]
+    );
+  } catch (e) {
+    console.warn('[activity_log] 기록 실패:', e.message);
+  }
+}
+
+// 성적서는 상태(issued/locked/unlockRequest)가 같은 POST 안에서 같이 바뀌기 때문에,
+// 저장 전후 값을 비교해서 실제로 무슨 일이 있었는지(발행/잠금/수정요청/승인 등) 알아낸다.
+async function logReportActivity(accountId, reportId, before, after) {
+  after = after || {};
+  const label = after.sampleName || after.product || null;
+  if (!before) {
+    await logActivity(accountId, 'report_create', 'reports', reportId, label);
+    return;
+  }
+  let logged = false;
+  if (!before.issued && after.issued) { await logActivity(accountId, 'report_issue', 'reports', reportId, label); logged = true; }
+  if (!before.locked && after.locked) { await logActivity(accountId, 'report_finalize', 'reports', reportId, label); logged = true; }
+  if (!before.unlockRequest && after.unlockRequest) { await logActivity(accountId, 'unlock_request', 'reports', reportId, label); logged = true; }
+  if (before.locked && !after.locked && !after.unlockRequest) { await logActivity(accountId, 'unlock_approve', 'reports', reportId, label); logged = true; }
+  if (!logged) await logActivity(accountId, 'report_update', 'reports', reportId, label);
+}
+
 async function create2faCode(accountId, accountName) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   const expiresAt = new Date(Date.now() + TWOFA_TTL_MS);
@@ -666,23 +695,50 @@ app.post('/api/:table(reports|requests|settings|extcerts)', requireLogin, async 
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
   const isOwner = req.user.id === ADMIN_ID;
   try {
+    const existingRow = await pool.query(`SELECT data FROM ${table} WHERE id = $1`, [id]);
+    const before = (existingRow.rows[0] && existingRow.rows[0].data) || null;
     // 성적서가 "최종발행완료(잠금)" 상태면, 최종관리자가 아닌 한 서버에서도 덮어쓰기를 막는다
     // (화면에서만 막던 걸 뒷단으로 직접 요청을 보내는 경우까지 막음, 화면 쪽 ADMIN_ID 기준과 동일)
-    if (table === 'reports' && !isOwner) {
-      const existing = await pool.query('SELECT data FROM reports WHERE id = $1', [id]);
-      if (existing.rows[0] && existing.rows[0].data && existing.rows[0].data.locked) {
-        return res.status(403).json({ error: 'LOCKED', message: '최종발행완료된 성적서는 수정할 수 없습니다.' });
-      }
+    if (table === 'reports' && !isOwner && before && before.locked) {
+      return res.status(403).json({ error: 'LOCKED', message: '최종발행완료된 성적서는 수정할 수 없습니다.' });
     }
     await pool.query(
       `INSERT INTO ${table} (id, data, updated_at) VALUES ($1, $2, now())
        ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = now()`,
       [id, toJsonParam(body.data)]
     );
+    if (table === 'reports') await logReportActivity(req.user.id, id, before, body.data);
+    else await logActivity(req.user.id, before ? 'update' : 'create', table, id, null);
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':post]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// 성적서 PDF/워드 출력(다운로드)을 기록한다
+app.post('/api/track-print', requireLogin, async (req, res) => {
+  if (!dbReady(res)) return;
+  const kind = String((req.body && req.body.kind) || 'unknown').trim();
+  const targetId = String((req.body && req.body.targetId) || '').trim();
+  const label = String((req.body && req.body.label) || '').trim();
+  await logActivity(req.user.id, 'print_' + kind, 'reports', targetId || null, label || null);
+  res.json({ ok: true });
+});
+
+// 활동 기록 조회 (관리자만) — 최근 500건
+app.get('/api/activity-log', requireLogin, requireAdmin, async (req, res) => {
+  if (!dbReady(res)) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT a.id, a.account_id, a.action, a.target_table, a.target_id, a.detail, a.created_at, acc.data->>'name' AS account_name
+       FROM activity_log a LEFT JOIN accounts acc ON acc.id = a.account_id
+       ORDER BY a.created_at DESC LIMIT 500`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('[activity-log:get]', e.message);
+    res.status(500).json({ error: 'SERVER_ERROR' });
   }
 });
 
@@ -699,6 +755,7 @@ app.delete('/api/:table(reports|requests|settings|extcerts)', requireLogin, asyn
   }
   try {
     await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+    await logActivity(req.user.id, 'delete', table, id, null);
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':delete]', e.message);

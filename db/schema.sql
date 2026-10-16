@@ -52,3 +52,15 @@ CREATE TABLE IF NOT EXISTS login_2fa (
   attempts   integer NOT NULL DEFAULT 0,
   created_at timestamptz DEFAULT now()
 );
+
+-- 활동 기록(생성/수정/발행/잠금/수정요청/삭제/출력) — 쌓이기만 하는 로그
+CREATE TABLE IF NOT EXISTS activity_log (
+  id           bigserial PRIMARY KEY,
+  account_id   text,
+  action       text NOT NULL,
+  target_table text,
+  target_id    text,
+  detail       text,
+  created_at   timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log (created_at DESC);
