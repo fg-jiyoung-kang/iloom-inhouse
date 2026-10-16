@@ -42,6 +42,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// 서버 전체 잠금 — SERVER_LOCKED=1 환경변수가 설정된 배포(예: 개인 Vercel)만 완전히
+// 막는다. 같은 코드를 쓰는 다른 배포(사내 서버 등)는 이 값이 없으면 평소처럼 동작한다.
+if (process.env.SERVER_LOCKED === '1') {
+  app.use((req, res) => {
+    res.status(503).send(
+      '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>서버 닫힘</title>' +
+      '<meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
+      '<body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;color:#1f2937;text-align:center;padding:20px">' +
+      '<div><h1 style="font-size:20px">이 서버는 더 이상 운영하지 않습니다</h1>' +
+      '<p style="color:#6b7280">사내 시스템(iloom-inhouse.app2.hub.fursys.com)을 이용해주세요.</p></div>' +
+      '</body></html>'
+    );
+  });
+}
+
 // 로그인 시도 제한 (같은 아이디·접속지에서 연속 실패가 쌓이면 잠시 막는다)
 const LOGIN_MAX_FAILS = 10;
 const LOGIN_LOCK_MS = 5 * 60 * 1000;
