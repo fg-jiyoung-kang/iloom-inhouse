@@ -28,11 +28,14 @@ const PORT = Number(process.env.PORT || 8080);
 const TABLES = ['reports', 'requests', 'accounts', 'settings', 'extcerts'];
 const ADMIN_ID = 'jiyoung_kang'; // index.html의 ADMIN_ID와 동일 — 성적서 삭제·잠금해제 등 최종권한 기준
 
-// 임시 조치(2026-10-19~20 한정): jiyoung_kang 계정 비밀번호 복구용으로, guest_1 로그인 시에만
-// 세션 역할을 관리자로 취급한다. DB는 건드리지 않고 세션에서만 적용되며, 기한이 지나면 자동으로 꺼진다.
+// 임시 조치(2026-10-19~20 한정): jiyoung_kang 계정 비밀번호 복구용으로, 아래 계정들은
+// 로그인/세션 조회 시마다 관리자 권한으로 취급한다. DB는 건드리지 않고 매번 즉석에서
+// 적용되므로(로그인 세션에 저장해두는 게 아니라), 새로고침만 해도 바로 반영되고
+// 기한이 지나면 자동으로 꺼진다.
+const TEMP_ADMIN_IDS = ['guest_1', 'iloom_2'];
 const TEMP_GUEST1_ADMIN_UNTIL = new Date('2026-10-21T00:00:00+09:00').getTime();
 function applyTempRoleOverride(id, data) {
-  if (id === 'guest_1' && Date.now() < TEMP_GUEST1_ADMIN_UNTIL) {
+  if (TEMP_ADMIN_IDS.includes(id) && Date.now() < TEMP_GUEST1_ADMIN_UNTIL) {
     return { ...data, role: '관리자' };
   }
   return data;
@@ -210,7 +213,7 @@ function clearSessionCookie(res) {
 function requireLogin(req, res, next) {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' });
-  req.user = s;
+  req.user = applyTempRoleOverride(s.id, s);
   next();
 }
 function requireAdmin(req, res, next) {
@@ -391,7 +394,8 @@ app.get('/api/health', (req, res) => {
 app.get('/api/session', (req, res) => {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'NOT_LOGGED_IN' });
-  res.json({ user: { id: s.id, name: s.name, role: s.role } });
+  const u = applyTempRoleOverride(s.id, s);
+  res.json({ user: { id: u.id, name: u.name, role: u.role } });
 });
 
 app.post('/api/login', async (req, res) => {
