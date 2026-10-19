@@ -425,15 +425,8 @@ app.post('/api/login', async (req, res) => {
       await create2faCode(id, data.name);
       return res.json({ need2fa: true });
     }
-    // 이메일 2차 인증이 꺼져있는 배포(예: 사내 서버 — 환경변수 설정 권한이 없음)에서는
-    // 대신 비밀번호를 1회용으로 취급한다. 로그인은 이번엔 성공하지만 비밀번호는 즉시
-    // 무효화되어, 관리자가 "비번 초기화"로 다음 비밀번호를 다시 내려줘야만 재로그인 가능.
-    // 단, 최종관리자(ADMIN_ID) 본인 계정은 제외 — 본인이 직접 비밀번호를 바꾸기 전까지는
-    // 그대로 유지한다(자기 자신을 잠글 방법이 없어지는 사고를 막기 위함).
-    if (id !== ADMIN_ID) {
-      data.pw = null;
-      await saveAccount(id, data);
-    }
+    // (예전에는 이메일 2차 인증이 꺼져있을 때 비밀번호를 1회용으로 취급했으나,
+    // 관리자 세션이 하나도 없을 때 전원이 순차적으로 잠기는 문제가 있어 제거함 — 2026-10-19)
     const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
