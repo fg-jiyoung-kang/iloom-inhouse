@@ -2359,7 +2359,7 @@ function buildPrintHTML(r){
       }
     });
     const imgSrc = r.image || sampleImageData || '';
-    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="pc">${imgSrc?`<img src="${imgSrc}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div></div>`;
+    blocks+=`<div class="rb photo-rb"><div class="rbt"><div class="rbtt"><span>첨부 이미지 (Test Sample Photo)</span></div></div><div class="pb"><div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div class="pc">${imgSrc?`<img src="${imgSrc}">`:`[ ${e2(r.sampleName||'시료')} ]<br><br>시험 후 시료 촬영 이미지`}</div><div class="cap">${e2(r.displayNo||r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div></div></div></div>`;
 
     const CSS=`
 :root{--red:#e60012}
@@ -2436,7 +2436,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
   ${iloomLineEl}
   <div class="rh"><div class="rt-ttl">${e2(r.reportTitle||'IN HOUSE TEST REPORT')}</div><div></div></div>
   <table class="mt"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup>
-    <tr><th>접수번호</th><td colspan="3">${e2(r.receiptNo)}</td></tr>
+    <tr><th>접수번호</th><td colspan="3">${e2(r.displayNo||r.receiptNo)}</td></tr>
     <tr><th>접수일자</th><td>${f2(r.receivedDate)}</td><th>발급예정일</th><td>${f2(r.issuedDate)}</td></tr>
     <tr><th>의뢰자</th><td>${e2(r.requestDept)}</td><th>색상</th><td>${e2(r.colorInfo)}</td></tr>
     <tr><th>시료명</th><td>${e2(r.sampleName)}${mt}</td><th>브랜드</th><td>${e2(r.brand||'')}</td></tr>
@@ -2483,7 +2483,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
 function _makeP2Page(){
   var page=document.createElement('div');
   page.className='p2page';
-  page.innerHTML='${iloomLineEl}${iloomLogoEl}<div class="p2header"><div class="sh"><span>접수번호 : ${e2(r.receiptNo)}</span><span>시료명 : ${e2(r.sampleName||'')}</span></div></div><div class="p2content"></div><div class="p2footer"></div>';
+  page.innerHTML='${iloomLineEl}${iloomLogoEl}<div class="p2header"><div class="sh"><span>접수번호 : ${e2(r.displayNo||r.receiptNo)}</span><span>시료명 : ${e2(r.sampleName||'')}</span></div></div><div class="p2content"></div><div class="p2footer"></div>';
   return page;
 }
 function _paginateForPrint(){
@@ -2654,7 +2654,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
       <div class="kp-head-mid-wrap">
         <div class="kp-divider"></div>
         <div class="kp-head-mid">
-          <div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.receiptNo)}</b></span></div>
+          <div class="kp-row"><span class="kp-row-lbl">성적서 번호</span><span>: <b>${e2(r.displayNo||r.receiptNo)}</b></span></div>
         </div>
       </div>
       <div class="kp-mark">${ksrc?`<img src="${ksrc}">`:''}</div>
@@ -2699,7 +2699,7 @@ body{font-family:'Pretendard Variable',Pretendard,'Noto Sans KR','Malgun Gothic'
     <div class="kp-photo-title">첨부 이미지 (Test Sample Photo)</div>
     <div class="kp-photo-box">
       <div class="frame"><img src="${r.image||sampleImageData}"></div>
-      <div class="kp-photo-cap">${e2(r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div>
+      <div class="kp-photo-cap">${e2(r.displayNo||r.receiptNo)}${r.receiptNo&&r.sampleName?'_':''}${e2(r.sampleName)}</div>
     </div>
   </div>`:''}
 </div>
@@ -2787,7 +2787,7 @@ function buildKolasWordHTML(r){
     // 표+텍스트 위주로 구성하되, 코라스 마크는 표 셀 안에 width/height 속성을 지정한
     // 단순 img 태그로만 넣어 레이아웃이 깨지지 않게 한다.
     return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"><title>${e2(r.receiptNo)} 시험성적서</title>
+<head><meta charset="utf-8"><title>${e2(r.displayNo||r.receiptNo)} 시험성적서</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
 <style>
 @page WordSection1 { size: 210mm 297mm; margin: 20mm 18mm; }
@@ -2812,7 +2812,7 @@ table.plain td{border:none;padding:0;vertical-align:top}
       <b style="font-size:13pt;color:#c81e2c">iloom</b> <b>수면과학연구소</b><br>
       <span style="font-size:9pt;color:#555">${e2(r.companyAddress||'')}${r.companyTel?'<br>Tel '+e2(r.companyTel):''}</span>
     </td>
-    <td style="width:52mm;font-size:10pt">성적서 번호 : <b>${e2(r.receiptNo)}</b><br>페이지 : (1) / (총 1)</td>
+    <td style="width:52mm;font-size:10pt">성적서 번호 : <b>${e2(r.displayNo||r.receiptNo)}</b><br>페이지 : (1) / (총 1)</td>
     <td style="width:35mm" align="right">${ksrc?`<img src="${ksrc}" width="130" height="72">`:''}</td>
   </tr>
 </table>
@@ -3669,7 +3669,7 @@ function renderPreview(){
     <section class="page page-1" style="">
       ${_prevLogoEl}
       <div class="report-head"><div class="report-head-row"><div class="report-title">${esc(r.reportTitle)}</div><div class="logo-block"></div></div></div>
-      <table class="meta-table"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup><tr><th>접수번호</th><td colspan="3">${esc(r.receiptNo)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr>${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${esc(r.sampleReturn||'-')}</td><th>시료수량</th><td>${esc(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${esc(r.sampleMaterial||'-')}</td></tr>`:''}</table>
+      <table class="meta-table"><colgroup><col style="width:14%"><col style="width:41%"><col style="width:14%"><col style="width:31%"></colgroup><tr><th>접수번호</th><td colspan="3">${esc(r.displayNo||r.receiptNo)}</td></tr><tr><th>접수일자</th><td>${fmt(r.receivedDate)}</td><th>발급예정일</th><td>${fmt(r.issuedDate)}</td></tr><tr><th>의뢰자</th><td>${esc(r.requestDept)}</td><th>색상</th><td>${esc(r.colorInfo)}</td></tr><tr><th>시료명</th><td>${esc(r.sampleName)}${(r.materials&&r.materials.length)?" ["+r.materials.map(function(m){return {fabric:"원단",sponge:"스펀지",antibac:"항균",padding:"패딩",mattress:"매트리스"}[m]||m;}).join(", ")+"]":""}</td><th>브랜드</th><td>${esc(r.brand||"")}</td></tr>${(r.sampleReturn||r.sampleQty||r.sampleMaterial)?`<tr><th>시료반환여부</th><td>${esc(r.sampleReturn||'-')}</td><th>시료수량</th><td>${esc(r.sampleQty||'-')} 개</td></tr><tr><th>시료재질</th><td colspan="3">${esc(r.sampleMaterial||'-')}</td></tr>`:''}</table>
       <div class="red-title">■ 의뢰 시험 항목</div>
       <table class="report-table"><thead><tr><th style="width:8%">No.</th><th style="width:37%">시험 항목 (Test Item)</th><th>시험 규격</th></tr></thead>
         <tbody>${tests.length ? tests.map((t,i)=>'<tr><td>'+(i+1)+'</td><td class="left bold">'+esc(t.name||'')+'</td><td class="left">'+esc(t.spec||'')+'</td></tr>').join('') : '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">시험 항목 없음</td></tr>'}</tbody>
@@ -3696,7 +3696,7 @@ function renderPreview(){
     </section>
     <section class="page page-2" style="padding:0!important">
       <div style="padding:16mm 10mm 0mm;min-height:40mm;box-sizing:border-box">
-        <div class="sub-head" style="margin-bottom:6px"><span>접수번호 : ${esc(r.receiptNo)}</span><span>시료명 : ${esc(r.sampleName||"")}</span></div>
+        <div class="sub-head" style="margin-bottom:6px"><span>접수번호 : ${esc(r.displayNo||r.receiptNo)}</span><span>시료명 : ${esc(r.sampleName||"")}</span></div>
         <div class="p1f-sign-row" style="margin-bottom:0">
           <div class="p1f-signer"><div class="p1f-signer-label">작 성 자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.tester)}</span>${testerSignData?`<img src="${testerSignData}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)">`:'<span class=\\"sign-slot\\" onclick=\\"document.getElementById(\'signFile_tester\').click()\\">서명 이미지 클릭</span>'}</div></div>
           <div class="p1f-signer"><div class="p1f-signer-label">기술책임자</div><div class="p1f-signer-name"><span>성&nbsp;&nbsp;명&nbsp;:&nbsp;${esc(r.techManager)}</span><img src="${resolveSignatureByName(r.techManager, JY_SIGN_DATA)}" style="height:36px;mix-blend-mode:multiply;filter:grayscale(1) contrast(10) brightness(0.4)"></div></div>
@@ -3913,7 +3913,7 @@ function renderPreview(){
         blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>첨부 이미지 (Test Sample Photo)</span></div></div>'
           +'<div class="photo-box" style="margin-top:20px"><div style="display:flex;flex-direction:column;align-items:center;gap:8px">'
           +'<div class="photo-card">'+(sampleImageData ? '<img src="'+sampleImageData+'">' : '[ '+esc(r.sampleName||'시료')+' ]<br><br>시험 후 시료 촬영 이미지<br>첨부 구역')+'</div>'
-          +'<div class="caption" style="margin-top:6px">'+esc(r.receiptNo)+(r.receiptNo&&r.sampleName?'_':'')+esc(r.sampleName)+'</div>'
+          +'<div class="caption" style="margin-top:6px">'+esc(r.displayNo||r.receiptNo)+(r.receiptNo&&r.sampleName?'_':'')+esc(r.sampleName)+'</div>'
           +'</div></div>'
           +'<div class="result-end" style="margin-top:10px">- 시험결과 기록 완료 -</div></div>';
 
@@ -3985,7 +3985,7 @@ function toggleReportIssued(id, issued){
 
 // ── 발행완료(QR 생성) / 최종발행완료(잠금) UI ──
 // issued: 발행완료 여부(QR 생성, 계속 수정 가능) / locked: 최종발행완료 여부(수정 잠금)
-function setIssuedLockUI(issued, locked, unlockRequest){
+function setIssuedLockUI(issued, locked, unlockRequest, reissuePending){
   _reportIsIssued = !!issued;
   _reportIsLocked = !!locked;
   const banner = document.getElementById('issuedLockBanner');
@@ -3998,7 +3998,10 @@ function setIssuedLockUI(issued, locked, unlockRequest){
   if(!banner) return;
   const printBtn2 = document.getElementById('printBtn');
   const splitBtn = document.getElementById('splitIssueBtn');
-  if(finalizeBtn) finalizeBtn.style.display = (!_reportIsIssued) ? '' : 'none';
+  if(finalizeBtn){
+    finalizeBtn.style.display = (!_reportIsIssued) ? '' : 'none';
+    finalizeBtn.textContent = reissuePending ? '재발행' : '발행완료';
+  }
   if(finalLockBtn) finalLockBtn.style.display = (_reportIsIssued && !_reportIsLocked) ? '' : 'none';
   if(requestUnlockBtn) requestUnlockBtn.style.display = _reportIsLocked ? '' : 'none';
   if(splitBtn) splitBtn.style.display = (currentId && !_reportIsSubReport) ? '' : 'none';
@@ -4032,7 +4035,13 @@ async function generateVerifyToken(r){
 // 1단계: 발행완료 — 위변조방지 QR이 생성되지만 계속 수정할 수 있다
 async function issueReport(){
   if(!currentId){ alert('저장된 성적서가 없습니다. 먼저 저장해주세요.'); return; }
-  if(!confirm('발행완료 처리하면 위변조방지 QR이 생성되고, 더 이상 수정할 수 없게 잠깁니다.\n계속하시겠습니까?')) return;
+  const _reportsPeek = getReports();
+  const _idxPeek = _reportsPeek.findIndex(r=>r.id===currentId);
+  const isReissue = _idxPeek!==-1 && !!_reportsPeek[_idxPeek].reissuePending;
+  const confirmMsg = isReissue
+    ? '재발행 처리하면 위변조방지 QR이 새로 생성되고, 접수번호 뒷자리가 갱신됩니다.\n계속하시겠습니까?'
+    : '발행완료 처리하면 위변조방지 QR이 생성되고, 더 이상 수정할 수 없게 잠깁니다.\n계속하시겠습니까?';
+  if(!confirm(confirmMsg)) return;
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
@@ -4041,6 +4050,21 @@ async function issueReport(){
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
+  if(isReissue){
+    // 재발행: 접수번호 원본은 그대로 두고, 화면/PDF에 표시할 번호에
+    // "원본번호.새일련번호" 형태로 뒷자리를 붙여서 재발행 때마다 구분되게 한다.
+    reports[idx].reissueCount = (reports[idx].reissueCount||0) + 1;
+    const baseNo = (reports[idx].receiptNo||'').split('.')[0];
+    const m = baseNo.match(/(\d+)$/);
+    if(m){
+      const width = m[1].length;
+      const nextNum = parseInt(m[1],10) + reports[idx].reissueCount;
+      reports[idx].displayNo = baseNo + '.' + String(nextNum).padStart(width,'0');
+    }
+    reports[idx].reissuePending = false;
+  } else {
+    reports[idx].displayNo = null;
+  }
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
   setReports(reports);
   await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:issuedAt}).catch(e=>{});
@@ -4057,7 +4081,7 @@ async function issueReport(){
   }
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
   setIssuedLockUI(true, !!reports[idx].locked, null);
-  showToast('✔ 발행완료 처리되었습니다. (QR 생성)');
+  showToast(isReissue ? ('✔ 재발행 처리되었습니다. ('+reports[idx].displayNo+')') : '✔ 발행완료 처리되었습니다. (QR 생성)');
 }
 // 2단계: 최종발행완료 — 더 이상 수정할 수 없도록 잠근다
 async function finalLockReport(){
@@ -4109,6 +4133,7 @@ async function approveUnlock(id){
   reports[idx].locked = false;
   reports[idx].reportStatus = 'draft';
   reports[idx].unlockRequest = null;
+  reports[idx].reissuePending = true; // 수정 후 다시 발행할 때 "발행완료"가 아니라 "재발행"으로 처리
   setReports(reports);
   await supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
@@ -5650,7 +5675,7 @@ async function loadReport(r){
     }, 100);
   }, 50);
   // 잠금 상태 UI 적용
-  setTimeout(()=>setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null), 150);
+  setTimeout(()=>setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null, !!r.reissuePending), 150);
   // 발행 성적서에 verifyToken 없으면 자동 생성 및 Supabase 저장
   if(r.issued && !r.verifyToken && r.receiptNo){
     generateVerifyToken(r).then(function(tok){
@@ -5737,7 +5762,7 @@ async function saveReport(silent=false){
     setReports(list);
     await renderListAsync();
     clearUnsaved();
-    setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null);
+    setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null, !!r.reissuePending);
     if(!silent){ showSaveToast(); }
   } catch(e) {
     console.error('saveReport error:', e);
