@@ -26,19 +26,13 @@ types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
 const TABLES = ['reports', 'requests', 'accounts', 'settings', 'extcerts'];
-const ADMIN_ID = 'jiyoung_kang'; // index.html의 ADMIN_ID와 동일 — 성적서 삭제·잠금해제 등 최종권한 기준
-
-// 임시 조치(2026-10-19~20 한정): jiyoung_kang 계정 비밀번호 복구용으로, 아래 계정들은
-// 로그인/세션 조회 시마다 관리자 권한으로 취급한다. DB는 건드리지 않고 매번 즉석에서
-// 적용되므로(로그인 세션에 저장해두는 게 아니라), 새로고침만 해도 바로 반영되고
-// 기한이 지나면 자동으로 꺼진다.
-const TEMP_ADMIN_IDS = ['guest_1', 'iloom_2'];
-const TEMP_GUEST1_ADMIN_UNTIL = new Date('2026-10-21T00:00:00+09:00').getTime();
-function applyTempRoleOverride(id, data) {
-  if (TEMP_ADMIN_IDS.includes(id) && Date.now() < TEMP_GUEST1_ADMIN_UNTIL) {
-    return { ...data, role: '관리자' };
-  }
-  return data;
+// index.html의 ADMIN_IDS와 동일 — 성적서 삭제·잠금해제·계정 관리 등 최종권한 기준.
+// jiyoung_kang 본인 계정이 잠길 경우를 대비한 비상용 백업 관리자로 guest_1도 포함한다.
+const ADMIN_IDS = ['jiyoung_kang', 'guest_1'];
+// 로그인/세션 조회 시 DB의 role 값과 상관없이, 위 계정들은 항상 관리자 권한으로 취급한다.
+function resolveRole(id, data) {
+  if (ADMIN_IDS.includes(id)) return '관리자';
+  return (data && data.role) || '시험원';
 }
 const SIGNKEY_ROW_ID = '__session_secret';   // 서명키를 보관하는 설정 행 이름(값 자체는 실행 중에 자동 생성)
 const SESSION_COOKIE = 'iloom_sess';
@@ -213,11 +207,11 @@ function clearSessionCookie(res) {
 function requireLogin(req, res, next) {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' });
-  req.user = applyTempRoleOverride(s.id, s);
+  req.user = { ...s, role: resolveRole(s.id, s) };
   next();
 }
 function requireAdmin(req, res, next) {
-  if (req.user && req.user.role === '관리자') return next();
+  if (req.user && (req.user.role === '관리자' || ADMIN_IDS.includes(req.user.id))) return next();
   return res.status(403).json({ error: 'FORBIDDEN', message: '관리자만 할 수 있습니다.' });
 }
 
@@ -394,8 +388,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/session', (req, res) => {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'NOT_LOGGED_IN' });
-  const u = applyTempRoleOverride(s.id, s);
-  res.json({ user: { id: u.id, name: u.name, role: u.role } });
+  res.json({ user: { id: s.id, name: s.name, role: resolveRole(s.id, s) } });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -441,8 +434,7 @@ app.post('/api/login', async (req, res) => {
     }
     // (예전에는 이메일 2차 인증이 꺼져있을 때 비밀번호를 1회용으로 취급했으나,
     // 관리자 세션이 하나도 없을 때 전원이 순차적으로 잠기는 문제가 있어 제거함 — 2026-10-19)
-    const effectiveData = applyTempRoleOverride(id, data);
-    const user = { id: effectiveData.id || id, name: effectiveData.name || id, role: effectiveData.role || '시험원' };
+    const user = { id: data.id || id, name: data.name || id, role: resolveRole(id, data) };
     setSessionCookie(res, user);
     res.json({ user: user });
   } catch (e) {
@@ -477,8 +469,7 @@ app.post('/api/login/verify-code', async (req, res) => {
     const row = await getAccountRow(id);
     if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
     const data = row.data || {};
-    const effectiveData = applyTempRoleOverride(id, data);
-    const user = { id: effectiveData.id || id, name: effectiveData.name || id, role: effectiveData.role || '시험원' };
+    const user = { id: data.id || id, name: data.name || id, role: resolveRole(id, data) };
     setSessionCookie(res, user);
     res.json({ user: user });
   } catch (e) {
@@ -726,12 +717,12 @@ app.post('/api/:table(reports|requests|settings|extcerts)', requireLogin, async 
   const id = String(body.id || '').trim();
   if (!id) return res.status(400).json({ error: 'MISSING_ID' });
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
-  const isOwner = req.user.id === ADMIN_ID;
+  const isOwner = ADMIN_IDS.includes(req.user.id);
   try {
     const existingRow = await pool.query(`SELECT data FROM ${table} WHERE id = $1`, [id]);
     const before = (existingRow.rows[0] && existingRow.rows[0].data) || null;
     // 성적서가 "최종발행완료(잠금)" 상태면, 최종관리자가 아닌 한 서버에서도 덮어쓰기를 막는다
-    // (화면에서만 막던 걸 뒷단으로 직접 요청을 보내는 경우까지 막음, 화면 쪽 ADMIN_ID 기준과 동일)
+    // (화면에서만 막던 걸 뒷단으로 직접 요청을 보내는 경우까지 막음, 화면 쪽 ADMIN_IDS 기준과 동일)
     if (table === 'reports' && !isOwner && before && before.locked) {
       return res.status(403).json({ error: 'LOCKED', message: '최종발행완료된 성적서는 수정할 수 없습니다.' });
     }
@@ -782,8 +773,8 @@ app.delete('/api/:table(reports|requests|settings|extcerts)', requireLogin, asyn
   const id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: 'MISSING_ID' });
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
-  // 성적서 삭제는 최종관리자만 (화면 쪽 ADMIN_ID 기준과 동일)
-  if (table === 'reports' && req.user.id !== ADMIN_ID) {
+  // 성적서 삭제는 최종관리자만 (화면 쪽 ADMIN_IDS 기준과 동일)
+  if (table === 'reports' && !ADMIN_IDS.includes(req.user.id)) {
     return res.status(403).json({ error: 'FORBIDDEN', message: '성적서 삭제는 관리자만 할 수 있습니다.' });
   }
   try {
