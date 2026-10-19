@@ -5112,6 +5112,7 @@ async function saveRequest(){
     style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
     return_type:v('req_return'), qty:v('req_qty'), material_desc:v('req_material_desc'),
     signature: window._reqSignatureData||'',
+    manager_signature: window._mgSignatureData||(window._currentReqData&&window._currentReqData.manager_signature)||'',
     items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
     status: 'draft',
     chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
@@ -5144,6 +5145,7 @@ async function submitFinal(){
   var sig = window._reqSignatureData || d.signature || '';
   if(!sig){ showToast('② 서명을 완료한 후 제출하세요.'); return; }
   d.signature = sig;
+  d.manager_signature = window._mgSignatureData || d.manager_signature || '';
   d.status = 'submitted';
   d.savedAt = new Date().toISOString();
   var _su=getCurUser(); d.savedBy=_su.name||_su.id||''; d.savedById=_su.id||'';
