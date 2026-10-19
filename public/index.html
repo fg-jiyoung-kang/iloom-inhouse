@@ -4626,6 +4626,7 @@ function previewRequestOnly(){
     style:v('req_style'), fiber:v('req_fiber'), buyer:v('req_buyer'),
     return_type:v('req_return'), qty:v('req_qty'), material_desc:v('req_material_desc'),
     signature: window._reqSignatureData||'',
+    manager_signature: window._mgSignatureData||'',
     items:getCheckedReqItems(), note:v('req_note'), savedAt:new Date().toISOString(),
     chk_kolas: document.getElementById('req_chk_kolas')?.checked||false,
     chk_internal: document.getElementById('req_chk_internal')?.checked||false
@@ -4777,6 +4778,7 @@ function renderReqList(){
         }
         // 서명 복원
         window._reqSignatureData = r.signature||'';
+        window._mgSignatureData = r.manager_signature||'';
         // 미리보기 갱신
         previewRequestOnly();
       }, 200);
@@ -5275,6 +5277,7 @@ function reqMgmtPreview(no){
   // 탭 전환 후 DOM이 안정되면 렌더링 + 스크롤
   setTimeout(function(){
     window._reqSignatureData = r.signature||'';
+    window._mgSignatureData = r.manager_signature||'';
     var iloomEl = document.getElementById('iloom-logo-src');
     var kolasEl = document.getElementById('kolas-logo-src');
     renderReqPreviewHTML(r, iloomEl?iloomEl.src:'', kolasEl?kolasEl.src:'');
