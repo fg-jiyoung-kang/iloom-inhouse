@@ -4880,9 +4880,9 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
   // 발급받을 성적서 종류 체크박스 — 저장된 chk_kolas/chk_internal이 실제로 반영됐는지 미리보기에서 바로 확인 가능하게
   var certChecks =
     '<label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:#111;margin-right:18px">'
-    +'<input type="checkbox" disabled '+(data.chk_kolas?'checked':'')+' style="width:17px;height:17px;accent-color:#e60012">KOLAS 성적서</label>'
+    +'<input type="checkbox" onclick="return false" tabindex="-1" '+(data.chk_kolas?'checked':'')+' style="width:17px;height:17px;accent-color:#e60012">KOLAS 성적서</label>'
     +'<label style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;color:#111">'
-    +'<input type="checkbox" disabled '+(data.chk_internal?'checked':'')+' style="width:17px;height:17px;accent-color:#e60012">내부 품질용</label>';
+    +'<input type="checkbox" onclick="return false" tabindex="-1" '+(data.chk_internal?'checked':'')+' style="width:17px;height:17px;accent-color:#e60012">내부 품질용</label>';
 
   preview.innerHTML =
     '<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #e60012;padding-bottom:6px;margin-bottom:10px">'
