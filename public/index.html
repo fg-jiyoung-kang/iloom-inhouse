@@ -3107,6 +3107,30 @@ function renderDetailSection(externalData){
     lbl.appendChild(sel);
     return lbl;
   }
+  // 판정 바로 위에 들어가는 자유 입력 비고란 (예: *별첨 등 메모용)
+  function _makeNoteField(i, savedData){
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:12px;color:#374151;flex:1;min-width:100px';
+    lbl.textContent = '비고';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.dataset.key = 'note_'+i;
+    inp.placeholder = '비고 (선택)';
+    inp.value = savedData['note_'+i]||'';
+    inp.style.cssText = 'border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit';
+    inp.addEventListener('input', function(){ renderPreview(); });
+    lbl.appendChild(inp);
+    return lbl;
+  }
+  function _makeNoteRow(i, savedData){
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.dataset.key = 'note_'+i;
+    inp.placeholder = '비고 (선택)';
+    inp.value = savedData['note_'+i]||'';
+    inp.style.cssText = 'border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit;width:100%;text-align:center';
+    return _makeRow('비고', inp, '');
+  }
   function _makeRow(label, inp, crit){
     const tr=document.createElement('tr');
     const ta=document.createElement('td'); ta.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:left;font-weight:700'; ta.textContent=label;
@@ -3282,6 +3306,7 @@ function renderDetailSection(externalData){
         tbodyDim.appendChild(makeDimGroupRow('두께','dim_thk'));
         tblDim.appendChild(tbodyDim); fieldsWrap.appendChild(tblDim);
         var dimJWrap=document.createElement('div'); dimJWrap.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
+        dimJWrap.appendChild(_makeNoteField(i, saved));
         var dimJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved);
         judgeSel=dimJLbl.querySelector('select');
         dimJWrap.appendChild(dimJLbl);
@@ -3318,6 +3343,7 @@ function renderDetailSection(externalData){
         tbody2.appendChild(_makeRow('시험 후 두께 (t₁)',inp1,'-'));
         tbody2.appendChild(_makeRow('종류',csTypeSel,'1종 ≤ 10\n2종 ≤ 13'));
         tbody2.appendChild(_makeRow('영구압축 줄음률',inp2,'1종 ≤ 10\n2종 ≤ 13'));
+        tbody2.appendChild(_makeNoteRow(i, saved));
         tbody2.appendChild(_makeRow('판정',jsSel,'KS G 4300 기준 만족'));
         recomputeCsJudge();
         tbl2.appendChild(tbody2); fieldsWrap.appendChild(tbl2);
@@ -3334,7 +3360,9 @@ function renderDetailSection(externalData){
         _styleJudgeSelect(selR);
         selR.addEventListener('change',function(){ _styleJudgeSelect(selR); renderPreview(); }); tbR.appendChild(selR);
         var tcR=document.createElement('td'); tcR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7;vertical-align:middle'; tcR.innerHTML='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
-        trR.appendChild(taR); trR.appendChild(tbR); trR.appendChild(tcR); tbodyR.appendChild(trR);
+        trR.appendChild(taR); trR.appendChild(tbR); trR.appendChild(tcR);
+        tbodyR.appendChild(_makeNoteRow(i, saved));
+        tbodyR.appendChild(trR);
         tblR.appendChild(tbodyR); fieldsWrap.appendChild(tblR);
 
       } else if(name.includes('내구성')){
@@ -3399,6 +3427,7 @@ function renderDetailSection(externalData){
         d4Chk.addEventListener('change',function(){ trD4.style.display=this.checked?'':'none'; if(!this.checked){inpD4.value='';inpD4.dispatchEvent(new Event('input'));} recomputeDurabilityJudge(); });
         d4ToggleWrap.appendChild(d4Chk); d4ToggleWrap.appendChild(d4Lbl); fieldsWrap.appendChild(d4ToggleWrap);
         var jWrap=document.createElement('div'); jWrap.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
+        jWrap.appendChild(_makeNoteField(i, saved));
         var durJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved);
         durJudgeSel=durJLbl.querySelector('select');
         jWrap.appendChild(durJLbl);
@@ -3463,6 +3492,7 @@ function renderDetailSection(externalData){
         chk560.addEventListener('change',function(){ tr560.style.display=chk560.checked?'':'none'; recomputeLoadJudge(); renderPreview(); markUnsaved(); });
         chk560Wrap.appendChild(chk560); chk560Wrap.appendChild(document.createTextNode('560,000회 포함')); fieldsWrap.appendChild(chk560Wrap);
         var jRow3=document.createElement('div'); jRow3.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        jRow3.appendChild(_makeNoteField(i, saved));
         var loadJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved);
         loadJudgeSel=loadJLbl.querySelector('select');
         jRow3.appendChild(loadJLbl);
@@ -3483,6 +3513,7 @@ function renderDetailSection(externalData){
         [lenB,lenA,lenP,widB,widA,widP].forEach(function(el){ grid2.appendChild(el); });
         fieldsWrap.appendChild(grid2);
         var jRow2=document.createElement('div'); jRow2.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:8px';
+        jRow2.appendChild(_makeNoteField(i, saved));
         jRow2.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(jRow2);
 
@@ -3490,6 +3521,7 @@ function renderDetailSection(externalData){
         var rowFr=document.createElement('div'); rowFr.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowFr.appendChild(_makeInput({label:'건 (Dry) 급',key:'frDry_'+i,ph:'예: 4'},saved));
         rowFr.appendChild(_makeInput({label:'습 (Wet) 급',key:'frWet_'+i,ph:'예: 3-4'},saved));
+        rowFr.appendChild(_makeNoteField(i, saved));
         rowFr.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowFr);
 
@@ -3515,6 +3547,7 @@ function renderDetailSection(externalData){
         });
         swTbl.appendChild(swTBody); fieldsWrap.appendChild(swTbl);
         var swJRow=document.createElement('div'); swJRow.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        swJRow.appendChild(_makeNoteField(i, saved));
         swJRow.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(swJRow);
 
@@ -3522,6 +3555,7 @@ function renderDetailSection(externalData){
         var rowTs=document.createElement('div'); rowTs.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowTs.appendChild(_makeInput({label:'웨일방향 (N/5cm)',key:'tsWale_'+i,type:'number',step:'0.1',ph:'예: 120.5'},saved));
         rowTs.appendChild(_makeInput({label:'코스방향 (N/5cm)',key:'tsCourse_'+i,type:'number',step:'0.1',ph:'예: 98.3'},saved));
+        rowTs.appendChild(_makeNoteField(i, saved));
         rowTs.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowTs);
 
@@ -3529,18 +3563,21 @@ function renderDetailSection(externalData){
         var rowTe=document.createElement('div'); rowTe.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowTe.appendChild(_makeInput({label:'웨일방향 (N)',key:'teWale_'+i,type:'number',step:'0.1',ph:'예: 35.2'},saved));
         rowTe.appendChild(_makeInput({label:'코스방향 (N)',key:'teCourse_'+i,type:'number',step:'0.1',ph:'예: 28.6'},saved));
+        rowTe.appendChild(_makeNoteField(i, saved));
         rowTe.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowTe);
 
       } else if(name.toLowerCase().includes('ph') || name.includes('피에이치')){
         var rowPh=document.createElement('div'); rowPh.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowPh.appendChild(_makeInput({label:'pH 값',key:'phVal_'+i,type:'number',step:'0.1',ph:'예: 6.3'},saved));
+        rowPh.appendChild(_makeNoteField(i, saved));
         rowPh.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowPh);
 
       } else if(name.includes('포름알데히드') || name.toLowerCase().includes('formaldehyde')){
         var rowFm=document.createElement('div'); rowFm.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowFm.appendChild(_makeInput({label:'결과 (mg/kg)',key:'fmVal_'+i,ph:'검출안됨 또는 수치 입력'},saved));
+        rowFm.appendChild(_makeNoteField(i, saved));
         rowFm.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowFm);
 
@@ -3548,17 +3585,20 @@ function renderDetailSection(externalData){
         var rowE=document.createElement('div'); rowE.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowE.appendChild(_makeInput({label:'변퇴색 (급)',key:'colorChange_'+i,ph:'예: 4-5'},saved));
         rowE.appendChild(_makeInput({label:'이염 (급)',key:'staining_'+i,ph:'예: 4-5'},saved));
+        rowE.appendChild(_makeNoteField(i, saved));
         rowE.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowE);
 
       } else if(name.includes('필링') || name.includes('pilling')){
         var rowP=document.createElement('div'); rowP.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowP.appendChild(_makeInput({label:'필링 등급 (급)',key:'pilling_'+i,ph:'예: 4'},saved));
+        rowP.appendChild(_makeNoteField(i, saved));
         rowP.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowP);
 
       } else if(name.includes('풀림')){
         var rowF=document.createElement('div'); rowF.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+        rowF.appendChild(_makeNoteField(i, saved));
         rowF.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowF);
 
@@ -3567,6 +3607,7 @@ function renderDetailSection(externalData){
         var resultLabel = name.includes('외관') ? '외관 평가' : '시험 결과';
         rowG.appendChild(_makeInput({label:resultLabel,key:'result_'+i,ph:name.includes('외관')?'예: 이상 없음':'결과 입력'},saved));
         rowG.appendChild(_makeInput({label:'기준값',key:'crit_val_'+i,ph:'예: ≥ 300 N'},saved));
+        rowG.appendChild(_makeNoteField(i, saved));
         rowG.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowG);
       }
