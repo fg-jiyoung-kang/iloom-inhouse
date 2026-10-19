@@ -27,6 +27,16 @@ const app = express();
 const PORT = Number(process.env.PORT || 8080);
 const TABLES = ['reports', 'requests', 'accounts', 'settings', 'extcerts'];
 const ADMIN_ID = 'jiyoung_kang'; // index.html의 ADMIN_ID와 동일 — 성적서 삭제·잠금해제 등 최종권한 기준
+
+// 임시 조치(2026-10-19~20 한정): jiyoung_kang 계정 비밀번호 복구용으로, guest_1 로그인 시에만
+// 세션 역할을 관리자로 취급한다. DB는 건드리지 않고 세션에서만 적용되며, 기한이 지나면 자동으로 꺼진다.
+const TEMP_GUEST1_ADMIN_UNTIL = new Date('2026-10-21T00:00:00+09:00').getTime();
+function applyTempRoleOverride(id, data) {
+  if (id === 'guest_1' && Date.now() < TEMP_GUEST1_ADMIN_UNTIL) {
+    return { ...data, role: '관리자' };
+  }
+  return data;
+}
 const SIGNKEY_ROW_ID = '__session_secret';   // 서명키를 보관하는 설정 행 이름(값 자체는 실행 중에 자동 생성)
 const SESSION_COOKIE = 'iloom_sess';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
@@ -427,7 +437,8 @@ app.post('/api/login', async (req, res) => {
     }
     // (예전에는 이메일 2차 인증이 꺼져있을 때 비밀번호를 1회용으로 취급했으나,
     // 관리자 세션이 하나도 없을 때 전원이 순차적으로 잠기는 문제가 있어 제거함 — 2026-10-19)
-    const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
+    const effectiveData = applyTempRoleOverride(id, data);
+    const user = { id: effectiveData.id || id, name: effectiveData.name || id, role: effectiveData.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
   } catch (e) {
@@ -462,7 +473,8 @@ app.post('/api/login/verify-code', async (req, res) => {
     const row = await getAccountRow(id);
     if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
     const data = row.data || {};
-    const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
+    const effectiveData = applyTempRoleOverride(id, data);
+    const user = { id: effectiveData.id || id, name: effectiveData.name || id, role: effectiveData.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
   } catch (e) {
