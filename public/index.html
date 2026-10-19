@@ -3282,7 +3282,7 @@ function renderDetailSection(externalData){
         tbodyDim.appendChild(makeDimGroupRow('두께','dim_thk'));
         tblDim.appendChild(tbodyDim); fieldsWrap.appendChild(tblDim);
         var dimJWrap=document.createElement('div'); dimJWrap.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
-        var dimJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved);
+        var dimJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved);
         judgeSel=dimJLbl.querySelector('select');
         dimJWrap.appendChild(dimJLbl);
         fieldsWrap.appendChild(dimJWrap);
@@ -3298,7 +3298,7 @@ function renderDetailSection(externalData){
         var csTypeSel=document.createElement('select'); csTypeSel.dataset.key='cs_type_'+i; csTypeSel.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer;width:100%;text-align:center;text-align-last:center';
         ['','1종 (≤10)','2종 (≤13)'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v||'선택'; if((saved['cs_type_'+i]||'')===v) o.selected=true; csTypeSel.appendChild(o); });
         var jsSel=document.createElement('select'); jsSel.dataset.key='judge_'+i; jsSel.style.cssText='border:1px solid var(--line);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer;width:100%;text-align:center;text-align-last:center';
-        ['','합격','불합격'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v||'선택'; if((saved['judge_'+i]||'')===v) o.selected=true; jsSel.appendChild(o); });
+        ['','합격','불합격','DATA'].forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v||'선택'; if((saved['judge_'+i]||'')===v) o.selected=true; jsSel.appendChild(o); });
         _styleJudgeSelect(jsSel);
         // 종류를 골라야 몇 %까지 합격인지(1종 10, 2종 13) 정해지므로, 종류+줄음률이 둘 다
         // 있을 때만 자동으로 판정한다.
@@ -3330,7 +3330,7 @@ function renderDetailSection(externalData){
         var taR=document.createElement('td'); taR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;font-weight:700'; taR.textContent='판정';
         var tbR=document.createElement('td'); tbR.style.cssText='border:1px solid #ddd;padding:6px 8px;text-align:center;vertical-align:middle';
         var selR=document.createElement('select'); selR.dataset.key='judge_'+i; selR.style.cssText='border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;width:100%;text-align:center;text-align-last:center';
-        ['','합격','불합격'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['judge_'+i]||'')===o) opt.selected=true; selR.appendChild(opt); });
+        ['','합격','불합격','DATA'].forEach(function(o){ var opt=document.createElement('option'); opt.value=o; opt.textContent=o||'선택'; if((saved['judge_'+i]||'')===o) opt.selected=true; selR.appendChild(opt); });
         _styleJudgeSelect(selR);
         selR.addEventListener('change',function(){ _styleJudgeSelect(selR); renderPreview(); }); tbR.appendChild(selR);
         var tcR=document.createElement('td'); tcR.style.cssText='border:1px solid #ddd;padding:8px 10px;text-align:center;color:#555;font-size:10px;line-height:1.7;vertical-align:middle'; tcR.innerHTML='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
@@ -3399,7 +3399,7 @@ function renderDetailSection(externalData){
         d4Chk.addEventListener('change',function(){ trD4.style.display=this.checked?'':'none'; if(!this.checked){inpD4.value='';inpD4.dispatchEvent(new Event('input'));} recomputeDurabilityJudge(); });
         d4ToggleWrap.appendChild(d4Chk); d4ToggleWrap.appendChild(d4Lbl); fieldsWrap.appendChild(d4ToggleWrap);
         var jWrap=document.createElement('div'); jWrap.style.cssText='display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
-        var durJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved);
+        var durJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved);
         durJudgeSel=durJLbl.querySelector('select');
         jWrap.appendChild(durJLbl);
         fieldsWrap.appendChild(jWrap);
@@ -3463,7 +3463,7 @@ function renderDetailSection(externalData){
         chk560.addEventListener('change',function(){ tr560.style.display=chk560.checked?'':'none'; recomputeLoadJudge(); renderPreview(); markUnsaved(); });
         chk560Wrap.appendChild(chk560); chk560Wrap.appendChild(document.createTextNode('560,000회 포함')); fieldsWrap.appendChild(chk560Wrap);
         var jRow3=document.createElement('div'); jRow3.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-        var loadJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved);
+        var loadJLbl=_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved);
         loadJudgeSel=loadJLbl.querySelector('select');
         jRow3.appendChild(loadJLbl);
         fieldsWrap.appendChild(jRow3);
@@ -3483,14 +3483,14 @@ function renderDetailSection(externalData){
         [lenB,lenA,lenP,widB,widA,widP].forEach(function(el){ grid2.appendChild(el); });
         fieldsWrap.appendChild(grid2);
         var jRow2=document.createElement('div'); jRow2.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:8px';
-        jRow2.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        jRow2.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(jRow2);
 
       } else if(name.includes('마찰') && (name.includes('견뢰') || name.includes('fastness'))){
         var rowFr=document.createElement('div'); rowFr.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowFr.appendChild(_makeInput({label:'건 (Dry) 급',key:'frDry_'+i,ph:'예: 4'},saved));
         rowFr.appendChild(_makeInput({label:'습 (Wet) 급',key:'frWet_'+i,ph:'예: 3-4'},saved));
-        rowFr.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowFr.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowFr);
 
       } else if((name.includes('땀') || name.includes('물')) && (name.includes('견뢰') || name.includes('fastness'))){
@@ -3515,51 +3515,51 @@ function renderDetailSection(externalData){
         });
         swTbl.appendChild(swTBody); fieldsWrap.appendChild(swTbl);
         var swJRow=document.createElement('div'); swJRow.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-        swJRow.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        swJRow.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(swJRow);
 
       } else if(name.includes('인장강도') || (name.includes('인장') && name.includes('강도'))){
         var rowTs=document.createElement('div'); rowTs.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowTs.appendChild(_makeInput({label:'웨일방향 (N/5cm)',key:'tsWale_'+i,type:'number',step:'0.1',ph:'예: 120.5'},saved));
         rowTs.appendChild(_makeInput({label:'코스방향 (N/5cm)',key:'tsCourse_'+i,type:'number',step:'0.1',ph:'예: 98.3'},saved));
-        rowTs.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowTs.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowTs);
 
       } else if(name.includes('인열강도') || (name.includes('인열') && name.includes('강도'))){
         var rowTe=document.createElement('div'); rowTe.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowTe.appendChild(_makeInput({label:'웨일방향 (N)',key:'teWale_'+i,type:'number',step:'0.1',ph:'예: 35.2'},saved));
         rowTe.appendChild(_makeInput({label:'코스방향 (N)',key:'teCourse_'+i,type:'number',step:'0.1',ph:'예: 28.6'},saved));
-        rowTe.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowTe.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowTe);
 
       } else if(name.toLowerCase().includes('ph') || name.includes('피에이치')){
         var rowPh=document.createElement('div'); rowPh.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowPh.appendChild(_makeInput({label:'pH 값',key:'phVal_'+i,type:'number',step:'0.1',ph:'예: 6.3'},saved));
-        rowPh.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowPh.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowPh);
 
       } else if(name.includes('포름알데히드') || name.toLowerCase().includes('formaldehyde')){
         var rowFm=document.createElement('div'); rowFm.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowFm.appendChild(_makeInput({label:'결과 (mg/kg)',key:'fmVal_'+i,ph:'검출안됨 또는 수치 입력'},saved));
-        rowFm.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowFm.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowFm);
 
       } else if(name.includes('염색') || name.includes('견뢰도')){
         var rowE=document.createElement('div'); rowE.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowE.appendChild(_makeInput({label:'변퇴색 (급)',key:'colorChange_'+i,ph:'예: 4-5'},saved));
         rowE.appendChild(_makeInput({label:'이염 (급)',key:'staining_'+i,ph:'예: 4-5'},saved));
-        rowE.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowE.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowE);
 
       } else if(name.includes('필링') || name.includes('pilling')){
         var rowP=document.createElement('div'); rowP.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
         rowP.appendChild(_makeInput({label:'필링 등급 (급)',key:'pilling_'+i,ph:'예: 4'},saved));
-        rowP.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowP.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowP);
 
       } else if(name.includes('풀림')){
         var rowF=document.createElement('div'); rowF.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-        rowF.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격'],placeholder:'선택'},saved));
+        rowF.appendChild(_makeSelect({label:'판정',key:'judge_'+i,options:['','합격','불합격','DATA'],placeholder:'선택'},saved));
         fieldsWrap.appendChild(rowF);
 
       } else {
