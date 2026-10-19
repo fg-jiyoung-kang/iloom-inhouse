@@ -4942,7 +4942,8 @@ function renderReqPreviewHTML(data, iloomSrc, kolasSrc){
     +'<td style="border:1px solid #bbb;padding:10px;text-align:center;font-size:12px;width:50%;vertical-align:top">'
     +'<div style="font-size:10px;color:#6b7280;margin-bottom:5px;font-weight:600">담 당 자</div>'
     +'<div id="mgSigInputArea">'
-    +'<select id="mgSigSelect" style="width:160px;border:1px solid #cbd5e1;border-radius:6px;padding:6px 10px;font-size:13px;text-align:center;outline:none;background:#fff;font-family:inherit;cursor:pointer"></select>'
+    +'<input id="mgSigInput" type="text" placeholder="성명을 입력하세요" style="width:160px;border:1.5px dashed #cbd5e1;border-radius:6px;padding:6px 10px;font-size:13px;text-align:center;outline:none;background:#f8fafc;font-family:inherit">'
+    +'<div style="margin-top:6px"><button type="button" id="mgSigConfirmBtn" style="background:#e60012;border:none;border-radius:6px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;color:#fff">서명 확인</button></div>'
     +'</div>'
     +'<div id="mgSigDisplay" style="display:none;font-family:\'Caveat\',sans-serif;font-style:italic;font-size:28px;color:#111;padding:8px 0;min-height:52px;text-align:center;line-height:1.2"><span id="mgSigText"></span></div>'
     +'<div id="mgSigEditArea" style="display:none;margin-top:4px"><button type="button" id="mgSigEditBtn" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:6px;padding:3px 9px;font-size:10px;cursor:pointer;color:#374151">변경</button></div>'
@@ -5024,25 +5025,19 @@ function _initReqSigPad(existingSig){
   if(editBtn) editBtn.onclick = function(){ showInput(); };
 }
 
-// 담당자 서명은 자유 입력이 아니라, 관리자가 계정 관리에서 등록한 서명자 중에서만 고른다.
-// 관리자가 계정을 삭제하거나 서명을 빼면 getSignerNames()에서 바로 빠지므로
-// 여기서도 선택지에 나타나지 않는다.
+// 담당자 서명도 의뢰자 서명과 동일하게 직접 입력한다 (예전에는 관리자 계정 관리에
+// 등록된 서명자 중에서만 고르게 했었는데, 서명을 등록/변경하는 기능이 없어서
+// 불편하다는 요청으로 자유 입력으로 변경함 — 2026-10-19).
 function _initMgSigPad(existingSig){
-  var select    = document.getElementById('mgSigSelect');
   var inputArea = document.getElementById('mgSigInputArea');
+  var input     = document.getElementById('mgSigInput');
+  var confirmBtn= document.getElementById('mgSigConfirmBtn');
   var display   = document.getElementById('mgSigDisplay');
   var sigText   = document.getElementById('mgSigText');
   var editBtn   = document.getElementById('mgSigEditBtn');
   var editArea  = document.getElementById('mgSigEditArea');
   var status    = document.getElementById('mgSigStatus');
-  if(!select) return;
-
-  var names = getSignerNames();
-  select.innerHTML = '';
-  names.forEach(function(n){
-    var o = document.createElement('option'); o.value = n; o.textContent = n;
-    select.appendChild(o);
-  });
+  if(!input) return;
 
   function showSigned(text){
     if(sigText)   sigText.textContent = text;
@@ -5053,29 +5048,23 @@ function _initMgSigPad(existingSig){
     window._mgSignatureData = text;
   }
   function showInput(){
+    if(input)     input.value = '';
     if(inputArea) inputArea.style.display = 'block';
     if(display)   display.style.display  = 'none';
     if(editArea)  editArea.style.display  = 'none';
     if(status)    status.textContent = '';
   }
 
-  // 이전에 선택했던 사람이 관리자 목록에서 빠졌으면 첫 번째 등록된 서명자로 대체한다
-  var initial = (existingSig && names.indexOf(existingSig) !== -1) ? existingSig : names[0];
-  if(initial){
-    select.value = initial;
-    showSigned(initial);
-    if(initial !== existingSig) saveMgrSignature(initial);
-  } else {
-    window._mgSignatureData = '';
-    if(status){ status.textContent = '등록된 담당자가 없습니다. 관리자 계정 관리에서 서명을 등록하세요.'; status.style.color = '#ef4444'; }
-  }
+  if(existingSig){ showSigned(existingSig); } else { showInput(); }
 
-  select.onchange = function(){
-    var text = select.value;
+  if(confirmBtn) confirmBtn.onclick = function(){
+    var text = (input ? input.value : '').trim();
+    if(!text){ if(status){ status.textContent='성명을 입력하세요.'; status.style.color='#ef4444'; } return; }
     showSigned(text);
     saveMgrSignature(text);
     showToast('담당자 서명이 저장되었습니다.');
   };
+  if(input) input.addEventListener('keydown', function(e){ if(e.key==='Enter' && confirmBtn) confirmBtn.onclick(); });
   if(editBtn) editBtn.onclick = function(){ showInput(); };
 }
 
