@@ -4038,11 +4038,13 @@ async function issueReport(){
   if(!currentId){ alert('저장된 성적서가 없습니다. 먼저 저장해주세요.'); return; }
   const _reportsPeek = getReports();
   const _idxPeek = _reportsPeek.findIndex(r=>r.id===currentId);
-  const isReissue = _idxPeek!==-1 && !!_reportsPeek[_idxPeek].reissuePending;
-  const confirmMsg = isReissue
-    ? '재발행 처리하면 위변조방지 QR이 새로 생성되고, 접수번호 뒷자리가 갱신됩니다.\n계속하시겠습니까?'
-    : '발행완료 처리하면 위변조방지 QR이 생성되고, 더 이상 수정할 수 없게 잠깁니다.\n계속하시겠습니까?';
-  if(!confirm(confirmMsg)) return;
+  const isReissuable = _idxPeek!==-1 && !!_reportsPeek[_idxPeek].reissuePending;
+  let doReissue = false;
+  if(isReissuable){
+    doReissue = confirm('이미 발행완료됐던 성적서를 수정 후 다시 발행합니다.\n재발행으로 진행할까요? (확인: 재발행 번호로 발행 / 취소: 번호 변경 없이 일반 번호로 발행)');
+  } else {
+    if(!confirm('발행완료 처리하면 위변조방지 QR이 생성되고, 더 이상 수정할 수 없게 잠깁니다.\n계속하시겠습니까?')) return;
+  }
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
@@ -4051,7 +4053,7 @@ async function issueReport(){
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
-  if(isReissue){
+  if(isReissuable && doReissue){
     // 재발행: 접수번호 원본은 그대로 두고, 화면/PDF에 표시할 번호 뒤에
     // 분리발행과 동일한 방식(2자리 일련번호, 점 없이)으로 붙여서 구분한다.
     // 예: IM_2026004 → 첫 재발행 IM_202600401, 두 번째 재발행 IM_202600402
@@ -4060,6 +4062,7 @@ async function issueReport(){
     reports[idx].displayNo = baseNo + String(reports[idx].reissueCount).padStart(2,'0');
     reports[idx].reissuePending = false;
   } else {
+    if(isReissuable) reports[idx].reissuePending = false;
     reports[idx].displayNo = null;
   }
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
@@ -4078,7 +4081,7 @@ async function issueReport(){
   }
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
   setIssuedLockUI(true, !!reports[idx].locked, null);
-  showToast(isReissue ? ('✔ 재발행 처리되었습니다. ('+reports[idx].displayNo+')') : '✔ 발행완료 처리되었습니다. (QR 생성)');
+  showToast(doReissue ? ('✔ 재발행 처리되었습니다. ('+reports[idx].displayNo+')') : '✔ 발행완료 처리되었습니다. (QR 생성)');
 }
 // 2단계: 최종발행완료 — 더 이상 수정할 수 없도록 잠근다
 async function finalLockReport(){
