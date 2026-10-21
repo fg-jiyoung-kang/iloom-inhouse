@@ -424,7 +424,7 @@ button,input,select{font:inherit}
               <div style="font-size:12px;font-weight:800;color:#991b1b;margin-bottom:8px">발급받을 성적서 종류 (하나만 또는 둘 다 선택 가능)</div>
               <div style="display:flex;gap:22px;flex-wrap:wrap">
                 <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#374151;cursor:pointer">
-                  <input type="checkbox" id="req_chk_kolas" checked style="width:17px;height:17px;accent-color:#e60012;cursor:pointer">
+                  <input type="checkbox" id="req_chk_kolas" style="width:17px;height:17px;accent-color:#e60012;cursor:pointer">
                   KOLAS 성적서
                 </label>
                 <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#374151;cursor:pointer">
@@ -5186,6 +5186,7 @@ async function saveRequest(){
   if(!v('req_brand').trim()) missing.push('브랜드');
   if(!v('req_color').trim()) missing.push('색상');
   if(!checkedItems.length) missing.push('의뢰 시험 항목 (1개 이상 선택)');
+  if(!chk_kolas && !chk_internal) missing.push('발급받을 성적서 종류 (KOLAS 성적서 / 내부 품질용 중 1개 이상 선택)');
 
   if(missing.length > 0){
     alert('다음 항목을 입력해주세요:\n\n• ' + missing.join('\n• '));
@@ -5435,8 +5436,8 @@ function clearRequest(){
   const specEl2=document.getElementById('req_items_custom_spec'); if(specEl2) specEl2.value='';
   // 재질 체크박스 초기화
   ['req_mat_fabric','req_mat_sponge','req_mat_antibac','req_mat_padding','req_mat_mattress'].forEach(function(id){ const el=document.getElementById(id); if(el) el.checked=false; });
-  // KOLAS/내부 체크박스 초기화 (기본값: KOLAS 성적서만 체크)
-  const koChk=document.getElementById('req_chk_kolas'); if(koChk) koChk.checked=true;
+  // KOLAS/내부 체크박스 초기화 (기본값: 둘 다 선택 안 함)
+  const koChk=document.getElementById('req_chk_kolas'); if(koChk) koChk.checked=false;
   const inChk=document.getElementById('req_chk_internal'); if(inChk) inChk.checked=false;
   // 시험항목 체크박스 초기화
   document.querySelectorAll('.req-item-chk').forEach(c=>c.checked=false);
