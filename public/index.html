@@ -4189,7 +4189,8 @@ function compareReportsGrouped(a, b){
 function renderPdfStore(){
   const box = document.getElementById('pdfStoreList');
   if(!box) return;
-  const issued = getReports().filter(r=>r.issued).slice().sort(compareReportsGrouped);
+  const allReportsForSplit = getReports();
+  const issued = allReportsForSplit.filter(r=>r.issued).slice().sort(compareReportsGrouped);
   if(!issued.length){
     box.innerHTML='<p style="color:#9ca3af;text-align:center;padding:24px 0">발행완료된 성적서가 없습니다.</p>';
     return;
@@ -4219,18 +4220,19 @@ function renderPdfStore(){
       kolasBtn.onclick=()=>printStoredKolasReport(r.id);
       btnWrap.appendChild(kolasBtn);
     }
-    // 분리발행 버튼 (서브레포트가 아닌 경우만)
-    if(!r.isSubReport){
+    // 분리발행 버튼/표시 — 서브레포트면 "분리발행본" 표시, 실제로 분리발행된 적 있는(자식이
+    // 있는) 원본이면 버튼 표시, 분리발행과 무관한 일반 성적서는 아무것도 표시하지 않음
+    if(r.isSubReport){
+      const subTag=document.createElement('span');
+      subTag.textContent='분리발행본';
+      subTag.style.cssText='font-size:10px;background:#f5f3ff;color:#7c3aed;border:1px solid #c4b5fd;border-radius:5px;padding:2px 8px;font-weight:700;text-align:center';
+      btnWrap.appendChild(subTag);
+    } else if(allReportsForSplit.some(function(x){ return x.parentReceiptNo === r.receiptNo; })){
       const splitBtn2=document.createElement('button');
       splitBtn2.textContent='분리발행';
       splitBtn2.style.cssText='background:#fff;color:#7c3aed;border:1px solid #ddd6fe;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap';
       splitBtn2.onclick=()=>openSplitModal(r.id);
       btnWrap.appendChild(splitBtn2);
-    } else {
-      const subTag=document.createElement('span');
-      subTag.textContent='분리발행본';
-      subTag.style.cssText='font-size:10px;background:#f5f3ff;color:#7c3aed;border:1px solid #c4b5fd;border-radius:5px;padding:2px 8px;font-weight:700;text-align:center';
-      btnWrap.appendChild(subTag);
     }
     d.appendChild(btnWrap);
     box.appendChild(d);
