@@ -4001,7 +4001,7 @@ function setIssuedLockUI(issued, locked, unlockRequest, reissuePending){
   const splitBtn = document.getElementById('splitIssueBtn');
   if(finalizeBtn){
     finalizeBtn.style.display = (!_reportIsIssued) ? '' : 'none';
-    finalizeBtn.textContent = reissuePending ? '재발행' : '발행완료';
+    finalizeBtn.textContent = reissuePending ? '재발행하기' : '발행완료';
   }
   if(finalLockBtn) finalLockBtn.style.display = (_reportIsIssued && !_reportIsLocked) ? '' : 'none';
   if(requestUnlockBtn) requestUnlockBtn.style.display = _reportIsLocked ? '' : 'none';
