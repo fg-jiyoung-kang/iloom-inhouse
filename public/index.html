@@ -4052,16 +4052,12 @@ async function issueReport(){
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
   if(isReissue){
-    // 재발행: 접수번호 원본은 그대로 두고, 화면/PDF에 표시할 번호에
-    // "원본번호.새일련번호" 형태로 뒷자리를 붙여서 재발행 때마다 구분되게 한다.
+    // 재발행: 접수번호 원본은 그대로 두고, 화면/PDF에 표시할 번호 뒤에
+    // 분리발행과 동일한 방식(2자리 일련번호, 점 없이)으로 붙여서 구분한다.
+    // 예: IM_2026004 → 첫 재발행 IM_202600401, 두 번째 재발행 IM_202600402
     reports[idx].reissueCount = (reports[idx].reissueCount||0) + 1;
     const baseNo = (reports[idx].receiptNo||'').split('.')[0];
-    const m = baseNo.match(/(\d+)$/);
-    if(m){
-      const width = m[1].length;
-      const nextNum = parseInt(m[1],10) + reports[idx].reissueCount;
-      reports[idx].displayNo = baseNo + '.' + String(nextNum).padStart(width,'0');
-    }
+    reports[idx].displayNo = baseNo + String(reports[idx].reissueCount).padStart(2,'0');
     reports[idx].reissuePending = false;
   } else {
     reports[idx].displayNo = null;
