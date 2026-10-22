@@ -3252,6 +3252,7 @@ function renderDetailSection(externalData){
         var judgeSel;
         function recomputeDimJudge(){
           if(!judgeSel) return;
+          if(judgeSel.value==='DATA') return; // 사용자가 DATA로 직접 지정하면 자동판정으로 덮어쓰지 않음
           var verdicts=dimGroups.map(function(g){
             var critV=parseFloat(g.critInp.value), resV=parseFloat(g.resInp.value), tolV=parseFloat(g.tolInp.value);
             if(isNaN(critV)||isNaN(resV)||isNaN(tolV)) return null;
@@ -3331,6 +3332,7 @@ function renderDetailSection(externalData){
         // 종류를 골라야 몇 %까지 합격인지(1종 10, 2종 13) 정해지므로, 종류+줄음률이 둘 다
         // 있을 때만 자동으로 판정한다.
         function recomputeCsJudge(){
+          if(jsSel.value==='DATA') return; // 사용자가 DATA로 직접 지정하면 자동판정으로 덮어쓰지 않음
           var typeV=csTypeSel.value;
           var pctV=parseFloat((inp2.value||'').replace('%',''));
           if(!typeV || isNaN(pctV)) return;
@@ -3379,6 +3381,7 @@ function renderDetailSection(externalData){
         // 외관이 불합격이면 자동으로 불합격 처리한다.
         function recomputeDurabilityJudge(){
           if(!durJudgeSel) return;
+          if(durJudgeSel.value==='DATA') return; // 사용자가 DATA로 직접 지정하면 자동판정(불합격 등)으로 덮어쓰지 않음
           var anyEntered=false, anyFail=false;
           dInputs.forEach(function(el){
             if(el===inpD4 && trD4.style.display==='none') return; // D4 미포함 상태면 제외
@@ -3447,6 +3450,7 @@ function renderDetailSection(externalData){
         // 기준을 벗어나면 자동 불합격으로 판정한다.
         function recomputeLoadJudge(){
           if(!loadJudgeSel) return;
+          if(loadJudgeSel.value==='DATA') return; // 사용자가 DATA로 직접 지정하면 자동판정(불합격 등)으로 덮어쓰지 않음
           var anyEntered=false, anyFail=false;
           loadPairs.forEach(function(p){
             if(p.row.style.display==='none') return;
