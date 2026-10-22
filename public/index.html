@@ -3997,7 +3997,7 @@ function toggleReportIssued(id, issued){
 
 // ── 발행완료(QR 생성) / 최종발행완료(잠금) UI ──
 // issued: 발행완료 여부(QR 생성, 계속 수정 가능) / locked: 최종발행완료 여부(수정 잠금)
-function setIssuedLockUI(issued, locked, unlockRequest, reissuePending){
+function setIssuedLockUI(issued, locked, unlockRequest, reissueConfirmed){
   _reportIsIssued = !!issued;
   _reportIsLocked = !!locked;
   const banner = document.getElementById('issuedLockBanner');
@@ -4012,7 +4012,7 @@ function setIssuedLockUI(issued, locked, unlockRequest, reissuePending){
   const splitBtn = document.getElementById('splitIssueBtn');
   if(finalizeBtn){
     finalizeBtn.style.display = (!_reportIsIssued) ? '' : 'none';
-    finalizeBtn.textContent = reissuePending ? '재발행하기' : '발행완료';
+    finalizeBtn.textContent = reissueConfirmed ? '재발행하기' : '발행완료';
   }
   if(finalLockBtn) finalLockBtn.style.display = (_reportIsIssued && !_reportIsLocked) ? '' : 'none';
   if(requestUnlockBtn) requestUnlockBtn.style.display = _reportIsLocked ? '' : 'none';
@@ -4050,10 +4050,9 @@ async function issueReport(){
   const _reportsPeek = getReports();
   const _idxPeek = _reportsPeek.findIndex(r=>r.id===currentId);
   const isReissuable = _idxPeek!==-1 && !!_reportsPeek[_idxPeek].reissuePending;
-  let doReissue = false;
-  if(isReissuable){
-    doReissue = confirm('이미 발행완료됐던 성적서를 수정 후 다시 발행합니다.\n재발행으로 진행할까요? (확인: 재발행 번호로 발행 / 취소: 번호 변경 없이 일반 번호로 발행)');
-  } else {
+  // 재발행 여부는 수정요청 승인 직후(잠금 해제 시점)에 이미 물어봤으므로 여기서는 다시 묻지 않는다.
+  const doReissue = isReissuable && !!_reportsPeek[_idxPeek].reissueConfirmed;
+  if(!isReissuable){
     if(!confirm('발행완료 처리하면 위변조방지 QR이 생성되고, 더 이상 수정할 수 없게 잠깁니다.\n계속하시겠습니까?')) return;
   }
   const reports = getReports();
@@ -4078,6 +4077,7 @@ async function issueReport(){
       isReissueReport: true,
       displayNo: null,
       reissuePending: false,
+      reissueConfirmed: false,
       reissueCount: 0,
       preReissueSnapshot: null,
       issued: true,
@@ -4089,7 +4089,7 @@ async function issueReport(){
     await supaFetch('reports','POST',{id:newNo, data:reissueReport, updated_at:issuedAt}).catch(e=>{});
 
     const snapshot = original.preReissueSnapshot;
-    const restored = Object.assign({}, snapshot||original, { reissueCount: nextNum, preReissueSnapshot: null });
+    const restored = Object.assign({}, snapshot||original, { reissueCount: nextNum, preReissueSnapshot: null, reissueConfirmed: false });
     reports[idx] = restored;
     setReports(reports);
     await supaFetch('reports','POST',{id:originalId, data:restored, updated_at:new Date().toISOString()}).catch(e=>{});
@@ -4104,7 +4104,7 @@ async function issueReport(){
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
-  if(isReissuable) reports[idx].reissuePending = false;
+  if(isReissuable){ reports[idx].reissuePending = false; reports[idx].reissueConfirmed = false; }
   reports[idx].displayNo = null;
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
   setReports(reports);
@@ -4177,6 +4177,10 @@ async function approveUnlock(id){
   reports[idx].reportStatus = 'draft';
   reports[idx].unlockRequest = null;
   reports[idx].reissuePending = true; // 수정 후 다시 발행할 때 "발행완료"가 아니라 "재발행"으로 처리
+  // 잠금 해제 직후 바로 물어본다: 수정 후 재발행(번호 뒤에 R1 등이 붙는 별도 성적서)으로
+  // 할지, 그냥 같은 번호로 덮어쓸지. 나중에 "발행완료/재발행하기" 버튼을 누를 때는
+  // 다시 묻지 않고 여기서 정한 대로 처리한다.
+  reports[idx].reissueConfirmed = confirm('성적서 잠금이 해제되었습니다.\n수정 후 재발행하시겠습니까?\n(확인: 수정본을 새 번호(R1 등)로 별도 발행 / 취소: 같은 번호로 그대로 발행)');
   setReports(reports);
   await supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
@@ -5747,7 +5751,7 @@ async function loadReport(r){
     }, 100);
   }, 50);
   // 잠금 상태 UI 적용
-  setTimeout(()=>setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null, !!r.reissuePending), 150);
+  setTimeout(()=>setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null, !!r.reissueConfirmed), 150);
   // 발행 성적서에 verifyToken 없으면 자동 생성 및 Supabase 저장
   if(r.issued && !r.verifyToken && r.receiptNo){
     generateVerifyToken(r).then(function(tok){
@@ -5834,7 +5838,7 @@ async function saveReport(silent=false){
     setReports(list);
     await renderListAsync();
     clearUnsaved();
-    setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null, !!r.reissuePending);
+    setIssuedLockUI(!!r.issued, !!r.locked, r.unlockRequest||null, !!r.reissueConfirmed);
     if(!silent){ showSaveToast(); }
   } catch(e) {
     console.error('saveReport error:', e);
