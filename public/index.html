@@ -4021,7 +4021,11 @@ function setIssuedLockUI(issued, locked, unlockRequest, reissueConfirmed){
     banner.style.display = 'flex';
     if(printBtn2){ printBtn2.style.display = 'none'; }
     saveBtn.disabled = true; saveBtn.style.opacity = '0.4'; saveBtn.style.cursor = 'not-allowed';
-    deleteBtn.disabled = true; deleteBtn.style.opacity = '0.4'; deleteBtn.style.cursor = 'not-allowed';
+    // 잠긴 성적서도 최종관리자(jiyoung_kang/guest_1)는 삭제할 수 있게 둔다 (서버도 동일 기준)
+    const _isOwnerForDelete = isOwnerId(getCurUser().id);
+    deleteBtn.disabled = !_isOwnerForDelete;
+    deleteBtn.style.opacity = _isOwnerForDelete ? '' : '0.4';
+    deleteBtn.style.cursor = _isOwnerForDelete ? 'pointer' : 'not-allowed';
     if(pendingLabel) pendingLabel.style.display = unlockRequest && unlockRequest.status==='pending' ? '' : 'none';
     const status = document.getElementById('autoSaveStatus');
     if(status) status.style.display = 'none';
