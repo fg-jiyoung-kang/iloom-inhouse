@@ -4095,8 +4095,8 @@ async function issueReport(){
     await supaFetch('reports','POST',{id:originalId, data:restored, updated_at:new Date().toISOString()}).catch(e=>{});
 
     renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
-    await loadReport(restored);
-    showToast('✔ 재발행 완료! 새 성적서('+newNo+')가 발행되고, 원본('+originalReceiptNo+')은 수정 전 상태로 복구되었습니다.');
+    await loadReport(reissueReport);
+    showToast('✔ 재발행이 완료되었습니다. (새 번호: '+newNo+' / 원본 '+originalReceiptNo+'은 수정 전 상태로 복구됨)');
     return;
   }
 
