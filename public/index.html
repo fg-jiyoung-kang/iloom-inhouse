@@ -2033,24 +2033,39 @@ function closeSidebar(){
   if(s) s.classList.remove('open');
   if(o) o.classList.remove('show');
 }
+// 탭 하나를 실제로 켜는 공통 로직 — 버튼 클릭과 브라우저 뒤로/앞으로가기(popstate) 둘 다 이걸 쓴다.
+function activateTab(tab){
+  const btn = document.querySelector('.nav-btn[data-tab="'+tab+'"]');
+  const panel = $('tab-'+tab);
+  if(!btn || !panel) return;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); panel.classList.add('active');
+  renderList(); renderStandards();
+  updateTopbar(tab);
+  if(tab === 'accounts'){ renderAccounts(); renderLoginLog(); renderActivityLog(); }
+  if(tab === 'admin'){ renderAccounts(); initAdminRegTab(); }
+  if(tab === 'request'){ initRequestTab(); renderReqListAsync(); }
+  if(tab === 'reqview'){ renderReqMgmt(); updateReqBadge(); }
+  if(tab === 'list') renderListAsync();
+  if(tab === 'write') renderStandardSelect();
+  if(tab === 'pdfstore') renderPdfStore();
+  if(tab === 'extcert') initExtCertTab();
+  if(tab === 'unlockReq') renderUnlockRequests();
+  if(window.innerWidth <= 768) closeSidebar();
+}
 function navInit(){
+  // 처음 열었을 때 상태를 기록해둬야, 다른 탭으로 갔다가 "뒤로가기" 했을 때 여기로 돌아올 수 있다.
+  const _initialTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'request';
+  history.replaceState({tab:_initialTab}, '');
   document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active'); $('tab-'+btn.dataset.tab).classList.add('active');
-    renderList(); renderStandards();
-    updateTopbar(btn.dataset.tab);
-    if(btn.dataset.tab === 'accounts'){ renderAccounts(); renderLoginLog(); renderActivityLog(); }
-    if(btn.dataset.tab === 'admin'){ renderAccounts(); initAdminRegTab(); }
-    if(btn.dataset.tab === 'request'){ initRequestTab(); renderReqListAsync(); }
-    if(btn.dataset.tab === 'reqview'){ renderReqMgmt(); updateReqBadge(); }
-    if(btn.dataset.tab === 'list') renderListAsync();
-    if(btn.dataset.tab === 'write') renderStandardSelect();
-    if(btn.dataset.tab === 'pdfstore') renderPdfStore();
-    if(btn.dataset.tab === 'extcert') initExtCertTab();
-    if(btn.dataset.tab === 'unlockReq') renderUnlockRequests();
-    if(window.innerWidth <= 768) closeSidebar();
+    const tab = btn.dataset.tab;
+    if(history.state?.tab !== tab) history.pushState({tab:tab}, '');
+    activateTab(tab);
   }));
+  window.addEventListener('popstate', function(e){
+    if(e.state?.tab) activateTab(e.state.tab);
+  });
 }
 
 function updateTopbar(tab){
