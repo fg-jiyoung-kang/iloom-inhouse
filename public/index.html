@@ -559,6 +559,7 @@ button,input,select{font:inherit}
             <div style="display:flex;gap:8px;align-items:center">
               <button id="submitFinalBtn" onclick="submitFinal()" disabled style="background:#d1d5db;color:#9ca3af;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:not-allowed;transition:all .2s">③ 제출하기</button>
               <button onclick="printReqPreview()" style="background:#1f2937;color:#fff;border:none;border-radius:10px;padding:9px 22px;font-size:13px;font-weight:800;cursor:pointer">PDF 출력</button>
+              <button onclick="exportReqWord()" style="background:#fff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:800;cursor:pointer">워드파일 저장</button>
             </div>
           </div>
           <div style="display:flex;justify-content:center">
@@ -5457,6 +5458,32 @@ function printReqPreview(){
   win.document.close();
   win.focus();
   setTimeout(()=>win.print(), 600);
+}
+
+function exportReqWord(){
+  const preview = document.getElementById('reqPreview');
+  if(!preview || preview.innerHTML.includes('저장 버튼')){ alert('먼저 ① 저장 버튼을 눌러주세요.'); return; }
+  const no = document.getElementById('req_no')?.value || '의뢰서';
+  const css = `
+    body{font-family:'Malgun Gothic',sans-serif;font-size:11px;color:#111}
+    .p1f-contact-bar{background:#e60012;color:#fff;text-align:center;padding:5px 8px;font-size:9.5px;margin:3px 0}
+    .red-title{color:#e60012;font-weight:900;font-size:13px;margin:16px 0 6px}
+    .req-red-bar,[style*="background:#e60012"],[style*="background:var(--red)"]{background:#e60012;color:#fff}
+    table{border-collapse:collapse;width:100%}
+    td,th{border:1px solid #ccc;padding:6px 8px;font-size:10px}
+    #reqSigInputArea,#reqSigEditArea,#mgSigInputArea,#mgSigEditArea,#reqSigStatus,#mgSigStatus{display:none}
+    #reqSigDisplay,#mgSigDisplay{display:block;font-family:'Caveat',sans-serif;font-style:italic;font-size:28px;color:#111}
+  `;
+  const wordHtml = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'
+    +'<head><meta charset="UTF-8"><title>시험 의뢰서</title>'
+    +'<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->'
+    +'<style>'+css+'</style></head><body>'+preview.innerHTML+'</body></html>';
+  const blob = new Blob(['﻿', wordHtml], { type: 'application/msword' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = no + '_시험의뢰서.doc';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function clearRequest(){
