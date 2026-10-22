@@ -2334,21 +2334,21 @@ function buildPrintHTML(r){
         };
         let rows=dimRow('길이','dim_len')+dimRow('너비','dim_wid')+dimRow('두께','dim_thk');
         if(!rows) rows='<tr><td colspan="4" style="color:#aaa">입력된 측정값 없음</td></tr>';
-        const dimJudge=jg?`<tr><td class="left" style="font-weight:800">판정</td><td class="rv" colspan="3" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td></tr>`:'';
+        const dimJudge=jg?`<tr><td class="left" style="font-weight:800">판정</td><td class="rv" colspan="3" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':(jg==='DATA'?'#374151':'#e60012')}">${e2(jg)}</td></tr>`:'';
         blocks+=`<div class="rb">${th}${crit?`<div class="dc"><b>기준</b><br>${e2(crit)}</div>`:''}<table class="rt"><tr><th style="width:12%">구분</th><th style="width:38%">측정값</th><th style="width:20%">결과 (mm)</th><th>기준값</th></tr>${rows}${dimJudge}</table></div>`;
       } else if(nm.includes('압축줄음률') || nm.includes('영구압축') || nm.includes('줄음률')){
         const t0=det['t0_'+i]||'';
         const t1=det['t1_'+i]||'';
         const pct=det['cs_pct_'+i]||'';
-        const csJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
+        const csJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':(jg==='DATA'?'#374151':'#e60012')}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const csCrit = crit || '1종 ≤ 10\n2종 ≤ 13';
         blocks+=`<div class="rb">${th}${csCrit?`<div class="dc"><b>기준</b><br>${e2(csCrit)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr><tr><td class="left">시험 전 두께 (t₀)</td><td class="rv">${e2(t0)}</td><td>-</td></tr><tr><td class="left">시험 후 두께 (t₁)</td><td class="rv">${e2(t1)}</td><td>-</td></tr><tr><td class="left">영구압축 줄음률</td><td class="rv" style="color:#2563eb">${e2(pct)}</td><td style="text-align:center">1종 ≤ 10<br>2종 ≤ 13</td></tr>${csJudge}</table></div>`;
       } else if(nm.includes('롤링')){
         const rCrit='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
-        const rJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td style="font-size:9px;line-height:1.7;text-align:center">${rCrit}</td></tr>` : '';
+        const rJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':(jg==='DATA'?'#374151':'#e60012')}">${e2(jg)}</td><td style="font-size:9px;line-height:1.7;text-align:center">${rCrit}</td></tr>` : '';
         blocks+=`<div class="rb">${th}<table class="rt" style="width:100%"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr>${rJudge}</table></div>`;
       } else if(nm.includes('내구성')){
-        const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
+        const dJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':(jg==='DATA'?'#374151':'#e60012')}">${e2(jg)}</td><td>KS G 4300 기준 만족</td></tr>` : '';
         const d4Row_p=det['d4_'+i]?`<tr><td class="left">D4 (560,000회)</td><td class="rv">${e2(det['d4_'+i])}</td><td>-</td></tr>`:'';
         const appJudge_p=det['appearance_'+i]?`<tr><td class="left">외관</td><td class="rv" style="color:${det['appearance_'+i]==='합격'?'#008a3d':'#e60012'}">${e2(det['appearance_'+i])}</td><td style="font-size:9px;line-height:1.7;text-align:center">· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.</td></tr>`:'';
         blocks+=`<div class="rb">${th}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr><tr><td class="left">D1 (200회)</td><td class="rv">${e2(det['d1_'+i]||'')}</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr><tr><td class="left">D2 (10,000회)</td><td class="rv">${e2(det['d2_'+i]||'')}</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr><tr><td class="left">D3 (80,000회)</td><td class="rv">${e2(det['d3_'+i]||'')}</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr>${d4Row_p}${appJudge_p}${dJudge}</table></div>`;
@@ -2359,7 +2359,7 @@ function buildPrintHTML(r){
         [['0회','0'],['200회','200'],['10,000회','10000'],['80,000회','80000']].forEach(function(cv){
           var _d1v=det['load_'+cv[1]+'_d1_'+i]||''; var _d2v=det['load_'+cv[1]+'_d2_'+i]||'';
           var _d1n=parseFloat(_d1v); var _d2n=parseFloat(_d2v);
-          var _d1f=_d1v!==''&&!isNaN(_d1n)&&_d1n>45; var _d2f=_d2v!==''&&!isNaN(_d2n)&&_d2n<5;
+          var _d1f=_d1v!==''&&!isNaN(_d1n)&&_d1n>45&&jg!=='DATA'; var _d2f=_d2v!==''&&!isNaN(_d2n)&&_d2n<5&&jg!=='DATA';
           var _d1s=_d1v?(_d1f?`<span style="color:#e60012;font-weight:700">${e2(_d1v)}</span>`:e2(_d1v)):'';
           var _d2s=_d2v?(_d2f?`<span style="color:#e60012;font-weight:700">${e2(_d2v)}</span>`:e2(_d2v)):'';
           rows+=`<tr><td class="left">${cv[0]}</td><td class="rv">D1: ${_d1s} / D2: ${_d2s}</td><td style="font-size:10px;line-height:1.7">D1 ≤ 45 mm<br>D2 ≥ 5 mm</td></tr>`;
@@ -2367,7 +2367,7 @@ function buildPrintHTML(r){
         if(show560){
           rows+=`<tr><td class="left">560000회</td><td class="rv">D1: ${e2(det['load_560000_d1_'+i]||'')} / D2: ${e2(det['load_560000_d2_'+i]||'')}</td><td>-</td></tr>`;
         }
-        const lJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':'#e60012'}">${e2(jg)}</td><td>${jg==='합격'||jg==='PASS'?'KS G 4300 기준 만족':'KS G 4300 기준 미달'}</td></tr>` : '';
+        const lJudge = jg ? `<tr><td class="left" style="font-weight:800">판정</td><td class="rv" style="color:${jg==='합격'||jg==='PASS'?'#008a3d':(jg==='DATA'?'#374151':'#e60012')}">${e2(jg)}</td><td>${jg==='합격'||jg==='PASS'?'KS G 4300 기준 만족':(jg==='DATA'?'-':'KS G 4300 기준 미달')}</td></tr>` : '';
         blocks+=`<div class="rb">${th}${dc2?`<div class="dc"><b>기준</b><br>${e2(dc2)}</div>`:''}<table class="rt"><tr><th style="width:30%">구분</th><th style="width:35%">시험 결과</th><th>기준</th></tr>${rows}${lJudge}</table></div>`;
       } else {
         const genRes = det['result_'+i] || det['appearance_'+i] || '';
@@ -3760,7 +3760,7 @@ function renderPreview(){
             };
             let rows = dimRow2('길이','dim_len') + dimRow2('너비','dim_wid') + dimRow2('두께','dim_thk');
             if(!rows) rows = '<tr><td colspan="4" style="color:#aaa">입력된 측정값 없음</td></tr>';
-            const dimJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" colspan="3" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td></tr>' : '';
+            const dimJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" colspan="3" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':(judge==='DATA'?'#374151':'#e60012'))+'">'+esc(judge)+'</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +critBox+'<table class="result-table"><tr><th style="width:12%">구분</th><th style="width:38%">측정값</th><th style="width:20%">결과 (mm)</th><th>기준값</th></tr>'
               +rows+dimJudgeRow+'</table></div>';
@@ -3770,7 +3770,7 @@ function renderPreview(){
             const t0=detail['t0_'+i]||''; const t1=detail['t1_'+i]||''; const pct=detail['cs_pct_'+i]||'';
             const csCrit2 = crit || '1종 ≤ 10\n2종 ≤ 13';
             const csCritBox = csCrit2 ? '<div style="font-size:10px;color:#374151;white-space:pre-wrap;margin-bottom:6px;padding:6px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;line-height:1.7"><span style="font-weight:800;font-size:10px;color:#6b7280">기준</span><br>'+esc(csCrit2)+'</div>' : '';
-            const csJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td>KS G 4300 기준 만족</td></tr>' : '';
+            const csJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="color:'+(judge==='합격'||judge==='PASS'?'#008a3d':(judge==='DATA'?'#374151':'#e60012'))+'">'+esc(judge)+'</td><td>KS G 4300 기준 만족</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +csCritBox
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과 (mm)</th><th>기준</th></tr>'
@@ -3783,7 +3783,7 @@ function renderPreview(){
           // 롤링내구성시험 - 기준을 판정과 같은 행(3번째 칸)에 표시
           } else if(name.includes('롤링')){
             const rCrit2='· 겉감의 닳음, 풀림, 찢어짐 등이 없을 것.<br>· 내용물의 이동, 뭉침 빠짐등이 없을 것.<br>· 용수철의 끊어짐, 빠짐 등이 없을 것.<br>· 구조체에 파손, 흔들거림, 이상음의 발생 등이 없을 것.';
-            const rJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td style="font-size:9px;line-height:1.7;text-align:center">'+rCrit2+'</td></tr>' : '';
+            const rJudgeRow = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':(judge==='DATA'?'#374151':'#e60012'))+'">'+esc(judge)+'</td><td style="font-size:9px;line-height:1.7;text-align:center">'+rCrit2+'</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">시험 결과</th><th>기준</th></tr>'
               +rJudgeRow
@@ -3793,7 +3793,7 @@ function renderPreview(){
           } else if(name.includes('내구성')){
             const d1=detail['d1_'+i]||''; const d2=detail['d2_'+i]||'';
             const d3=detail['d3_'+i]||''; const d4=detail['d4_'+i]||'';
-            const dJudge = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td>KS G 4300 기준 만족</td></tr>' : '';
+            const dJudge = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':(judge==='DATA'?'#374151':'#e60012'))+'">'+esc(judge)+'</td><td>KS G 4300 기준 만족</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:30%">측정값 (mm)</th><th>기준</th></tr>'
               +'<tr><td class="left">D1 (200회)</td><td class="result-val">'+esc(d1)+'</td><td style="text-align:center;font-size:11px">≤ 40 mm</td></tr>'
@@ -3813,7 +3813,7 @@ function renderPreview(){
               const d1=detail['load_'+c[1]+'_d1_'+i]||'';
               const d2=detail['load_'+c[1]+'_d2_'+i]||'';
               const d1n=parseFloat(d1); const d2n=parseFloat(d2);
-              const d1f=d1!==''&&!isNaN(d1n)&&d1n>45; const d2f=d2!==''&&!isNaN(d2n)&&d2n<5;
+              const d1f=d1!==''&&!isNaN(d1n)&&d1n>45&&judge!=='DATA'; const d2f=d2!==''&&!isNaN(d2n)&&d2n<5&&judge!=='DATA';
               const d1s=d1?(d1f?'<span style="color:#e60012;font-weight:700">'+esc(d1)+'</span>':esc(d1)):'';
               const d2s=d2?(d2f?'<span style="color:#e60012;font-weight:700">'+esc(d2)+'</span>':esc(d2)):'';
               rows += '<tr><td class="left">'+c[0]+'</td><td class="result-val">D1: '+d1s+' / D2: '+d2s+'</td><td style="font-size:10px;line-height:1.7">D1 ≤ 45 mm<br>D2 ≥ 5 mm</td></tr>';
@@ -3823,7 +3823,7 @@ function renderPreview(){
               const d2=detail['load_560000_d2_'+i]||'';
               rows += '<tr><td class="left">560000회</td><td class="result-val">D1: '+esc(d1)+' / D2: '+esc(d2)+'</td><td>-</td></tr>';
             }
-            const lJudge = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':'#e60012')+'">'+esc(judge)+'</td><td>'+(judge==='합격'||judge==='PASS'?'KS G 4300 기준 만족':'KS G 4300 기준 미달')+'</td></tr>' : '';
+            const lJudge = judge ? '<tr><td class="left" style="font-weight:800">판정</td><td class="result-val" style="font-weight:900;color:'+(judge==='합격'||judge==='PASS'?'#008a3d':(judge==='DATA'?'#374151':'#e60012'))+'">'+esc(judge)+'</td><td>'+(judge==='합격'||judge==='PASS'?'KS G 4300 기준 만족':(judge==='DATA'?'-':'KS G 4300 기준 미달'))+'</td></tr>' : '';
             blocks += '<div class="result-block"><div class="result-block-title"><div class="result-block-title-text"><span>'+title+'</span>'+(spec?'<span style="font-weight:400;font-size:10px">('+spec+')</span>':'')+'</div></div>'
               +critBox2
               +'<table class="result-table"><tr><th style="width:30%">구분</th><th style="width:35%">시험 결과</th><th>기준</th></tr>'
