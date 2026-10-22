@@ -4051,21 +4051,52 @@ async function issueReport(){
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
   const issuedAt = new Date().toISOString();
+
+  if(isReissuable && doReissue){
+    // 재발행: 수정된 내용은 완전히 별도의 새 성적서(원본번호_R순번)로 발행하고,
+    // 원본은 수정요청 승인 직전(마지막 발행 당시) 상태로 그대로 복구한다.
+    // 분리발행과 마찬가지로 "원본 그대로"와 "수정본"이 각각 독립된 레코드로 남는다.
+    const original = reports[idx];
+    const originalId = original.id;
+    const originalReceiptNo = original.receiptNo || '';
+    const nextNum = (original.reissueCount||0) + 1;
+    const newNo = originalReceiptNo + '_R' + nextNum;
+
+    const reissueReport = Object.assign({}, original, {
+      id: newNo,
+      receiptNo: newNo,
+      parentReceiptNo: originalReceiptNo,
+      isReissueReport: true,
+      displayNo: null,
+      reissuePending: false,
+      reissueCount: 0,
+      preReissueSnapshot: null,
+      issued: true,
+      locked: true,
+      reportStatus: 'issued',
+      issuedAt: issuedAt,
+    });
+    reissueReport.verifyToken = await generateVerifyToken({...reissueReport, issuedAt});
+    await supaFetch('reports','POST',{id:newNo, data:reissueReport, updated_at:issuedAt}).catch(e=>{});
+
+    const snapshot = original.preReissueSnapshot;
+    const restored = Object.assign({}, snapshot||original, { reissueCount: nextNum, preReissueSnapshot: null });
+    reports[idx] = restored;
+    setReports(reports);
+    await supaFetch('reports','POST',{id:originalId, data:restored, updated_at:new Date().toISOString()}).catch(e=>{});
+
+    renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
+    await loadReport(restored);
+    showToast('✔ 재발행 완료! 새 성적서('+newNo+')가 발행되고, 원본('+originalReceiptNo+')은 수정 전 상태로 복구되었습니다.');
+    return;
+  }
+
   reports[idx].issued = true;
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
-  if(isReissuable && doReissue){
-    // 재발행: 접수번호 원본은 그대로 두고, 화면/PDF에 표시할 번호 뒤에
-    // "R+순번"을 붙여서 구분한다 (분리발행의 2자리 번호와는 다른 체계).
-    // 예: IM_2026004 → 첫 재발행 IM_2026004R1, 두 번째 재발행 IM_2026004R2
-    reports[idx].reissueCount = (reports[idx].reissueCount||0) + 1;
-    reports[idx].displayNo = (reports[idx].receiptNo||'') + 'R' + reports[idx].reissueCount;
-    reports[idx].reissuePending = false;
-  } else {
-    if(isReissuable) reports[idx].reissuePending = false;
-    reports[idx].displayNo = null;
-  }
+  if(isReissuable) reports[idx].reissuePending = false;
+  reports[idx].displayNo = null;
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
   setReports(reports);
   await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:issuedAt}).catch(e=>{});
@@ -4082,7 +4113,7 @@ async function issueReport(){
   }
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
   setIssuedLockUI(true, !!reports[idx].locked, null);
-  showToast(doReissue ? ('✔ 재발행 처리되었습니다. ('+reports[idx].displayNo+')') : '✔ 발행완료 처리되었습니다. (QR 생성)');
+  showToast('✔ 발행완료 처리되었습니다. (QR 생성)');
 }
 // 2단계: 최종발행완료 — 더 이상 수정할 수 없도록 잠근다
 async function finalLockReport(){
@@ -4130,6 +4161,8 @@ async function approveUnlock(id){
     const hist = reports[idx].unlockHistory;
     for(let i=hist.length-1;i>=0;i--){ if(hist[i].status==='pending'){ hist[i].status='approved'; hist[i].resolvedAt=new Date().toISOString(); hist[i].resolvedBy=admin.name||admin.id||''; break; } }
   }
+  // 재발행 시 원본을 수정 전 상태로 복구할 수 있도록, 잠금 해제 직전 상태를 스냅샷으로 남겨둔다.
+  reports[idx].preReissueSnapshot = JSON.parse(JSON.stringify(reports[idx]));
   reports[idx].issued = false;
   reports[idx].locked = false;
   reports[idx].reportStatus = 'draft';
