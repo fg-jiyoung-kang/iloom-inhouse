@@ -4074,13 +4074,18 @@ async function issueReport(){
   const isReissuable = _idxPeek!==-1 && !!_reportsPeek[_idxPeek].reissuePending;
   // 재발행 여부는 수정요청 승인 직후(잠금 해제 시점)에 이미 물어봤으므로 여기서는 다시 묻지 않는다.
   const doReissue = isReissuable && !!_reportsPeek[_idxPeek].reissueConfirmed;
+  // 발행일은 더 이상 자동으로 "지금 시각"을 넣지 않고, 화면에 직접 입력한 값만 쓴다.
+  // 비어있으면 발행 자체를 막는다.
+  const issuedDateVal = val('issuedDateDisplay');
+  if(!issuedDateVal){ alert('발행일을 입력해주세요.'); return; }
   if(!isReissuable){
     if(!confirm('발행완료 처리하면 위변조방지 QR이 생성되고, 더 이상 수정할 수 없게 잠깁니다.\n계속하시겠습니까?')) return;
   }
   const reports = getReports();
   const idx = reports.findIndex(r=>r.id===currentId);
   if(idx===-1){ alert('성적서를 찾을 수 없습니다.'); return; }
-  const issuedAt = new Date().toISOString();
+  const nowTs = new Date().toISOString();
+  const issuedAt = issuedDateVal;
 
   if(isReissuable && doReissue){
     // 재발행: 수정된 내용은 완전히 별도의 새 성적서(원본번호_R순번)로 발행하고,
@@ -4108,13 +4113,13 @@ async function issueReport(){
       issuedAt: issuedAt,
     });
     reissueReport.verifyToken = await generateVerifyToken({...reissueReport, issuedAt});
-    await supaFetch('reports','POST',{id:newNo, data:reissueReport, updated_at:issuedAt}).catch(e=>{});
+    await supaFetch('reports','POST',{id:newNo, data:reissueReport, updated_at:nowTs}).catch(e=>{});
 
     const snapshot = original.preReissueSnapshot;
     const restored = Object.assign({}, snapshot||original, { reissueCount: nextNum, preReissueSnapshot: null, reissueConfirmed: false });
     reports[idx] = restored;
     setReports(reports);
-    await supaFetch('reports','POST',{id:originalId, data:restored, updated_at:new Date().toISOString()}).catch(e=>{});
+    await supaFetch('reports','POST',{id:originalId, data:restored, updated_at:nowTs}).catch(e=>{});
 
     renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
     await loadReport(reissueReport);
@@ -4122,20 +4127,15 @@ async function issueReport(){
     return;
   }
 
-  // 수정요청 승인 후 "재발행 아니오"를 고른 경우는 새 발행이 아니라 같은 문서를 그대로
-  // 다시 잠그는 것뿐이므로, 발행일을 지금 시각으로 되돌리지 않고 원래 발행일을 유지한다.
-  const keepOriginalIssuedAt = isReissuable && reports[idx].issuedAt;
-  const effectiveIssuedAt = keepOriginalIssuedAt || issuedAt;
   reports[idx].issued = true;
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
-  reports[idx].issuedAt = effectiveIssuedAt;
-  setVal('issuedDateDisplay', effectiveIssuedAt.slice(0,10));
+  reports[idx].issuedAt = issuedAt;
   if(isReissuable){ reports[idx].reissuePending = false; reports[idx].reissueConfirmed = false; }
   reports[idx].displayNo = null;
-  reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt:effectiveIssuedAt});
+  reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
   setReports(reports);
-  await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:issuedAt}).catch(e=>{});
+  await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:nowTs}).catch(e=>{});
   // 연결된 의뢰서가 submitted 상태이면 processing으로 자동 전환 (뱃지 오작동 방지)
   const _rno = reports[idx].receiptNo||'';
   if(_rno){
@@ -4208,6 +4208,11 @@ async function approveUnlock(id){
   // 할지, 그냥 같은 번호로 덮어쓸지. 나중에 "발행완료/재발행하기" 버튼을 누를 때는
   // 다시 묻지 않고 여기서 정한 대로 처리한다.
   reports[idx].reissueConfirmed = confirm('성적서 잠금이 해제되었습니다.\n수정 후 재발행하시겠습니까?\n(확인: 수정본을 새 번호(R1 등)로 별도 발행 / 취소: 같은 번호로 그대로 발행)');
+  if(reports[idx].reissueConfirmed){
+    // 재발행본은 완전히 새로 발행하는 문서이므로, 발행일을 비워서 직접 입력하게 한다.
+    reports[idx].issuedAt = null;
+    setVal('issuedDateDisplay', '');
+  }
   setReports(reports);
   await supaFetch('reports','POST',{id, data:reports[idx], updated_at:new Date().toISOString()}).catch(e=>{});
   renderList(); renderUnlockRequests(); updateUnlockBadge(); renderPdfStore();
