@@ -613,6 +613,7 @@ button,input,select{font:inherit}
                 </div>
               </label>
               <label>접수일자<input id="receivedDate" type="date"></label>
+              <label>발행일<input id="issuedDateDisplay" readonly placeholder="발행 시 자동 입력됩니다" style="background:#f5f5f5;color:#555;cursor:default"></label>
               <label>의뢰자<input id="requestDept" placeholder=""></label>
               <label>시료명
                 <div style="display:flex;align-items:center;gap:8px">
@@ -2879,6 +2880,7 @@ function newReport(){
     if(companyFields.includes(id)) setVal(id, savedCompany[id]);
     else setVal(id, base[id]||'');
   });
+  setVal('issuedDateDisplay', '');
   // 작성자 서명 적용 — setVal로 tester 값이 확정된 뒤 호출
   if(window._applyTesterSign){ const tsel=document.getElementById('tester'); if(tsel) window._applyTesterSign(tsel.value); }
   const tbody=$('testTable').querySelector('tbody'); tbody.innerHTML='';
@@ -4123,6 +4125,7 @@ async function issueReport(){
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
+  setVal('issuedDateDisplay', issuedAt.slice(0,10).replace(/-/g,'.'));
   if(isReissuable){ reports[idx].reissuePending = false; reports[idx].reissueConfirmed = false; }
   reports[idx].displayNo = null;
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
@@ -5723,6 +5726,7 @@ async function loadReport(r){
   currentId=r.id;
   _reportIsSubReport = !!r.isSubReport;
   fields.forEach(id=>setVal(id,r[id]||''));
+  setVal('issuedDateDisplay', r.issued && r.issuedAt ? r.issuedAt.slice(0,10).replace(/-/g,'.') : '');
   setVal('companyName','일룸수면과학연구소');
   const _showLogoChk=document.getElementById('showLogoChk');
   if(_showLogoChk) _showLogoChk.checked=!!r.showLogo;
