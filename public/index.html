@@ -613,7 +613,7 @@ button,input,select{font:inherit}
                 </div>
               </label>
               <label>접수일자<input id="receivedDate" type="date"></label>
-              <label>발행일<input id="issuedDateDisplay" readonly placeholder="발행 시 자동 입력됩니다" style="background:#f5f5f5;color:#555;cursor:default"></label>
+              <label>발행일<input id="issuedDateDisplay" type="date"></label>
               <label>의뢰자<input id="requestDept" placeholder=""></label>
               <label>시료명
                 <div style="display:flex;align-items:center;gap:8px">
@@ -2196,7 +2196,7 @@ function bindInputs(){
     // collectReport()는 form값만 수집 → 저장된 issued/verifyToken/issuedAt 병합
     if(currentId){
       const _stored=getReports().find(function(x){return x.id===currentId;});
-      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
+      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; if(!r.issuedAt) r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
     }
     // 발행완료 성적서는 저장 없이 출력 가능, 그 외는 저장 필요
     if(!_reportIsIssued && (_hasUnsaved || !currentId)){
@@ -2236,7 +2236,7 @@ function bindInputs(){
     let r=collectReport();
     if(currentId){
       const _stored=getReports().find(function(x){return x.id===currentId;});
-      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
+      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; if(!r.issuedAt) r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
     }
     if(!_reportIsIssued && (_hasUnsaved || !currentId)){
       alert('저장을 해주세요.\n저장 버튼을 누른 후 KOLAS 성적서 출력이 가능합니다.');
@@ -2267,7 +2267,7 @@ function bindInputs(){
     let r=collectReport();
     if(currentId){
       const _stored=getReports().find(function(x){return x.id===currentId;});
-      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
+      if(_stored){ r.issued=_stored.issued; r.verifyToken=_stored.verifyToken; if(!r.issuedAt) r.issuedAt=_stored.issuedAt; r.reportStatus=_stored.reportStatus; }
     }
     if(!_reportIsIssued && (_hasUnsaved || !currentId)){
       alert('저장을 해주세요.\n저장 버튼을 누른 후 워드파일 저장이 가능합니다.');
@@ -3025,6 +3025,8 @@ function collectReport(autoSaved){
   const id = currentId || (receiptNo ? receiptNo : crypto.randomUUID());
   const _u=getCurUser(); const data={id:id,savedAt:new Date().toISOString(),autoSaved:!!autoSaved,lastSavedBy:_u.name||_u.id||'',lastSavedById:_u.id||'',image:sampleImageData,testerSign:testerSignData,techSign:techSignData,qualitySign:qualitySignData,tests:collectTests(),detailData:getDetailData()};
   fields.forEach(function(fid){data[fid]=val(fid);});
+  const _issuedDateVal = val('issuedDateDisplay');
+  if(_issuedDateVal) data.issuedAt = _issuedDateVal;
   const me=document.getElementById('sampleMaterials');
   data.materials=me&&me.dataset.materials?JSON.parse(me.dataset.materials):[];
   data.chk_kolas=document.getElementById('req_chk_kolas')?.checked||false;
@@ -4124,7 +4126,7 @@ async function issueReport(){
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
   reports[idx].issuedAt = issuedAt;
-  setVal('issuedDateDisplay', issuedAt.slice(0,10).replace(/-/g,'.'));
+  setVal('issuedDateDisplay', issuedAt.slice(0,10));
   if(isReissuable){ reports[idx].reissuePending = false; reports[idx].reissueConfirmed = false; }
   reports[idx].displayNo = null;
   reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
@@ -5725,7 +5727,7 @@ async function loadReport(r){
   currentId=r.id;
   _reportIsSubReport = !!r.isSubReport;
   fields.forEach(id=>setVal(id,r[id]||''));
-  setVal('issuedDateDisplay', r.issued && r.issuedAt ? r.issuedAt.slice(0,10).replace(/-/g,'.') : '');
+  setVal('issuedDateDisplay', r.issuedAt ? r.issuedAt.slice(0,10) : '');
   setVal('companyName','일룸수면과학연구소');
   const _showLogoChk=document.getElementById('showLogoChk');
   if(_showLogoChk) _showLogoChk.checked=!!r.showLogo;
@@ -5849,7 +5851,9 @@ async function saveReport(silent=false){
     const _existing = getReports().find(x=>x.id===r.id);
     if(_existing){
       r.issued = _existing.issued; r.locked = _existing.locked; r.verifyToken = _existing.verifyToken;
-      r.issuedAt = _existing.issuedAt; r.reportStatus = _existing.reportStatus;
+      // issuedAt(발행일)은 이제 화면에서 직접 수정 가능하므로 여기서 기존 값으로 덮어쓰지 않는다
+      if(!r.issuedAt) r.issuedAt = _existing.issuedAt;
+      r.reportStatus = _existing.reportStatus;
       r.unlockRequest = _existing.unlockRequest; r.unlockHistory = _existing.unlockHistory;
     }
     // 이미지 별도 localStorage 저장 (Supabase 실패 시 fallback용)
