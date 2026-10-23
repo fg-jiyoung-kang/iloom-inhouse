@@ -4272,6 +4272,7 @@ function renderPdfStore(){
       +'<span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:5px;padding:2px 7px;font-weight:700">✔ 발행완료</span></div>'
       +'<div style="font-size:12px;color:#374151;margin-top:3px">'+esc(r.sampleName||'')+(r.sampleName&&r.issuedDate?' · ':'')+esc(r.issuedDate?r.issuedDate.replace(/-/g,'.'):'')+'</div>'
       +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">🕐 발행완료: '+fmtD(r.savedAt||r.updated_at||'')+'</div>'
+      +(r.isReissueReport?'<div style="font-size:11px;color:#7c3aed;margin-top:2px;font-weight:700">🔄 재발행일: '+fmtD(r.issuedAt||'')+'</div>':'')
       +'</div>';
     const btnWrap=document.createElement('div');
     btnWrap.style.cssText='display:flex;gap:6px;flex-shrink:0;flex-direction:column;align-items:flex-end';
@@ -4483,9 +4484,11 @@ function renderList(page){
     let statusBadge;
     if(!isIssued){ statusBadge='<span style="font-size:10px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">작성중</span>'; }
     else { const _rs=r.reportStatus||'issued'; if(_rs==='submitted') statusBadge='<span style="font-size:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">📤 제출중</span>'; else if(_rs==='completed') statusBadge='<span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">✔ 발행완료</span>'; else statusBadge='<span style="font-size:10px;background:#fef9c3;color:#854d0e;border:1px solid #fde68a;border-radius:5px;padding:2px 7px;font-weight:700;vertical-align:middle">발행됨</span>'; }
+    const reissueDateStr = r.isReissueReport ? '<div style="font-size:11px;color:#7c3aed;margin-top:2px;font-weight:700">🔄 재발행일: '+(r.issuedAt?fmtKST(r.issuedAt,true):'-')+'</div>' : '';
     info.innerHTML='<div style="font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px">'+esc(r.receiptNo||'접수번호 없음')+'&nbsp;'+statusBadge+'</div>'
       +'<div style="font-size:12px;color:#6b7280;margin-top:2px">'+esc(r.sampleName||'')+' · '+fmt(r.issuedDate)+'</div>'
-      +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">🕐 '+savedStr+isAutoSave+savedByStr+'</div>';
+      +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">🕐 '+savedStr+isAutoSave+savedByStr+'</div>'
+      +reissueDateStr;
     const btn=document.createElement('button');
     if(isIssued){
       btn.textContent='📄 열어보기';
