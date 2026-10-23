@@ -4122,14 +4122,18 @@ async function issueReport(){
     return;
   }
 
+  // 수정요청 승인 후 "재발행 아니오"를 고른 경우는 새 발행이 아니라 같은 문서를 그대로
+  // 다시 잠그는 것뿐이므로, 발행일을 지금 시각으로 되돌리지 않고 원래 발행일을 유지한다.
+  const keepOriginalIssuedAt = isReissuable && reports[idx].issuedAt;
+  const effectiveIssuedAt = keepOriginalIssuedAt || issuedAt;
   reports[idx].issued = true;
   reports[idx].locked = true;
   reports[idx].reportStatus = 'issued';
-  reports[idx].issuedAt = issuedAt;
-  setVal('issuedDateDisplay', issuedAt.slice(0,10));
+  reports[idx].issuedAt = effectiveIssuedAt;
+  setVal('issuedDateDisplay', effectiveIssuedAt.slice(0,10));
   if(isReissuable){ reports[idx].reissuePending = false; reports[idx].reissueConfirmed = false; }
   reports[idx].displayNo = null;
-  reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt});
+  reports[idx].verifyToken = await generateVerifyToken({...reports[idx], issuedAt:effectiveIssuedAt});
   setReports(reports);
   await supaFetch('reports','POST',{id:currentId, data:reports[idx], updated_at:issuedAt}).catch(e=>{});
   // 연결된 의뢰서가 submitted 상태이면 processing으로 자동 전환 (뱃지 오작동 방지)
