@@ -636,7 +636,6 @@ button,input,select{font:inherit}
             <!-- 성적서 서명란용 hidden 필드 -->
             <label style="display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px;color:#374151">작성자
               <select id="tester" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer">
-                <option value="이용희">이용희</option>
                 <option value="양지운">양지운</option>
                 <option value="강지영">강지영</option>
                 <option value="장성진">장성진</option>
@@ -800,8 +799,7 @@ button,input,select{font:inherit}
               <label>작성부서<input id="ec_department" value="일룸 매트리스사업부 품질보증팀" readonly style="background:#f5f5f5;color:#555;cursor:default"></label>
               <label>작성자
                 <select id="ec_author" style="border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;font:inherit;cursor:pointer">
-                  <option value="이용희">이용희</option>
-                  <option value="양지운">양지운</option>
+                    <option value="양지운">양지운</option>
                   <option value="강지영">강지영</option>
                   <option value="장성진">장성진</option>
                 </select>
@@ -2875,7 +2873,7 @@ function newReport(){
   const companyFields=['companyName','companyAddress','companyTel','companyFax','companyWeb'];
   const savedCompany={};
   companyFields.forEach(id=>{ savedCompany[id]=val(id); });
-  const base={receiptNo:'',purpose:'내부 품질 관리용',receivedDate:'',issuedDate:'',requestDept:'',sampleName:'',colorInfo:'',brand:'',tester:'이용희',techManager:'강지영',qualityManager:'장성진',reportTitle:'IN HOUSE TEST REPORT',colorChange:'',staining:'',lengthBefore:'',lengthAfter:'',widthBefore:'',widthAfter:'',pillingResult:'',appearanceResult:'',remarkNote:''};
+  const base={receiptNo:'',purpose:'내부 품질 관리용',receivedDate:'',issuedDate:'',requestDept:'',sampleName:'',colorInfo:'',brand:'',tester:'',techManager:'강지영',qualityManager:'장성진',reportTitle:'IN HOUSE TEST REPORT',colorChange:'',staining:'',lengthBefore:'',lengthAfter:'',widthBefore:'',widthAfter:'',pillingResult:'',appearanceResult:'',remarkNote:''};
   fields.forEach(id=>{
     if(companyFields.includes(id)) setVal(id, savedCompany[id]);
     else setVal(id, base[id]||'');
@@ -6816,7 +6814,7 @@ function ec_fillForm(rec){
   ec_currentId = rec.id;
   $('ec_docNo').value = rec.docNo || '';
   $('ec_createdDate').value = rec.createdDate || '';
-  $('ec_author').value = rec.author || '이용희';
+  $('ec_author').value = rec.author || '';
   $('ec_targetProduct').value = rec.targetProduct || '퍼시스 매트리스 (제조 : 일룸)';
   $('ec_targetFabric').value = rec.targetFabric || '';
   $('ec_testAgency').value = rec.testAgency || '';
@@ -6867,7 +6865,7 @@ async function ec_newForm(){
   ec_currentId = null;
   $('ec_docNo').value = '생성 중...';
   $('ec_createdDate').value = new Date().toISOString().slice(0,10);
-  $('ec_author').value = '이용희';
+  $('ec_author').value = '';
   $('ec_targetProduct').value = '퍼시스 매트리스 (제조 : 일룸)';
   $('ec_targetFabric').value = '';
   $('ec_testAgency').value = '';
