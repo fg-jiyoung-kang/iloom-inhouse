@@ -276,11 +276,11 @@ async function saveAccount(id, data) {
   );
 }
 // 로그인 시도 기록 (성공/실패 모두). 기록 실패는 로그인 자체를 막지 않는다.
-async function recordLogin(accountId, success, ip, userAgent) {
+async function recordLogin(accountId, success, ip, userAgent, source) {
   try {
     await pool.query(
-      'INSERT INTO login_log (account_id, success, ip, user_agent) VALUES ($1, $2, $3, $4)',
-      [accountId || null, !!success, ip || null, userAgent || null]
+      'INSERT INTO login_log (account_id, success, ip, user_agent, source) VALUES ($1, $2, $3, $4, $5)',
+      [accountId || null, !!success, ip || null, userAgent || null, source || null]
     );
   } catch (e) {
     console.warn('[login_log] 기록 실패:', e.message);
@@ -332,11 +332,11 @@ function hashCode(code) {
 }
 
 // ── 활동 기록 (생성·수정·발행·잠금·수정요청·삭제·출력) ──────
-async function logActivity(accountId, action, targetTable, targetId, detail) {
+async function logActivity(accountId, action, targetTable, targetId, detail, source, ip) {
   try {
     await pool.query(
-      'INSERT INTO activity_log (account_id, action, target_table, target_id, detail) VALUES ($1,$2,$3,$4,$5)',
-      [accountId || null, action, targetTable || null, targetId || null, detail || null]
+      'INSERT INTO activity_log (account_id, action, target_table, target_id, detail, source, ip) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [accountId || null, action, targetTable || null, targetId || null, detail || null, source || null, ip || null]
     );
   } catch (e) {
     console.warn('[activity_log] 기록 실패:', e.message);
@@ -398,6 +398,7 @@ app.post('/api/login', async (req, res) => {
   if (!id || !pw) return res.status(400).json({ error: 'MISSING', message: '아이디와 비밀번호를 입력해주세요.' });
   const ip = clientIp(req);
   const ua = req.headers['user-agent'] || '';
+  const source = req.headers.host || '';
   const key = loginKey(req, id);
   const wait = loginLocked(key);
   if (wait) {
@@ -410,14 +411,14 @@ app.post('/api/login', async (req, res) => {
     const row = await getAccountRow(id);
     if (!row) {
       loginFailed(key);
-      recordLogin(id, false, ip, ua);
+      recordLogin(id, false, ip, ua, source);
       return res.status(401).json({ error: 'BAD_CREDENTIALS', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
     const data = row.data || {};
     const v = verifyPw(pw, data.pw);
     if (!v.ok) {
       loginFailed(key);
-      recordLogin(id, false, ip, ua);
+      recordLogin(id, false, ip, ua, source);
       return res.status(401).json({ error: 'BAD_CREDENTIALS', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
     if (v.needsUpgrade) {
@@ -425,7 +426,7 @@ app.post('/api/login', async (req, res) => {
       await saveAccount(id, data);
     }
     loginSucceeded(key);
-    recordLogin(id, true, ip, ua);
+    recordLogin(id, true, ip, ua, source);
     // 비밀번호만으로 바로 로그인시키지 않고, 관리자 이메일로 인증번호를 보낸 뒤
     // 관리자가 알려준 코드를 입력해야 로그인이 완료된다 (ADMIN_2FA_EMAIL 설정 시에만).
     if (ADMIN_2FA_EMAIL) {
@@ -746,7 +747,7 @@ app.post('/api/track-print', requireLogin, async (req, res) => {
   const kind = String((req.body && req.body.kind) || 'unknown').trim();
   const targetId = String((req.body && req.body.targetId) || '').trim();
   const label = String((req.body && req.body.label) || '').trim();
-  await logActivity(req.user.id, 'print_' + kind, 'reports', targetId || null, label || null);
+  await logActivity(req.user.id, 'print_' + kind, 'reports', targetId || null, label || null, req.headers.host, clientIp(req));
   res.json({ ok: true });
 });
 

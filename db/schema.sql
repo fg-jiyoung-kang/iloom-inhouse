@@ -40,9 +40,11 @@ CREATE TABLE IF NOT EXISTS login_log (
   success    boolean NOT NULL,
   ip         text,
   user_agent text,
+  source     text, -- 접속 도메인(사내 서버 vs Vercel 등 어느 배포로 들어왔는지 구분)
   created_at timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_login_log_created_at ON login_log (created_at DESC);
+ALTER TABLE login_log ADD COLUMN IF NOT EXISTS source text;
 
 -- 로그인 2차 인증(이메일) 대기 코드 — 계정당 1개, 새로 요청하면 덮어쓴다
 CREATE TABLE IF NOT EXISTS login_2fa (
@@ -61,6 +63,10 @@ CREATE TABLE IF NOT EXISTS activity_log (
   target_table text,
   target_id    text,
   detail       text,
+  source       text, -- 접속 도메인(출력/다운로드 등 활동이 어느 배포에서 일어났는지)
+  ip           text,
   created_at   timestamptz DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log (created_at DESC);
+ALTER TABLE activity_log ADD COLUMN IF NOT EXISTS source text;
+ALTER TABLE activity_log ADD COLUMN IF NOT EXISTS ip text;
