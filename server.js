@@ -26,14 +26,6 @@ types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
 const app = express();
 const PORT = Number(process.env.PORT || 8080);
 const TABLES = ['reports', 'requests', 'accounts', 'settings', 'extcerts'];
-// index.html의 ADMIN_IDS와 동일 — 성적서 삭제·잠금해제·계정 관리 등 최종권한 기준.
-// jiyoung_kang 본인 계정이 잠길 경우를 대비한 비상용 백업 관리자로 guest_1도 포함한다.
-const ADMIN_IDS = ['jiyoung_kang', 'guest_1'];
-// 로그인/세션 조회 시 DB의 role 값과 상관없이, 위 계정들은 항상 관리자 권한으로 취급한다.
-function resolveRole(id, data) {
-  if (ADMIN_IDS.includes(id)) return '관리자';
-  return (data && data.role) || '시험원';
-}
 const SIGNKEY_ROW_ID = '__session_secret';   // 서명키를 보관하는 설정 행 이름(값 자체는 실행 중에 자동 생성)
 const SESSION_COOKIE = 'iloom_sess';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12시간
@@ -49,32 +41,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// 서버 전체 잠금 — SERVER_LOCKED=1 환경변수가 설정된 배포(예: 개인 Vercel)만 완전히
-// 막는다. 같은 코드를 쓰는 다른 배포(사내 서버 등)는 이 값이 없으면 평소처럼 동작한다.
-if (process.env.SERVER_LOCKED === '1') {
-  app.use((req, res) => {
-    res.status(503).send(
-      '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>서버 닫힘</title>' +
-      '<meta name="viewport" content="width=device-width, initial-scale=1"></head>' +
-      '<body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f8fafc;color:#1f2937;text-align:center;padding:20px">' +
-      '<div><h1 style="font-size:20px">이 서버는 더 이상 운영하지 않습니다</h1>' +
-      '<p style="color:#6b7280">사내 시스템(iloom-inhouse.app2.hub.fursys.com)을 이용해주세요.</p></div>' +
-      '</body></html>'
-    );
-  });
-}
-
 // 로그인 시도 제한 (같은 아이디·접속지에서 연속 실패가 쌓이면 잠시 막는다)
 const LOGIN_MAX_FAILS = 10;
 const LOGIN_LOCK_MS = 5 * 60 * 1000;
 const loginFails = new Map();
-function clientIp(req) {
-  const fwd = req.headers['x-forwarded-for'];
-  if (fwd) return String(fwd).split(',')[0].trim();
-  return req.socket.remoteAddress || '';
-}
 function loginKey(req, id) {
-  return String(id) + '|' + clientIp(req);
+  return String(id) + '|' + (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '');
 }
 function loginLocked(key) {
   const e = loginFails.get(key);
@@ -207,11 +179,11 @@ function clearSessionCookie(res) {
 function requireLogin(req, res, next) {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' });
-  req.user = { ...s, role: resolveRole(s.id, s) };
+  req.user = s;
   next();
 }
 function requireAdmin(req, res, next) {
-  if (req.user && (req.user.role === '관리자' || ADMIN_IDS.includes(req.user.id))) return next();
+  if (req.user && req.user.role === '관리자') return next();
   return res.status(403).json({ error: 'FORBIDDEN', message: '관리자만 할 수 있습니다.' });
 }
 
@@ -275,17 +247,6 @@ async function saveAccount(id, data) {
     [id, toJsonParam(data)]
   );
 }
-// 로그인 시도 기록 (성공/실패 모두). 기록 실패는 로그인 자체를 막지 않는다.
-async function recordLogin(accountId, success, ip, userAgent, source) {
-  try {
-    await pool.query(
-      'INSERT INTO login_log (account_id, success, ip, user_agent, source) VALUES ($1, $2, $3, $4, $5)',
-      [accountId || null, !!success, ip || null, userAgent || null, source || null]
-    );
-  } catch (e) {
-    console.warn('[login_log] 기록 실패:', e.message);
-  }
-}
 // 비밀번호를 뺀 형태로만 브라우저에 보낸다
 function publicAccount(data) {
   const out = Object.assign({}, data || {});
@@ -293,89 +254,6 @@ function publicAccount(data) {
   delete out.pw;
   out.hasPassword = had;
   return out;
-}
-
-// ── 로그인 2차 인증 (이메일) ─────────────────────────────
-// 모든 계정의 로그인 인증번호를 전부 관리자(강지영) 이메일 한 곳으로만 보낸다.
-// 본인이 코드를 받아서 로그인 시도한 사람에게 직접 알려주는 방식 — 관리자 승인 없이는
-// 어떤 계정으로도 로그인할 수 없다.
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-const ADMIN_2FA_EMAIL = process.env.ADMIN_2FA_EMAIL || '';
-const TWOFA_TTL_MS = 5 * 60 * 1000; // 5분
-const TWOFA_MAX_ATTEMPTS = 5;
-
-async function sendEmail(to, subject, html) {
-  if (!RESEND_API_KEY) {
-    console.warn('[2fa] RESEND_API_KEY가 없어 이메일을 보내지 못했습니다.');
-    return false;
-  }
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: EMAIL_FROM, to: [to], subject: subject, html: html }),
-    });
-    if (!res.ok) {
-      console.error('[2fa] 이메일 발송 실패:', res.status, await res.text().catch(() => ''));
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.error('[2fa] 이메일 발송 오류:', e.message);
-    return false;
-  }
-}
-
-function hashCode(code) {
-  return crypto.createHash('sha256').update(String(code)).digest('hex');
-}
-
-// ── 활동 기록 (생성·수정·발행·잠금·수정요청·삭제·출력) ──────
-async function logActivity(accountId, action, targetTable, targetId, detail, source, ip) {
-  try {
-    await pool.query(
-      'INSERT INTO activity_log (account_id, action, target_table, target_id, detail, source, ip) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-      [accountId || null, action, targetTable || null, targetId || null, detail || null, source || null, ip || null]
-    );
-  } catch (e) {
-    console.warn('[activity_log] 기록 실패:', e.message);
-  }
-}
-
-// 성적서는 상태(issued/locked/unlockRequest)가 같은 POST 안에서 같이 바뀌기 때문에,
-// 저장 전후 값을 비교해서 실제로 무슨 일이 있었는지(발행/잠금/수정요청/승인 등) 알아낸다.
-async function logReportActivity(accountId, reportId, before, after) {
-  after = after || {};
-  const label = after.sampleName || after.product || null;
-  if (!before) {
-    await logActivity(accountId, 'report_create', 'reports', reportId, label);
-    return;
-  }
-  let logged = false;
-  if (!before.issued && after.issued) { await logActivity(accountId, 'report_issue', 'reports', reportId, label); logged = true; }
-  if (!before.locked && after.locked) { await logActivity(accountId, 'report_finalize', 'reports', reportId, label); logged = true; }
-  if (!before.unlockRequest && after.unlockRequest) { await logActivity(accountId, 'unlock_request', 'reports', reportId, label); logged = true; }
-  if (before.locked && !after.locked && !after.unlockRequest) { await logActivity(accountId, 'unlock_approve', 'reports', reportId, label); logged = true; }
-  if (!logged) await logActivity(accountId, 'report_update', 'reports', reportId, label);
-}
-
-async function create2faCode(accountId, accountName) {
-  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-  const expiresAt = new Date(Date.now() + TWOFA_TTL_MS);
-  await pool.query(
-    `INSERT INTO login_2fa (account_id, code_hash, expires_at, attempts)
-     VALUES ($1, $2, $3, 0)
-     ON CONFLICT (account_id) DO UPDATE SET code_hash = $2, expires_at = $3, attempts = 0`,
-    [accountId, hashCode(code), expiresAt]
-  );
-  await sendEmail(
-    ADMIN_2FA_EMAIL,
-    '[일룸수면과학연구소] 로그인 시도: ' + accountId,
-    '<p><b>' + accountId + '</b>(' + (accountName || '') + ') 계정으로 로그인 시도가 있었습니다.</p>'
-      + '<p>인증번호는 <b style="font-size:20px">' + code + '</b> 입니다.</p>'
-      + '<p>본인이 확인한 로그인 시도일 때만 이 코드를 알려주세요. 5분 후 만료됩니다.</p>'
-  );
 }
 
 // ══════════════════════════════════════════════════════════
@@ -388,7 +266,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/session', (req, res) => {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'NOT_LOGGED_IN' });
-  res.json({ user: { id: s.id, name: s.name, role: resolveRole(s.id, s) } });
+  res.json({ user: { id: s.id, name: s.name, role: s.role } });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -396,9 +274,6 @@ app.post('/api/login', async (req, res) => {
   const id = String((req.body && req.body.id) || '').trim();
   const pw = String((req.body && req.body.pw) || '');
   if (!id || !pw) return res.status(400).json({ error: 'MISSING', message: '아이디와 비밀번호를 입력해주세요.' });
-  const ip = clientIp(req);
-  const ua = req.headers['user-agent'] || '';
-  const source = req.headers.host || '';
   const key = loginKey(req, id);
   const wait = loginLocked(key);
   if (wait) {
@@ -411,14 +286,12 @@ app.post('/api/login', async (req, res) => {
     const row = await getAccountRow(id);
     if (!row) {
       loginFailed(key);
-      recordLogin(id, false, ip, ua, source);
       return res.status(401).json({ error: 'BAD_CREDENTIALS', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
     const data = row.data || {};
     const v = verifyPw(pw, data.pw);
     if (!v.ok) {
       loginFailed(key);
-      recordLogin(id, false, ip, ua, source);
       return res.status(401).json({ error: 'BAD_CREDENTIALS', message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     }
     if (v.needsUpgrade) {
@@ -426,56 +299,12 @@ app.post('/api/login', async (req, res) => {
       await saveAccount(id, data);
     }
     loginSucceeded(key);
-    recordLogin(id, true, ip, ua, source);
-    // 비밀번호만으로 바로 로그인시키지 않고, 관리자 이메일로 인증번호를 보낸 뒤
-    // 관리자가 알려준 코드를 입력해야 로그인이 완료된다 (ADMIN_2FA_EMAIL 설정 시에만).
-    if (ADMIN_2FA_EMAIL) {
-      await create2faCode(id, data.name);
-      return res.json({ need2fa: true });
-    }
-    // (예전에는 이메일 2차 인증이 꺼져있을 때 비밀번호를 1회용으로 취급했으나,
-    // 관리자 세션이 하나도 없을 때 전원이 순차적으로 잠기는 문제가 있어 제거함 — 2026-10-19)
-    const user = { id: data.id || id, name: data.name || id, role: resolveRole(id, data) };
+    const user = { id: data.id || id, name: data.name || id, role: data.role || '시험원' };
     setSessionCookie(res, user);
     res.json({ user: user });
   } catch (e) {
     console.error('[login]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: '로그인 처리 중 오류가 났습니다.' });
-  }
-});
-
-// 2차 인증 코드 확인 — 성공하면 그제서야 세션 쿠키 발급
-app.post('/api/login/verify-code', async (req, res) => {
-  if (!dbReady(res)) return;
-  const id = String((req.body && req.body.id) || '').trim();
-  const code = String((req.body && req.body.code) || '').trim();
-  if (!id || !code) return res.status(400).json({ error: 'MISSING', message: '인증번호를 입력해주세요.' });
-  try {
-    const { rows } = await pool.query('SELECT * FROM login_2fa WHERE account_id = $1', [id]);
-    const rec = rows[0];
-    if (!rec) return res.status(400).json({ error: 'NOT_FOUND', message: '인증번호를 먼저 요청해주세요.' });
-    if (new Date(rec.expires_at).getTime() < Date.now()) {
-      await pool.query('DELETE FROM login_2fa WHERE account_id = $1', [id]);
-      return res.status(400).json({ error: 'EXPIRED', message: '인증번호가 만료되었습니다. 다시 로그인해주세요.' });
-    }
-    if (rec.attempts >= TWOFA_MAX_ATTEMPTS) {
-      await pool.query('DELETE FROM login_2fa WHERE account_id = $1', [id]);
-      return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS', message: '시도 횟수를 초과했습니다. 다시 로그인해주세요.' });
-    }
-    if (!eq(hashCode(code), rec.code_hash)) {
-      await pool.query('UPDATE login_2fa SET attempts = attempts + 1 WHERE account_id = $1', [id]);
-      return res.status(401).json({ error: 'BAD_CODE', message: '인증번호가 올바르지 않습니다.' });
-    }
-    await pool.query('DELETE FROM login_2fa WHERE account_id = $1', [id]);
-    const row = await getAccountRow(id);
-    if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
-    const data = row.data || {};
-    const user = { id: data.id || id, name: data.name || id, role: resolveRole(id, data) };
-    setSessionCookie(res, user);
-    res.json({ user: user });
-  } catch (e) {
-    console.error('[verify-code]', e.message);
-    res.status(500).json({ error: 'SERVER_ERROR', message: '인증 처리 중 오류가 났습니다.' });
   }
 });
 
@@ -490,7 +319,7 @@ app.post('/api/setup-admin', async (req, res) => {
   const id = String((req.body && req.body.id) || '').trim();
   const pw = String((req.body && req.body.pw) || '');
   const name = String((req.body && req.body.name) || '').trim() || id;
-  if (!id || pw.length < 10) return res.status(400).json({ error: 'MISSING', message: '아이디와 10자 이상 비밀번호가 필요합니다.' });
+  if (!id || pw.length < 4) return res.status(400).json({ error: 'MISSING', message: '아이디와 4자 이상 비밀번호가 필요합니다.' });
   try {
     if ((await countAccounts()) > 0) {
       return res.status(409).json({ error: 'ALREADY_SETUP', message: '이미 계정이 있어 최초 설정을 할 수 없습니다.' });
@@ -511,7 +340,7 @@ app.post('/api/change-password', requireLogin, async (req, res) => {
   if (!dbReady(res)) return;
   const curPw = String((req.body && req.body.curPw) || '');
   const newPw = String((req.body && req.body.newPw) || '');
-  if (newPw.length < 10) return res.status(400).json({ error: 'TOO_SHORT', message: '새 비밀번호는 10자 이상이어야 합니다.' });
+  if (newPw.length < 4) return res.status(400).json({ error: 'TOO_SHORT', message: '새 비밀번호는 4자 이상이어야 합니다.' });
   try {
     const row = await getAccountRow(req.user.id);
     if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
@@ -533,7 +362,7 @@ app.post('/api/accounts/set-password', requireLogin, requireAdmin, async (req, r
   if (!dbReady(res)) return;
   const id = String((req.body && req.body.id) || '').trim();
   const newPw = String((req.body && req.body.newPw) || '');
-  if (!id || newPw.length < 10) return res.status(400).json({ error: 'MISSING', message: '아이디와 10자 이상 비밀번호가 필요합니다.' });
+  if (!id || newPw.length < 4) return res.status(400).json({ error: 'MISSING', message: '아이디와 4자 이상 비밀번호가 필요합니다.' });
   try {
     const row = await getAccountRow(id);
     if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
@@ -543,29 +372,6 @@ app.post('/api/accounts/set-password', requireLogin, requireAdmin, async (req, r
     res.json({ ok: true });
   } catch (e) {
     console.error('[set-password]', e.message);
-    res.status(500).json({ error: 'SERVER_ERROR', message: '변경 중 오류가 났습니다.' });
-  }
-});
-
-// 로그인 2차 인증용 이메일 지정 (관리자만). 빈 값으로 보내면 2차 인증을 끈다.
-app.post('/api/accounts/set-email', requireLogin, requireAdmin, async (req, res) => {
-  if (!dbReady(res)) return;
-  const id = String((req.body && req.body.id) || '').trim();
-  const email = String((req.body && req.body.email) || '').trim();
-  if (!id) return res.status(400).json({ error: 'MISSING', message: '아이디가 필요합니다.' });
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'BAD_EMAIL', message: '이메일 형식이 올바르지 않습니다.' });
-  }
-  try {
-    const row = await getAccountRow(id);
-    if (!row) return res.status(404).json({ error: 'NOT_FOUND', message: '계정을 찾을 수 없습니다.' });
-    const data = row.data || {};
-    if (email) data.email = email;
-    else delete data.email;
-    await saveAccount(id, data);
-    res.json({ ok: true });
-  } catch (e) {
-    console.error('[set-email]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: '변경 중 오류가 났습니다.' });
   }
 });
@@ -580,24 +386,6 @@ app.get('/api/accounts', requireLogin, async (req, res) => {
     res.json(rows.map((r) => ({ id: r.id, data: publicAccount(r.data), updated_at: r.updated_at })));
   } catch (e) {
     console.error('[accounts:get]', e.message);
-    res.status(500).json({ error: 'SERVER_ERROR' });
-  }
-});
-
-// 로그인 기록 조회 (관리자만) — 최근 300건
-app.get('/api/login-log', requireLogin, requireAdmin, async (req, res) => {
-  if (!dbReady(res)) return;
-  try {
-    const { rows } = await pool.query(
-      `SELECT l.id, l.account_id, l.success, l.ip, l.user_agent, l.created_at, a.data->>'name' AS account_name
-       FROM login_log l
-       LEFT JOIN accounts a ON a.id = l.account_id
-       ORDER BY l.created_at DESC
-       LIMIT 300`
-    );
-    res.json(rows);
-  } catch (e) {
-    console.error('[login-log:get]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR' });
   }
 });
@@ -623,7 +411,7 @@ app.post('/api/accounts', requireLogin, requireAdmin, async (req, res) => {
     else if (prevData.signature !== undefined) data.signature = prevData.signature;
     // 기존 비밀번호는 보존 — 새 값이 왔을 때만 바꾼다
     if (newPw) {
-      if (newPw.length < 10) return res.status(400).json({ error: 'TOO_SHORT', message: '비밀번호는 10자 이상이어야 합니다.' });
+      if (newPw.length < 4) return res.status(400).json({ error: 'TOO_SHORT', message: '비밀번호는 4자 이상이어야 합니다.' });
       data.pw = hashPw(newPw);
     } else if (prevData.pw) {
       data.pw = prevData.pw;
@@ -718,52 +506,16 @@ app.post('/api/:table(reports|requests|settings|extcerts)', requireLogin, async 
   const id = String(body.id || '').trim();
   if (!id) return res.status(400).json({ error: 'MISSING_ID' });
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
-  const isOwner = ADMIN_IDS.includes(req.user.id);
   try {
-    const existingRow = await pool.query(`SELECT data FROM ${table} WHERE id = $1`, [id]);
-    const before = (existingRow.rows[0] && existingRow.rows[0].data) || null;
-    // 성적서가 "최종발행완료(잠금)" 상태면, 최종관리자가 아닌 한 서버에서도 덮어쓰기를 막는다
-    // (화면에서만 막던 걸 뒷단으로 직접 요청을 보내는 경우까지 막음, 화면 쪽 ADMIN_IDS 기준과 동일)
-    if (table === 'reports' && !isOwner && before && before.locked) {
-      return res.status(403).json({ error: 'LOCKED', message: '최종발행완료된 성적서는 수정할 수 없습니다.' });
-    }
     await pool.query(
       `INSERT INTO ${table} (id, data, updated_at) VALUES ($1, $2, now())
        ON CONFLICT (id) DO UPDATE SET data = $2, updated_at = now()`,
       [id, toJsonParam(body.data)]
     );
-    if (table === 'reports') await logReportActivity(req.user.id, id, before, body.data);
-    else await logActivity(req.user.id, before ? 'update' : 'create', table, id, null);
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':post]', e.message);
     res.status(500).json({ error: 'SERVER_ERROR', message: e.message });
-  }
-});
-
-// 성적서 PDF/워드 출력(다운로드)을 기록한다
-app.post('/api/track-print', requireLogin, async (req, res) => {
-  if (!dbReady(res)) return;
-  const kind = String((req.body && req.body.kind) || 'unknown').trim();
-  const targetId = String((req.body && req.body.targetId) || '').trim();
-  const label = String((req.body && req.body.label) || '').trim();
-  await logActivity(req.user.id, 'print_' + kind, 'reports', targetId || null, label || null, req.headers.host, clientIp(req));
-  res.json({ ok: true });
-});
-
-// 활동 기록 조회 (관리자만) — 최근 500건
-app.get('/api/activity-log', requireLogin, requireAdmin, async (req, res) => {
-  if (!dbReady(res)) return;
-  try {
-    const { rows } = await pool.query(
-      `SELECT a.id, a.account_id, a.action, a.target_table, a.target_id, a.detail, a.created_at, acc.data->>'name' AS account_name
-       FROM activity_log a LEFT JOIN accounts acc ON acc.id = a.account_id
-       ORDER BY a.created_at DESC LIMIT 500`
-    );
-    res.json(rows);
-  } catch (e) {
-    console.error('[activity-log:get]', e.message);
-    res.status(500).json({ error: 'SERVER_ERROR' });
   }
 });
 
@@ -774,13 +526,8 @@ app.delete('/api/:table(reports|requests|settings|extcerts)', requireLogin, asyn
   const id = String(req.query.id || '').trim();
   if (!id) return res.status(400).json({ error: 'MISSING_ID' });
   if (table === 'settings' && id.startsWith('__')) return res.status(400).json({ error: 'RESERVED_ID' });
-  // 성적서 삭제는 최종관리자만 (화면 쪽 ADMIN_IDS 기준과 동일)
-  if (table === 'reports' && !ADMIN_IDS.includes(req.user.id)) {
-    return res.status(403).json({ error: 'FORBIDDEN', message: '성적서 삭제는 관리자만 할 수 있습니다.' });
-  }
   try {
     await pool.query(`DELETE FROM ${table} WHERE id = $1`, [id]);
-    await logActivity(req.user.id, 'delete', table, id, null);
     res.json({ ok: true });
   } catch (e) {
     console.error('[' + table + ':delete]', e.message);
